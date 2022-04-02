@@ -134,4 +134,4 @@ variables.ts
 variables.d.ts
 dist
 template.html
-*.json
+.clasp.json
