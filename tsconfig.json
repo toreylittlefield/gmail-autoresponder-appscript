@@ -24,8 +24,8 @@
     // "suppressImplicitAnyIndexErrors": false,
 
     // Enable latest Javascriptt syntax and target V8 engine
-    // "experimentalDecorators": true,
-    // "lib": ["ESNext"],
+    "experimentalDecorators": true,
+    "lib": ["ESNext"],
     // "target": "ES2018",
 
     // Limit use of `export` statements
@@ -43,7 +43,7 @@
     // "noResolve": false,
     // "preserveConstEnums": false,
     // "removeComments": false,
-    // "rootDir": ".",
+    "rootDir": "src/",
     // "sourceMap": false,
     // "stripInternal": false,
 
