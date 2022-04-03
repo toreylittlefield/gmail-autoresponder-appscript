@@ -4,7 +4,7 @@ const TerserPlugin = require('terser-webpack-plugin');
 
 const config = {
   entry: './src/index.ts',
-  watch: true,
+
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
@@ -22,7 +22,7 @@ const config = {
     extensions: ['.ts'],
   },
   optimization: {
-    minimize: true,
+    minimize: false,
     minimizer: [
       new TerserPlugin({
         terserOptions: {
