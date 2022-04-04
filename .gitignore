@@ -130,8 +130,8 @@ dist
 .pnp.*
 
 # local 
-variables.ts
-variables.d.ts
+privatevariables.ts
+privatevariables.d.ts
 dist
 template.html
 .clasp.json
