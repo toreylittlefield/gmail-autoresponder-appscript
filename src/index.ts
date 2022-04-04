@@ -1,75 +1,23 @@
-import { CANNED_MSG_NAME, EMAIL_ACCOUNT, FUNCTION_NAME, LABEL_NAME } from './variables';
+import { sendTemplateEmail, setDraftTemplateAutoResponder } from './email/email';
+import { initSpreadsheet } from './sheets/sheets';
+import { LABEL_NAME } from './variables/publicvariables';
+import { EMAIL_ACCOUNT } from './variables/privatevariables';
 
 // (?:for\W)(.*)(?= at)(?: at\W)(.*) match linkedin email "you applied at..."
 
-/**
- * Creates two time-driven triggers.
- * @see https://developers.google.com/apps-script/guides/triggers/installable#time-driven_triggers
- */
-//@ts-ignore
-function createTimeDrivenTriggers() {
-  // Trigger every 6 hours.
-  ScriptApp.newTrigger(FUNCTION_NAME).timeBased().everyMinutes(1).create();
-  // Trigger every Monday at 09:00.
-  // ScriptApp.newTrigger('AutoResponder').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(9).create();
-}
-
-function setUserProps(props: Record<string, any>) {
-  const userProps = PropertiesService.getUserProperties();
-
-  userProps.setProperties(props);
-}
-
-function getProps(keys: string[]) {
-  const userProps = PropertiesService.getUserProperties();
-  const props: Record<string, any> = {};
-  keys.forEach((key) => {
-    const value = userProps.getProperty(key);
-    props[key] = value;
-  });
-  return props;
-}
-
-function setInitalProps() {
-  const userProps = PropertiesService.getUserProperties();
-
-  if (!userProps.getProperty('subject') || !userProps.getProperty('email')) {
-    setUserProps({ subject: CANNED_MSG_NAME, email: EMAIL_ACCOUNT });
-  }
-}
-
-function setTemplateMsg({ subject, email }: { subject: string; email: string }) {
-  const drafts = GmailApp.getDrafts();
-
-  console.log({ subject, email });
-  drafts.forEach((draft) => {
-    const { getFrom, getSubject, getId } = draft.getMessage();
-    if (subject === getSubject() && getFrom().match(email)) {
-      console.log({ messageId: getId(), draftId: draft.getId() });
-      setUserProps({ messageId: getId(), draftId: draft.getId() });
-    }
-  });
-}
-
-function getDraft() {
-  setInitalProps();
-  const props = getProps(['subject', 'email', 'draftId', 'messageId']);
-  console.log({ props });
-  const { subject, email, draftId, messageId } = props;
-  if (!draftId || !messageId) {
-    setTemplateMsg({ subject, email });
-  }
-  const draft = GmailApp.getDraft(draftId);
-  return draft;
-}
-
 function runScript() {
-  getDraft();
-  AutoResponder();
+  // PropertiesService.getUserProperties().deleteAllProperties();
+  setDraftTemplateAutoResponder();
+  const activeSheet = initSpreadsheet();
+  if (!activeSheet) return;
+  AutoResponder(activeSheet);
+  if (false) {
+    sendTemplateEmail('toreylittlefield@gmail.com', 'Responding To Your Message For: Software Engineer');
+  }
 }
 
 //@ts-expect-error
-function AutoResponder(event?: GoogleAppsScript.Events.TimeDriven) {
+function AutoResponder(activeSheet: GoogleAppsScript.Spreadsheet.Sheet, event?: GoogleAppsScript.Events.TimeDriven) {
   /* The idea is to search for all emails that don't have this label
   and respond to them with a pre-recorded message like any other email client.
   TODO: constrain it to unread emails sent since a set date */
@@ -79,7 +27,7 @@ function AutoResponder(event?: GoogleAppsScript.Events.TimeDriven) {
 
   // Exclude this label:
   // (And creates it if it doesn't exist)
-
+  // return;
   let label = GmailApp.getUserLabelByName(LABEL_NAME);
   // Create label if it doesn't exist
   if (label == null) {
@@ -98,29 +46,106 @@ function AutoResponder(event?: GoogleAppsScript.Events.TimeDriven) {
   // const threads = GmailApp.search(
   //   "-subject:'re:' -is:chats -is:draft has:nouserlabels -label:" + LABEL_NAME + ' to:(' + EMAIL_ACCOUNT + ')'
   // );
-  const threads = GmailApp.search('label:' + 'recruiters-autoresponder' + ' to:(' + EMAIL_ACCOUNT + ')');
+  const threads = GmailApp.search('label:' + 'recruiters-linkedin-recruiters');
+  // + ' to:(' + EMAIL_ACCOUNT + ')');
 
-  threads.forEach((thread) => {
-    // Response
-    // const response_body =
-    //   "Hey there,<br><br>\
-    //   Unfortunately I'm out of the office until the 32nd of Nebuary.<br><br>\
-    // Thanks,<br>\
-    // Jason";
+  const ourEmailDomain = '@' + EMAIL_ACCOUNT.split('@')[1].toString();
+  const hasResponseFromRegex = new RegExp(`${ourEmailDomain}|canned\.response@${ourEmailDomain}`);
 
+  const dataRange = activeSheet.getDataRange();
+  const dataValues = dataRange.getValues().slice(1);
+
+  let salaries: string[] = [];
+  threads.forEach((thread, threadIndex) => {
+    if (threadIndex > 2) return;
     // Respond to email
-    thread.getMessages().forEach((msg) => {
-      console.log(msg.getFrom());
+    const [firstMsg, ...restMsgs] = thread.getMessages();
+
+    const firstMsgId = firstMsg.getId();
+    const indexOfRowFirstMsgId = dataValues.findIndex((row) => {
+      const [msgId] = row;
+      return msgId === firstMsgId;
     });
+
+    restMsgs.forEach((msg) => console.log(msg.getFrom().match(hasResponseFromRegex) || 'false'));
+    const autoResponseMsg = restMsgs.filter((msg) => msg.getFrom().match(hasResponseFromRegex));
+
+    if (indexOfRowFirstMsgId !== -1 && autoResponseMsg.length > 0) {
+      const [
+        emailId,
+        emailDate,
+        fromEmail,
+        replyToEmail,
+        bodyEmails,
+        bodyMsg,
+        salary,
+        emailPermalink,
+        hasEmailResponse,
+      ] = dataValues[indexOfRowFirstMsgId];
+      console.log(
+        emailId,
+        emailDate,
+        fromEmail,
+        replyToEmail,
+        bodyEmails,
+        bodyMsg,
+        salary,
+        emailPermalink,
+        hasEmailResponse
+      );
+      activeSheet
+        .getRange(indexOfRowFirstMsgId + 2, dataValues[indexOfRowFirstMsgId].length)
+        .setValue(autoResponseMsg.map((row) => row.getTo()).toString());
+      return;
+    }
+
+    const from = firstMsg.getFrom();
+
+    const isNoReplyLinkedIn = from.match(/noreply@linkedin\.com/gi);
+    if (isNoReplyLinkedIn) return;
+
+    const body = firstMsg.getPlainBody();
+    const replyTo = firstMsg.getReplyTo();
+    const regexEmail = /([a-zA-Z0-9+._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi;
+    //@ts-ignore
+    const emailFrom = from.match(regexEmail);
+    //@ts-ignore
+
+    const emailsBody = body.match(regexEmail);
+    //@ts-ignore
+
+    const emailReplyTo = replyTo.match(regexEmail);
+    const salaryAmount = body.match(
+      /\$[1-2][0-9][0-9][-\s][1-2][0-9][0-9]|[1-2][0-9][0-9][-\s]\[1-2][0-9][0-9]|[1-2][0-9][0-9]k/gi
+    );
+
+    activeSheet.appendRow([
+      firstMsg.getId(),
+      firstMsg.getDate(),
+      emailFrom ? [...new Set(emailFrom)].toString() : undefined,
+      emailReplyTo ? [...new Set(emailReplyTo)].toString() : undefined,
+      emailsBody ? [...new Set(emailsBody)].toString() : undefined,
+      body,
+      salaryAmount ? salaryAmount.toString() : undefined,
+      thread.getPermalink(),
+      autoResponseMsg ? true : false,
+    ]);
+    const lastRow = activeSheet.getLastRow();
+    // messaging-digest-noreply@linkedin.com
+    // inmail-hit-reply@linkedin.com
+    activeSheet.setRowHeight(lastRow - 1, 21);
+    salaryAmount && salaryAmount.length > 0 ? salaries.push(...Array.from(salaryAmount as string[])) : null;
+
     // thread.reply('', { htmlBody: response_body, from: EMAIL_ACCOUNT });
 
     // Add label to email for exclusion
     // thread.addLabel(label);
   });
+  console.log({ salaries });
 }
 
 /**
- * Performs a useless calculation
+ * Runs The Autoresponder script
  *
  *
  * @customFunction
