@@ -1,4 +1,4 @@
-import { FUNCTION_NAME } from '../variables';
+import { FUNCTION_NAME } from '../variables/publicvariables';
 
 /**
  * Creates two time-driven triggers.
