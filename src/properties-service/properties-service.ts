@@ -1,4 +1,4 @@
-import { CANNED_MSG_NAME, EMAIL_ACCOUNT } from '../variables';
+import { CANNED_MSG_NAME, EMAIL_ACCOUNT } from '../variables/privatevariables';
 
 export function setUserProps(props: Record<string, any>) {
   const userProps = PropertiesService.getUserProperties();
