@@ -1,17 +1,13 @@
 import { getProps, setUserProps } from '../properties-service/properties-service';
-import { SHEET_NAME, SPREADSHEET_NAME } from '../variables';
+import {
+  AUTOMATED_SHEET_HEADERS,
+  AUTOMATED_SHEET_NAME,
+  SENT_SHEET_NAME,
+  SENT_SHEET_NAME_HEADERS,
+  SPREADSHEET_NAME,
+} from '../variables/publicvariables';
 
-const headerValues = [
-  'Email Id',
-  'Date',
-  'From',
-  'ReplyTo',
-  'Body Emails',
-  'Body',
-  'Salary',
-  'Email Permalink',
-  'Has Email Response',
-];
+const tabColors = ['blue', 'green', 'purple'];
 
 function checkExistsOrCreateSpreadsheet() {
   let { spreadsheetId } = getSpreadSheetId();
@@ -28,16 +24,29 @@ function checkExistsOrCreateSpreadsheet() {
   }
 
   if (!spreadsheetId) {
-    const spreadsheet = SpreadsheetApp.create(SPREADSHEET_NAME, 2, headerValues.length);
+    const spreadsheet = SpreadsheetApp.create(SPREADSHEET_NAME, 2, AUTOMATED_SHEET_HEADERS.length);
     const [firstSheet] = spreadsheet.getSheets();
-    firstSheet.setName(SHEET_NAME);
-    firstSheet.setTabColor('blue');
     setUserProps({
       spreadsheetId: spreadsheet.getId(),
-      sheetName: firstSheet.getName(),
-      sheetId: firstSheet.getSheetId().toString(),
     });
+    createSheet(spreadsheet, AUTOMATED_SHEET_NAME, AUTOMATED_SHEET_HEADERS, 'blue');
+    createSheet(spreadsheet, SENT_SHEET_NAME, SENT_SHEET_NAME_HEADERS, 'green');
+    spreadsheet.deleteSheet(firstSheet);
   }
+}
+
+function createSheet(
+  activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet,
+  sheetName: string,
+  headersValues: string[],
+  tabColor?: string
+) {
+  const sheet = activeSS.insertSheet();
+  sheet.setName(sheetName);
+  sheet.setTabColor(tabColor || tabColors.shift() || 'green');
+  writeHeaders(sheet, headersValues);
+  setSheetProtection(sheet, `${sheetName} Protected Range`);
+  setSheetInProps(sheetName, sheet);
 }
 
 function getSpreadSheetId() {
@@ -56,26 +65,26 @@ function setActiveSpreadSheet(ssApp: GoogleAppsScript.Spreadsheet.SpreadsheetApp
   }
 }
 
-function checkIfSheetExists(activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet) {
-  const sheet = activeSS.getSheetByName(SHEET_NAME);
-  if (!sheet) return false;
-  return true;
-}
-
 function findSheetById(sheetId: number | string, activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet) {
   const sheet = activeSS.getSheets().find((sheet) => sheet.getSheetId().toString() === sheetId);
   return sheet;
 }
 
-function getSheet(activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet) {
+function setSheetInProps(sheetName: string, activeSheet: GoogleAppsScript.Spreadsheet.Sheet) {
+  setUserProps({ [sheetName]: activeSheet.getSheetId().toString() });
+}
+
+function getSheet(activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet, sheetName: string) {
   try {
-    const { sheetId } = getProps(['sheetId']);
-    if (checkIfSheetExists(activeSS) === false && !sheetId) {
-      const activeSheet = activeSS.insertSheet(SHEET_NAME);
-      setUserProps({ sheetId: activeSheet.getSheetId().toString(), sheetName: activeSheet.getSheetName() });
+    const [sheetNameProp, sheetIdProp] = Object.entries(getProps([sheetName]))[0];
+
+    const sheet = activeSS.getSheetByName(sheetName);
+    if (!sheet || !sheetNameProp) {
+      const activeSheet = activeSS.insertSheet(sheetName);
+      setSheetInProps(sheetName, activeSheet);
       return activeSheet;
     } else {
-      const sheet = findSheetById(sheetId, activeSS);
+      const sheet = findSheetById(sheetIdProp, activeSS);
       return sheet;
     }
   } catch (error) {
@@ -84,12 +93,12 @@ function getSheet(activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet) {
   }
 }
 
-function getActiveSheet(activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet) {
+function getActiveSheet(activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet, sheetName: string) {
   try {
-    const activeSheet = getSheet(activeSS);
-    if (activeSheet) {
-      activeSS.setActiveSheet(activeSheet);
-      return activeSheet;
+    const sheet = getSheet(activeSS, sheetName);
+    if (sheet) {
+      activeSS.setActiveSheet(sheet);
+      return sheet;
     }
     throw Error(`Cannot Find The Sheet`);
   } catch (error) {
@@ -99,12 +108,12 @@ function getActiveSheet(activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet) {
   }
 }
 
-function getHeaders(activeSheet: GoogleAppsScript.Spreadsheet.Sheet) {
-  const headers = activeSheet.getRange(1, 1, 1, headerValues.length);
+function getHeaders(activeSheet: GoogleAppsScript.Spreadsheet.Sheet, headersValues: string[]) {
+  const headers = activeSheet.getRange(1, 1, 1, headersValues.length);
   return headers.getValues();
 }
 
-function writeHeaders(activeSheet: GoogleAppsScript.Spreadsheet.Sheet) {
+function writeHeaders(activeSheet: GoogleAppsScript.Spreadsheet.Sheet, headerValues: string[]) {
   const headers = activeSheet.getRange(1, 1, 1, headerValues.length);
   headers.setValues([headerValues]);
   activeSheet.setFrozenRows(1);
@@ -122,19 +131,19 @@ function setSheetProtection(activeSheet: GoogleAppsScript.Spreadsheet.Sheet, des
 export function initSpreadsheet() {
   checkExistsOrCreateSpreadsheet();
 
-  const ssApp = SpreadsheetApp;
+  setActiveSpreadSheet(SpreadsheetApp);
 
-  setActiveSpreadSheet(ssApp);
-
-  const activeSpreadsheet = ssApp.getActiveSpreadsheet();
-  const activeSheet = getActiveSheet(activeSpreadsheet);
+  const activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const activeSheet = getActiveSheet(activeSpreadsheet, AUTOMATED_SHEET_NAME);
 
   if (!activeSheet) return;
 
-  setSheetProtection(activeSheet, 'Protected Automated Results List');
-
-  if (!getHeaders(activeSheet).every((val) => typeof val === 'string')) {
-    writeHeaders(activeSheet);
+  if (
+    !getHeaders(activeSheet, AUTOMATED_SHEET_HEADERS)[0].every(
+      (colVal, index) => colVal === AUTOMATED_SHEET_HEADERS[index]
+    )
+  ) {
+    writeHeaders(activeSheet, AUTOMATED_SHEET_HEADERS);
   }
 
   return activeSheet;
