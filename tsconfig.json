@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "composite": true,
+    // "composite": true,
     "incremental": true,
 
     // Enforce strict coding style
@@ -43,7 +43,9 @@
     // "noResolve": false,
     // "preserveConstEnums": false,
     // "removeComments": false,
-    "rootDir": "src/",
+    "rootDir": "src",
+    "outDir": "dist",
+    // "declaration": false,
     // "sourceMap": false,
     // "stripInternal": false,
 
@@ -56,8 +58,9 @@
     // webpack
     "target": "ESNEXT",
     "strict": true,
-    "skipLibCheck": true,
+    "skipLibCheck": false,
     "forceConsistentCasingInFileNames": true,
-    "esModuleInterop": true
-  }
+    "esModuleInterop": false
+  },
+  "include": ["src"]
 }
