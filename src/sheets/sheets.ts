@@ -112,6 +112,13 @@ function writeHeaders(activeSheet: GoogleAppsScript.Spreadsheet.Sheet) {
   activeSheet.getRange(1, headerValues.length).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
 }
 
+function setSheetProtection(activeSheet: GoogleAppsScript.Spreadsheet.Sheet, description: string) {
+  const [protection] = activeSheet.getProtections(SpreadsheetApp.ProtectionType.SHEET);
+  if (!protection) {
+    activeSheet.protect().setWarningOnly(true).setDescription(description);
+  }
+}
+
 export function initSpreadsheet() {
   checkExistsOrCreateSpreadsheet();
 
@@ -123,6 +130,8 @@ export function initSpreadsheet() {
   const activeSheet = getActiveSheet(activeSpreadsheet);
 
   if (!activeSheet) return;
+
+  setSheetProtection(activeSheet, 'Protected Automated Results List');
 
   if (!getHeaders(activeSheet).every((val) => typeof val === 'string')) {
     writeHeaders(activeSheet);
