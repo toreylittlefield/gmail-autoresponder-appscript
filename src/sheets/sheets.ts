@@ -1,3 +1,4 @@
+import { getToEmailArray } from '../email/email';
 import { getProps, setUserProps } from '../properties-service/properties-service';
 import {
   AUTOMATED_SHEET_HEADERS,
@@ -16,6 +17,7 @@ const tabColors = ['blue', 'green', 'red', 'purple'];
 
 export let activeSpreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet;
 export let activeSheet: GoogleAppsScript.Spreadsheet.Sheet;
+export const doNotSendMailAutoMap = new Map();
 
 export type SheetNames =
   | typeof AUTOMATED_SHEET_NAME
@@ -170,9 +172,9 @@ function setInitialDoNotReplyData() {
     const doNotEmailSheet = getSheetByName(DO_NOT_EMAIL_AUTO_SHEET_NAME);
     if (!doNotEmailSheet) throw Error('Cannot Find Do Not Email Sheet');
     const initData = doNotEmailSheet
-      .getRange(2, 2, DO_NOT_EMAIL_AUTO_INITIAL_DATA.length, DO_NOT_EMAIL_AUTO_INITIAL_DATA.length)
+      .getRange(2, 1, DO_NOT_EMAIL_AUTO_INITIAL_DATA.length, DO_NOT_EMAIL_AUTO_INITIAL_DATA.length)
       .getValues();
-    const hasInitialData = initData.every((row, index) => row[index] === DO_NOT_EMAIL_AUTO_INITIAL_DATA[index]);
+    const hasInitialData = initData.every((row, index) => row[0] === DO_NOT_EMAIL_AUTO_INITIAL_DATA[index][0]);
     if (!hasInitialData) {
       DO_NOT_EMAIL_AUTO_INITIAL_DATA.forEach((row) => {
         doNotEmailSheet.appendRow(row);
@@ -195,6 +197,17 @@ export function getAllDataFromSheet(sheetName: SheetNames) {
   }
 }
 
+export function setGlobalDoNotSendEmailAutoArrayList() {
+  try {
+    const doNotReplyList = getAllDataFromSheet('Do Not Autorespond List');
+    if (!doNotReplyList) throw Error('Could Not Set The Global Do Not Reply Array');
+    console.log({ doNotReplyList });
+    doNotReplyList.forEach(([domain, _, count]) => doNotSendMailAutoMap.set(domain, count));
+  } catch (error) {
+    console.error(error as any);
+  }
+}
+
 export function formatRowHeight() {
   const automatedSheet = getSheetByName('Automated Results List');
   //@ts-expect-error
@@ -204,12 +217,47 @@ export function formatRowHeight() {
   sentResponsesSheet && sentResponsesSheet.setRowHeightsForced(2, sentResponsesSheet.getDataRange().getNumRows(), 21);
 }
 
+export function updateRepliesColumn(
+  activeSheet: GoogleAppsScript.Spreadsheet.Sheet,
+  indexRow: number,
+  dataValues: any[][],
+  emailMessage: GoogleAppsScript.Gmail.GmailMessage[]
+) {
+  const numCols = dataValues[indexRow].length;
+  activeSheet.getRange(indexRow + 2, numCols).setValue(getToEmailArray(emailMessage));
+}
+
+export function writeDomainsListToDoNotRespondSheet() {
+  try {
+    const doNotRespondSheet = getSheetByName('Do Not Autorespond List');
+    if (!doNotRespondSheet) throw Error(`Could find the Do Not Response List to write the array list to`);
+    const existingData = getAllDataFromSheet('Do Not Autorespond List');
+    if (!existingData) throw Error('Could not get existing data from Do Not Respond List');
+
+    existingData.forEach(([domainInSheet, _dateInSheet, countInSheet], rowIndex) => {
+      const count = doNotSendMailAutoMap.get(domainInSheet);
+      if (typeof count !== 'number' && !count) return;
+      console.log({ type: typeof countInSheet });
+      if (countInSheet !== count) {
+        doNotRespondSheet.getRange(rowIndex + 2, 3).setValue(count);
+      }
+      doNotSendMailAutoMap.delete(domainInSheet);
+    });
+    const arrayFromMap = Array.from(doNotSendMailAutoMap.entries());
+    const createNewDomainsToAppend = arrayFromMap.map(([domain, count]) => [domain, new Date(), count]);
+    createNewDomainsToAppend.forEach((row) => doNotRespondSheet.appendRow(row));
+  } catch (error) {
+    console.error(error as any);
+  }
+}
+
 export function initSpreadsheet() {
   checkExistsOrCreateSpreadsheet();
 
   setActiveSpreadSheet(SpreadsheetApp);
 
   setInitialDoNotReplyData();
+  setGlobalDoNotSendEmailAutoArrayList();
   getAndSetActiveSheetByName(AUTOMATED_SHEET_NAME);
 
   // if (
