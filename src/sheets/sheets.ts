@@ -14,7 +14,10 @@ import {
 
 const tabColors = ['blue', 'green', 'red', 'purple'];
 
-type SheetNames =
+export let activeSpreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet;
+export let activeSheet: GoogleAppsScript.Spreadsheet.Sheet;
+
+export type SheetNames =
   | typeof AUTOMATED_SHEET_NAME
   | typeof SENT_SHEET_NAME
   | typeof BOUNCED_SHEET_NAME
@@ -68,19 +71,21 @@ function getSpreadSheetId() {
   return { spreadsheetId };
 }
 
-function setActiveSpreadSheet(ssApp: GoogleAppsScript.Spreadsheet.SpreadsheetApp) {
+export function setActiveSpreadSheet(ssApp: GoogleAppsScript.Spreadsheet.SpreadsheetApp) {
   try {
     const { spreadsheetId } = getSpreadSheetId();
     if (!spreadsheetId) throw Error('No Spreadsheet Id');
     const spreadsheet = ssApp.openById(spreadsheetId);
     ssApp.setActiveSpreadsheet(spreadsheet);
+    activeSpreadsheet = spreadsheet;
   } catch (error) {
     console.error(error as any);
   }
 }
 
-function findSheetById(sheetId: number | string, activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet) {
-  const sheet = activeSS.getSheets().find((sheet) => sheet.getSheetId().toString() === sheetId);
+function findSheetById(sheetId: number | string) {
+  if (activeSpreadsheet == null) return;
+  const sheet = activeSpreadsheet.getSheets().find((sheet) => sheet.getSheetId().toString() === sheetId);
   return sheet;
 }
 
@@ -88,17 +93,18 @@ function setSheetInProps(sheetName: string, activeSheet: GoogleAppsScript.Spread
   setUserProps({ [sheetName]: activeSheet.getSheetId().toString() });
 }
 
-function getSheet(activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet, sheetName: SheetNames) {
+function getSheet(sheetName: SheetNames) {
   try {
+    if (activeSpreadsheet == null) throw Error('No active spreadsheet in getsheet method');
     const [sheetNameProp, sheetIdProp] = Object.entries(getProps([sheetName]))[0];
 
-    const sheet = activeSS.getSheetByName(sheetName);
+    const sheet = activeSpreadsheet.getSheetByName(sheetName);
     if (!sheet || !sheetNameProp) {
-      const activeSheet = activeSS.insertSheet(sheetName);
+      const activeSheet = activeSpreadsheet.insertSheet(sheetName);
       setSheetInProps(sheetName, activeSheet);
       return activeSheet;
     } else {
-      const sheet = findSheetById(sheetIdProp, activeSS);
+      const sheet = findSheetById(sheetIdProp);
       return sheet;
     }
   } catch (error) {
@@ -107,11 +113,28 @@ function getSheet(activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet, sheetName:
   }
 }
 
-function getActiveSheet(activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet, sheetName: SheetNames) {
+export function getSheetByName(sheetName: SheetNames) {
   try {
-    const sheet = getSheet(activeSS, sheetName);
+    if (activeSpreadsheet == null) throw Error('No active spreadsheet in method getSheetByName');
+    const [_, sheetValueId] = Object.entries(getProps([sheetName]))[0];
+    const sheet = findSheetById(sheetValueId);
+    if (sheet) return sheet;
+    const sheetByName = activeSpreadsheet.getSheetByName(sheetName);
+    if (!sheetByName) throw Error(`Could Not Find Sheet with Name ${sheetName}`);
+    return sheetByName;
+  } catch (error) {
+    console.error(error as any);
+    return null;
+  }
+}
+
+export function getAndSetActiveSheetByName(sheetName: SheetNames) {
+  try {
+    if (activeSpreadsheet == null) throw Error('No Active Spreadsheet');
+    const sheet = getSheet(sheetName);
     if (sheet) {
-      activeSS.setActiveSheet(sheet);
+      activeSpreadsheet.setActiveSheet(sheet);
+      activeSheet = sheet;
       return sheet;
     }
     throw Error(`Cannot Find The Sheet`);
@@ -122,29 +145,29 @@ function getActiveSheet(activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet, shee
   }
 }
 
-function getHeaders(activeSheet: GoogleAppsScript.Spreadsheet.Sheet, headersValues: string[]) {
-  const headers = activeSheet.getRange(1, 1, 1, headersValues.length);
+export function getHeaders(sheet: GoogleAppsScript.Spreadsheet.Sheet, headersValues: string[]) {
+  const headers = sheet.getRange(1, 1, 1, headersValues.length);
   return headers.getValues();
 }
 
-function writeHeaders(activeSheet: GoogleAppsScript.Spreadsheet.Sheet, headerValues: string[]) {
-  const headers = activeSheet.getRange(1, 1, 1, headerValues.length);
+function writeHeaders(sheet: GoogleAppsScript.Spreadsheet.Sheet, headerValues: string[]) {
+  const headers = sheet.getRange(1, 1, 1, headerValues.length);
   headers.setValues([headerValues]);
-  activeSheet.setFrozenRows(1);
+  sheet.setFrozenRows(1);
   headers.setFontWeight('bold');
-  activeSheet.getRange(1, headerValues.length).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+  sheet.getRange(1, headerValues.length).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
 }
 
-function setSheetProtection(activeSheet: GoogleAppsScript.Spreadsheet.Sheet, description: string) {
-  const [protection] = activeSheet.getProtections(SpreadsheetApp.ProtectionType.SHEET);
+function setSheetProtection(sheet: GoogleAppsScript.Spreadsheet.Sheet, description: string) {
+  const [protection] = sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET);
   if (!protection) {
-    activeSheet.protect().setWarningOnly(true).setDescription(description);
+    sheet.protect().setWarningOnly(true).setDescription(description);
   }
 }
 
-function setInitialDoNotReplyData(activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet) {
+function setInitialDoNotReplyData() {
   try {
-    const doNotEmailSheet = getActiveSheet(activeSS, DO_NOT_EMAIL_AUTO_SHEET_NAME);
+    const doNotEmailSheet = getSheetByName(DO_NOT_EMAIL_AUTO_SHEET_NAME);
     if (!doNotEmailSheet) throw Error('Cannot Find Do Not Email Sheet');
     const initData = doNotEmailSheet
       .getRange(2, 2, DO_NOT_EMAIL_AUTO_INITIAL_DATA.length, DO_NOT_EMAIL_AUTO_INITIAL_DATA.length)
@@ -160,11 +183,25 @@ function setInitialDoNotReplyData(activeSS: GoogleAppsScript.Spreadsheet.Spreads
   }
 }
 
-export function formatRowHeight(activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet) {
-  const automatedSheet = getActiveSheet(activeSS, 'Automated Results List');
-  automatedSheet && automatedSheet.setRowHeights(2, automatedSheet.getDataRange().getNumRows(), 21);
-  const sentResponsesSheet = getActiveSheet(activeSS, 'Sent Automated Responses');
-  sentResponsesSheet && sentResponsesSheet.setRowHeights(2, sentResponsesSheet.getDataRange().getNumRows(), 21);
+export function getAllDataFromSheet(sheetName: SheetNames) {
+  try {
+    const sheet = getSheetByName(sheetName);
+    if (!sheet) throw Error(`Cannot find sheet: ${sheetName}`);
+
+    return sheet.getDataRange().getValues().slice(1);
+  } catch (error) {
+    console.error(error as any);
+    return null;
+  }
+}
+
+export function formatRowHeight() {
+  const automatedSheet = getSheetByName('Automated Results List');
+  //@ts-expect-error
+  automatedSheet && automatedSheet.setRowHeightsForced(2, automatedSheet.getDataRange().getNumRows(), 21);
+  const sentResponsesSheet = getSheetByName('Sent Automated Responses');
+  //@ts-expect-error
+  sentResponsesSheet && sentResponsesSheet.setRowHeightsForced(2, sentResponsesSheet.getDataRange().getNumRows(), 21);
 }
 
 export function initSpreadsheet() {
@@ -172,19 +209,14 @@ export function initSpreadsheet() {
 
   setActiveSpreadSheet(SpreadsheetApp);
 
-  const activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  setInitialDoNotReplyData(activeSpreadsheet);
-  const activeSheet = getActiveSheet(activeSpreadsheet, AUTOMATED_SHEET_NAME);
+  setInitialDoNotReplyData();
+  getAndSetActiveSheetByName(AUTOMATED_SHEET_NAME);
 
-  if (!activeSheet) return;
-
-  if (
-    !getHeaders(activeSheet, AUTOMATED_SHEET_HEADERS)[0].every(
-      (colVal, index) => colVal === AUTOMATED_SHEET_HEADERS[index]
-    )
-  ) {
-    writeHeaders(activeSheet, AUTOMATED_SHEET_HEADERS);
-  }
-
-  return activeSheet;
+  // if (
+  //   !getHeaders(sheet, AUTOMATED_SHEET_HEADERS)[0].every(
+  //     (colVal, index) => colVal === AUTOMATED_SHEET_HEADERS[index]
+  //   )
+  // ) {
+  //   writeHeaders(sheet, AUTOMATED_SHEET_HEADERS);
+  // }
 }
