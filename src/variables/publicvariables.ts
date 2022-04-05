@@ -36,9 +36,9 @@ export const BOUNCED_SHEET_NAME_HEADERS = ['Email Id', 'Date', 'From', 'ReplyTo'
 export const DO_NOT_EMAIL_AUTO_SHEET_NAME = 'Do Not Autorespond List';
 export const DO_NOT_EMAIL_AUTO_SHEET_HEADERS = ['Email / Domain', 'Date', 'Sent Previous Emails Count'];
 export const DO_NOT_EMAIL_AUTO_INITIAL_DATA = [
-  ['noreply@', new Date()],
-  ['no-reply@', new Date()],
-  ['mailer-daemon@googlemail.com', new Date()],
-  ['@bounce', new Date()],
-  ['@bounced', new Date()],
+  ['noreply@', new Date(), 0],
+  ['no-reply@', new Date(), 0],
+  ['mailer-daemon@googlemail.com', new Date(), 0],
+  ['@bounce', new Date(), 0],
+  ['@bounced', new Date(), 0],
 ];
