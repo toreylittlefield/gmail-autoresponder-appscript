@@ -17,6 +17,7 @@ export const AUTOMATED_SHEET_HEADERS = [
   'Date',
   'From',
   'ReplyTo',
+  'Subject',
   'Body Emails',
   'Body',
   'Salary',
@@ -26,11 +27,16 @@ export const AUTOMATED_SHEET_HEADERS = [
 
 /** Name of the sheet for the sent auto response email data */
 export const SENT_SHEET_NAME = 'Sent Automated Responses';
-export const SENT_SHEET_NAME_HEADERS = ['Email Id', 'Date', 'From', 'ReplyTo', 'Body', 'Email Permalink'];
+export const SENT_SHEET_NAME_HEADERS = ['Email Id', 'Date', 'From', 'ReplyTo', 'Subject', 'Body', 'Email Permalink'];
 
 /** Name of the sheet for the any bounced emails */
 export const BOUNCED_SHEET_NAME = 'Bounced Responses';
-export const BOUNCED_SHEET_NAME_HEADERS = ['Email Id', 'Date', 'From', 'ReplyTo', 'Body', 'Email Permalink'];
+export const BOUNCED_SHEET_NAME_HEADERS = ['Email Id', 'Date', 'From', 'ReplyTo', 'Subject', 'Body', 'Email Permalink'];
+
+/** Name of the sheet for the any bounced emails */
+export const DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME = 'Do Not Track List';
+export const DO_NOT_TRACK_DOMAIN_LIST_HEADERS = ['Email or Domain'];
+export const DO_NOT_TRACK_DOMAIN_LIST_INITIAL_DATA = [['noreply@linkedin.com']];
 
 /** Name of email domains not to send autoreplies */
 export const DO_NOT_EMAIL_AUTO_SHEET_NAME = 'Do Not Autorespond List';
