@@ -11,6 +11,8 @@ import {
   DO_NOT_TRACK_DOMAIN_LIST_HEADERS,
   DO_NOT_TRACK_DOMAIN_LIST_INITIAL_DATA,
   DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME,
+  FOLLOW_UP_EMAILS_HEADERS,
+  FOLLOW_UP_EMAILS_SHEET,
   SENT_SHEET_NAME,
   SENT_SHEET_NAME_HEADERS,
   SPREADSHEET_NAME,
@@ -19,13 +21,14 @@ import {
 export type SheetNames =
   | typeof AUTOMATED_SHEET_NAME
   | typeof SENT_SHEET_NAME
+  | typeof FOLLOW_UP_EMAILS_SHEET
   | typeof BOUNCED_SHEET_NAME
   | typeof DO_NOT_EMAIL_AUTO_SHEET_NAME
   | typeof DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME;
 
 type ReplyToUpdateType = [row: number, emailMessage: GoogleAppsScript.Gmail.GmailMessage[]][];
 
-const tabColors = ['blue', 'green', 'red', 'purple', 'orange', 'yellow'] as const;
+const tabColors = ['blue', 'green', 'red', 'purple', 'orange', 'yellow', 'black'] as const;
 
 export let activeSpreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet;
 export let activeSheet: GoogleAppsScript.Spreadsheet.Sheet;
@@ -59,6 +62,7 @@ function checkExistsOrCreateSpreadsheet() {
     createSheet(spreadsheet, AUTOMATED_SHEET_NAME, AUTOMATED_SHEET_HEADERS, { tabColor: 'blue' });
     spreadsheet.deleteSheet(firstSheet);
     createSheet(spreadsheet, SENT_SHEET_NAME, SENT_SHEET_NAME_HEADERS, { tabColor: 'green' });
+    createSheet(spreadsheet, FOLLOW_UP_EMAILS_SHEET, FOLLOW_UP_EMAILS_HEADERS, { tabColor: 'black' });
     createSheet(spreadsheet, DO_NOT_EMAIL_AUTO_SHEET_NAME, DO_NOT_EMAIL_AUTO_SHEET_HEADERS, {
       tabColor: 'purple',
       initData: DO_NOT_EMAIL_AUTO_INITIAL_DATA,
