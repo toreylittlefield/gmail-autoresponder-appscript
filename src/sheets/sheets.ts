@@ -192,10 +192,7 @@ function setInitialSheetData(sheet: GoogleAppsScript.Spreadsheet.Sheet, headers:
   try {
     const existingData = sheet.getRange(2, 1, headers.length, headers.length).getValues();
     const hasInitialData = existingData.every((row, index) => row[0] === initialData[index][0]);
-    console.log({ hasInitialData });
-    console.log({ existingData });
-    console.log({ headers });
-    console.log({ initialData });
+
     if (!hasInitialData) {
       initialData.forEach((row) => {
         sheet.appendRow(row);
@@ -205,37 +202,6 @@ function setInitialSheetData(sheet: GoogleAppsScript.Spreadsheet.Sheet, headers:
     console.error(error as any);
   }
 }
-
-// function updateEditableSheetsIfModified() {
-//   try {
-//     const sheetNames: [[SheetNames, string[], any[][]]] = [DO_NOT_EMAIL_AUTO_SHEET_NAME, DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME];
-//     sheetNames.forEach(([sheetName, headers, initData]) => {
-//       const sheet = getSheetByName(sheetName);
-//       if (!sheet) throw Error(`Could Not Find ${sheetName}, to update the sheet on initialization`);
-//       setInitialSheetData()
-//     });
-//   } catch (error) {
-//     console.error(error as any);
-//   }
-// }
-
-// function setInitialDoNotReplyData() {
-//   try {
-//     const doNotEmailSheet = getSheetByName(DO_NOT_EMAIL_AUTO_SHEET_NAME);
-//     if (!doNotEmailSheet) throw Error('Cannot Find Do Not Email Sheet');
-//     const initData = doNotEmailSheet
-//       .getRange(2, 1, DO_NOT_EMAIL_AUTO_INITIAL_DATA.length, DO_NOT_EMAIL_AUTO_INITIAL_DATA.length)
-//       .getValues();
-//     const hasInitialData = initData.every((row, index) => row[0] === DO_NOT_EMAIL_AUTO_INITIAL_DATA[index][0]);
-//     if (!hasInitialData) {
-//       DO_NOT_EMAIL_AUTO_INITIAL_DATA.forEach((row) => {
-//         doNotEmailSheet.appendRow(row);
-//       });
-//     }
-//   } catch (error) {
-//     console.error(error as any);
-//   }
-// }
 
 export function getAllDataFromSheet(sheetName: SheetNames) {
   try {
@@ -253,7 +219,6 @@ export function setGlobalDoNotSendEmailAutoArrayList() {
   try {
     const doNotReplyList = getAllDataFromSheet('Do Not Autorespond List');
     if (!doNotReplyList) throw Error('Could Not Set The Global Do Not Reply Array');
-    console.log({ doNotReplyList });
     doNotReplyList.forEach(([domain, _, count]) => doNotSendMailAutoMap.set(domain, count));
   } catch (error) {
     console.error(error as any);
@@ -297,7 +262,6 @@ export function writeDomainsListToDoNotRespondSheet() {
     existingData.forEach(([domainInSheet, _dateInSheet, countInSheet], rowIndex) => {
       const count = doNotSendMailAutoMap.get(domainInSheet);
       if (typeof count !== 'number' && !count) return;
-      console.log({ type: typeof countInSheet });
       if (countInSheet !== count) {
         doNotRespondSheet.getRange(rowIndex + 2, 3).setValue(count);
       }
