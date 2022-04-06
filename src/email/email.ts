@@ -1,8 +1,14 @@
 import { getProps, setInitialEmailProps, setUserProps } from '../properties-service/properties-service';
-import { doNotSendMailAutoMap, getSheetByName, updateRepliesColumn } from '../sheets/sheets';
-import { calcAverage, getDomainFromEmailAddress } from '../utils/utils';
+import { addToRepliesArray, doNotSendMailAutoMap, doNotTrackMap, getSheetByName } from '../sheets/sheets';
+import { calcAverage, getDomainFromEmailAddress, getEmailFromString, regexEmail, regexSalary } from '../utils/utils';
 import { EMAIL_ACCOUNT, NAME_TO_SEND_IN_EMAIL } from '../variables/privatevariables';
-import { AUTOMATED_SHEET_NAME, LABEL_NAME } from '../variables/publicvariables';
+import { LABEL_NAME } from '../variables/publicvariables';
+
+type EmailDataToSend = 'replyToEmail' | { emailSubject: string; personName: string };
+type EmailReplySendArray = [emailAddress: string, replyOrNew: EmailDataToSend][];
+
+const sendToEmailsMap = new Map<string, EmailDataToSend>();
+export const emailmessagesIdMap = new Map<string, number>();
 
 export function setTemplateMsg({ subject, email }: { subject: string; email: string }) {
   const drafts = GmailApp.getDrafts();
@@ -43,18 +49,95 @@ export function sendTemplateEmail(recipient: string, subject: string, htmlBodyMe
   }
 }
 
+function checkAndAddToEmailMap(emails: EmailReplySendArray) {
+  emails.forEach(([email, data]) => {
+    const domain = getDomainFromEmailAddress(email);
+
+    if (!doNotSendMailAutoMap.has(email) && !doNotSendMailAutoMap.has(domain) && !sendToEmailsMap.has(email)) {
+      sendToEmailsMap.set(email, data);
+    }
+  });
+}
+
+function buildEmailsObject(
+  replyToEmail: string,
+  bodyEmails: string[],
+  emailSubject: string,
+  emailFrom: string
+): EmailReplySendArray {
+  const emailObject: { [key: string]: EmailDataToSend } = {};
+  bodyEmails.forEach((email) => {
+    if (email !== replyToEmail) {
+      emailObject.email = { personName: emailFrom, emailSubject };
+    }
+  });
+  emailObject[replyToEmail] = 'replyToEmail';
+
+  return Object.entries(emailObject);
+}
+
+function addSentEmailsToDoNotReplyMap(sentEmails: string[]) {
+  sentEmails.forEach((email) => {
+    const domain = getDomainFromEmailAddress(email);
+    const count = doNotSendMailAutoMap.get(domain);
+    if (typeof count === 'number') {
+      return doNotSendMailAutoMap.set(domain, count + 1);
+    }
+    if (count == null) {
+      doNotSendMailAutoMap.set(domain, 0);
+    }
+    return;
+  });
+}
+
 export function getToEmailArray(emailMessages: GoogleAppsScript.Gmail.GmailMessage[]) {
   return emailMessages.map((row) => row.getTo()).toString();
 }
 
-export function AutoResponder(event?: GoogleAppsScript.Events.TimeDriven) {
+function getAutoResponseMsgsFromThread(restMsgs: GoogleAppsScript.Gmail.GmailMessage[]) {
+  const ourEmailDomain = '@' + EMAIL_ACCOUNT.split('@')[1].toString();
+
+  const hasResponseFromRegex = new RegExp(`${ourEmailDomain}|canned\.response@${ourEmailDomain}`);
+
+  return restMsgs.filter((msg) => msg.getFrom().match(hasResponseFromRegex));
+}
+
+function updateRepliesColumnIfMessageHasReplies(firstMsgId: string, restMsgs: GoogleAppsScript.Gmail.GmailMessage[]) {
+  const messageAlreadyExists = emailmessagesIdMap.has(firstMsgId);
+
+  const autoResponseMsg = getAutoResponseMsgsFromThread(restMsgs);
+
+  if (autoResponseMsg.length > 0 && messageAlreadyExists) {
+    const rowNumber = emailmessagesIdMap.get(firstMsgId) as number;
+    addToRepliesArray(rowNumber, autoResponseMsg);
+  }
+
+  return autoResponseMsg;
+}
+
+/**
+ * 1. get unread mail sent to email_account
+ * 2. search for unread mail that does not have the label for our email_account and email was sent less time < 30 minutes
+ * 3. for each found message from 2., search for that "@domain.xyz" to check if we've already been messaged by that domain
+ * 4. if the search results from 3. is of length 1, it is the first message and therefore we send the autoresponse
+ * 5. otherwise we don't send an autoresponse to avoid sending the autoresponse to the same domain more than once
+ */
+
+function isDomainEmailInDoNotTrackSheet(fromEmail: string) {
+  const domain = getDomainFromEmailAddress(fromEmail);
+
+  if (doNotTrackMap.has(domain) || doNotSendMailAutoMap.has(fromEmail)) return true;
+  /**TODO: Can be optimized in future if slow perf */
+  if (Array.from(doNotTrackMap.keys()).filter((domainOrEmailKey) => fromEmail.match(domainOrEmailKey)).length > 0)
+    return true;
+  return false;
+}
+
+export function extractDataFromEmailSearch(event?: GoogleAppsScript.Events.TimeDriven) {
   try {
-    /* The idea is to search for all emails that don't have this label
-  and respond to them with a pre-recorded message like any other email client.
-  TODO: constrain it to unread emails sent since a set date */
-    console.log({ event });
     const autoResultsListSheet = getSheetByName('Automated Results List');
-    if (!autoResultsListSheet) throw Error(`Could Not Find the ${AUTOMATED_SHEET_NAME} to process the results`);
+    if (!autoResultsListSheet) throw Error('Cannot find Automated Results List Sheet');
+    console.log({ event });
     // Search for subject:
     // const subject       = "this is a test";
 
@@ -67,26 +150,12 @@ export function AutoResponder(event?: GoogleAppsScript.Events.TimeDriven) {
       label = GmailApp.createLabel(LABEL_NAME);
     }
 
-    /**
-     * 1. get unread mail sent to email_account
-     * 2. search for unread mail that does not have the label for our email_account and email was sent less time < 30 minutes
-     * 3. for each found message from 2., search for that "@domain.xyz" to check if we've already been messaged by that domain
-     * 4. if the search results from 3. is of length 1, it is the first message and therefore we send the autoresponse
-     * 5. otherwise we don't send an autoresponse to avoid sending the autoresponse to the same domain more than once
-     */
-
     // Send our response email and label it responded to
     // const threads = GmailApp.search(
     //   "-subject:'re:' -is:chats -is:draft has:nouserlabels -label:" + LABEL_NAME + ' to:(' + EMAIL_ACCOUNT + ')'
     // );
     const threads = GmailApp.search('label:' + 'recruiters-linkedin-recruiters');
     // + ' to:(' + EMAIL_ACCOUNT + ')');
-
-    const ourEmailDomain = '@' + EMAIL_ACCOUNT.split('@')[1].toString();
-    const hasResponseFromRegex = new RegExp(`${ourEmailDomain}|canned\.response@${ourEmailDomain}`);
-
-    const dataRange = autoResultsListSheet.getDataRange();
-    const dataValues = dataRange.getValues().slice(1);
 
     let salaries: number[] = [];
     threads.forEach((thread, threadIndex) => {
@@ -95,87 +164,45 @@ export function AutoResponder(event?: GoogleAppsScript.Events.TimeDriven) {
       const [firstMsg, ...restMsgs] = thread.getMessages();
 
       const firstMsgId = firstMsg.getId();
-      const indexOfRowFirstMsgId = dataValues.findIndex((row) => {
-        const [msgId] = row;
-        return msgId === firstMsgId;
-      });
 
-      restMsgs.forEach((msg) => console.log(msg.getFrom().match(hasResponseFromRegex) || 'false'));
-      const autoResponseMsg = restMsgs.filter((msg) => msg.getFrom().match(hasResponseFromRegex));
-      console.log({ autoResponseMsg: autoResponseMsg.map((msg) => msg.getFrom()) });
-      if (indexOfRowFirstMsgId !== -1 && autoResponseMsg.length > 0) {
-        const [
-          emailId,
-          emailDate,
-          fromEmail,
-          replyToEmail,
-          bodyEmails,
-          bodyMsg,
-          salary,
-          emailPermalink,
-          hasEmailResponse,
-        ] = dataValues[indexOfRowFirstMsgId];
-        console.log(
-          emailId,
-          emailDate,
-          fromEmail,
-          replyToEmail,
-          bodyEmails,
-          bodyMsg,
-          salary,
-          emailPermalink,
-          hasEmailResponse
-        );
-        updateRepliesColumn(autoResultsListSheet, indexOfRowFirstMsgId, dataValues, autoResponseMsg);
-        // activeSheet
-        //   .getRange(indexOfRowFirstMsgId + 2, dataValues[indexOfRowFirstMsgId].length)
-        //   .setValue(autoResponseMsg.map((row) => row.getTo()).toString());
-        return;
-      }
+      const autoResponseMsg = updateRepliesColumnIfMessageHasReplies(firstMsgId, restMsgs);
 
       const from = firstMsg.getFrom();
-
-      const isNoReplyLinkedIn = from.match(/noreply@linkedin\.com/gi);
-      if (isNoReplyLinkedIn) return;
+      const emailSubject = firstMsg.getSubject();
 
       const body = firstMsg.getPlainBody();
       const replyTo = firstMsg.getReplyTo();
-      const regexEmail = /([a-zA-Z0-9+._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi;
-      //@ts-ignore
-      const emailFrom = from.match(regexEmail);
-      //@ts-ignore
 
-      const emailsBody = [...new Set(body.match(regexEmail))];
-      //@ts-ignore
+      /** Use as a backup in case other split methods fail */
+      // const emailFrom = [...new Set(from.match(regexEmail))];
+      // const emailReplyTo = [...new Set(replyTo.match(regexEmail))];
 
-      const emailReplyTo = replyTo.match(regexEmail);
-      const salaryAmount = body.match(
-        /\$[1-2][0-9][0-9][-\s][1-2][0-9][0-9]|[1-2][0-9][0-9][-\s]\[1-2][0-9][0-9]|[1-2][0-9][0-9]k/gi
-      );
+      const emailFrom = getEmailFromString(from);
+      const emailReplyTo = getEmailFromString(replyTo);
+
+      const bodyEmails = [...new Set(body.match(regexEmail))];
+      const salaryAmount = body.match(regexSalary);
+
+      if (isDomainEmailInDoNotTrackSheet(emailFrom)) return;
+
+      // const isNoReplyLinkedIn = from.match(/noreply@linkedin\.com/gi);
+      // if (isNoReplyLinkedIn) return;
+
+      checkAndAddToEmailMap(buildEmailsObject(replyTo, bodyEmails, emailSubject, emailFrom));
 
       autoResultsListSheet.appendRow([
         firstMsg.getId(),
         firstMsg.getDate(),
-        emailFrom ? [...new Set(emailFrom)].toString() : undefined,
-        emailReplyTo ? [...new Set(emailReplyTo)].toString() : undefined,
-        emailsBody ? emailsBody.toString() : undefined,
+        emailFrom,
+        emailReplyTo.length > 0 ? emailReplyTo.toString() : undefined,
+        emailSubject,
+        bodyEmails.length > 0 ? bodyEmails.toString() : undefined,
         body,
         salaryAmount ? salaryAmount.toString() : undefined,
         thread.getPermalink(),
         autoResponseMsg.length > 0 ? getToEmailArray(autoResponseMsg) : false,
       ]);
 
-      emailsBody.forEach((email) => {
-        const domain = getDomainFromEmailAddress(email);
-        const count = doNotSendMailAutoMap.get(domain);
-        if (typeof count === 'number') {
-          return doNotSendMailAutoMap.set(domain, count + 1);
-        }
-        if (count == null) {
-          doNotSendMailAutoMap.set(domain, 0);
-        }
-        return;
-      });
       // messaging-digest-noreply@linkedin.com
       // inmail-hit-reply@linkedin.com
       salaryAmount && salaryAmount.length > 0 && salaries.push(calcAverage(salaryAmount));
@@ -185,6 +212,7 @@ export function AutoResponder(event?: GoogleAppsScript.Events.TimeDriven) {
       // Add label to email for exclusion
       // thread.addLabel(label);
     });
+    addSentEmailsToDoNotReplyMap(Array.from(sendToEmailsMap.keys()));
     console.log({ salaries: calcAverage(salaries) });
   } catch (error) {
     console.error(error as any);
