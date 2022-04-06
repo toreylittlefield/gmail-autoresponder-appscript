@@ -80,6 +80,11 @@ export const BOUNCED_SHEET_NAME_HEADERS = [
 ];
 
 /** Name of the sheet for the any bounced emails */
+export const ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME = 'Always Autorespond List';
+export const ALWAYS_RESPOND_DOMAIN_LIST_HEADERS = ['Email or Domain'];
+export const ALWAYS_RESPOND_LIST_INITIAL_DATA = [['inmail-hit-reply@linkedin.com']];
+
+/** Name of the sheet for the any bounced emails */
 export const DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME = 'Do Not Track List';
 export const DO_NOT_TRACK_DOMAIN_LIST_HEADERS = ['Email or Domain'];
 export const DO_NOT_TRACK_DOMAIN_LIST_INITIAL_DATA = [['noreply@linkedin.com']];
