@@ -8,22 +8,30 @@ import {
   DO_NOT_EMAIL_AUTO_INITIAL_DATA,
   DO_NOT_EMAIL_AUTO_SHEET_HEADERS,
   DO_NOT_EMAIL_AUTO_SHEET_NAME,
+  DO_NOT_TRACK_DOMAIN_LIST_HEADERS,
+  DO_NOT_TRACK_DOMAIN_LIST_INITIAL_DATA,
+  DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME,
   SENT_SHEET_NAME,
   SENT_SHEET_NAME_HEADERS,
   SPREADSHEET_NAME,
 } from '../variables/publicvariables';
 
-const tabColors = ['blue', 'green', 'red', 'purple'];
-
-export let activeSpreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet;
-export let activeSheet: GoogleAppsScript.Spreadsheet.Sheet;
-export const doNotSendMailAutoMap = new Map();
-
 export type SheetNames =
   | typeof AUTOMATED_SHEET_NAME
   | typeof SENT_SHEET_NAME
   | typeof BOUNCED_SHEET_NAME
-  | typeof DO_NOT_EMAIL_AUTO_SHEET_NAME;
+  | typeof DO_NOT_EMAIL_AUTO_SHEET_NAME
+  | typeof DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME;
+
+type ReplyToUpdateType = [row: number, emailMessage: GoogleAppsScript.Gmail.GmailMessage[]][];
+
+const tabColors = ['blue', 'green', 'red', 'purple', 'orange', 'yellow'] as const;
+
+export let activeSpreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet;
+export let activeSheet: GoogleAppsScript.Spreadsheet.Sheet;
+export const doNotSendMailAutoMap = new Map<string, number>();
+export const doNotTrackMap = new Map<string, boolean>();
+export const repliesToUpdateArray: ReplyToUpdateType = [];
 
 function checkExistsOrCreateSpreadsheet() {
   let { spreadsheetId } = getSpreadSheetId();
@@ -31,6 +39,8 @@ function checkExistsOrCreateSpreadsheet() {
   if (spreadsheetId) {
     try {
       SpreadsheetApp.openById(spreadsheetId);
+      const file = DriveApp.getFileById(spreadsheetId);
+      if (file.isTrashed()) throw Error('File in trash, creating a new sheet');
     } catch (error) {
       PropertiesService.getUserProperties().deleteProperty('spreadsheetId');
       PropertiesService.getUserProperties().deleteProperty('sheetId');
@@ -46,24 +56,35 @@ function checkExistsOrCreateSpreadsheet() {
     setUserProps({
       spreadsheetId: spreadsheet.getId(),
     });
-    createSheet(spreadsheet, AUTOMATED_SHEET_NAME, AUTOMATED_SHEET_HEADERS, 'blue');
+    createSheet(spreadsheet, AUTOMATED_SHEET_NAME, AUTOMATED_SHEET_HEADERS, { tabColor: 'blue' });
     spreadsheet.deleteSheet(firstSheet);
-    createSheet(spreadsheet, SENT_SHEET_NAME, SENT_SHEET_NAME_HEADERS, 'green');
-    createSheet(spreadsheet, DO_NOT_EMAIL_AUTO_SHEET_NAME, DO_NOT_EMAIL_AUTO_SHEET_HEADERS, 'purple');
-    createSheet(spreadsheet, BOUNCED_SHEET_NAME, BOUNCED_SHEET_NAME_HEADERS, 'red');
+    createSheet(spreadsheet, SENT_SHEET_NAME, SENT_SHEET_NAME_HEADERS, { tabColor: 'green' });
+    createSheet(spreadsheet, DO_NOT_EMAIL_AUTO_SHEET_NAME, DO_NOT_EMAIL_AUTO_SHEET_HEADERS, {
+      tabColor: 'purple',
+      initData: DO_NOT_EMAIL_AUTO_INITIAL_DATA,
+    });
+    createSheet(spreadsheet, BOUNCED_SHEET_NAME, BOUNCED_SHEET_NAME_HEADERS, { tabColor: 'red' });
+    createSheet(spreadsheet, DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME, DO_NOT_TRACK_DOMAIN_LIST_HEADERS, {
+      tabColor: 'orange',
+      initData: DO_NOT_TRACK_DOMAIN_LIST_INITIAL_DATA,
+    });
   }
 }
+
+type Options = { tabColor: typeof tabColors[number]; initData: any[][] };
 
 function createSheet(
   activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet,
   sheetName: SheetNames,
   headersValues: string[],
-  tabColor?: string
+  options: Partial<Options> = { initData: [], tabColor: 'green' }
 ) {
+  const { initData = [], tabColor = '' } = options;
   const sheet = activeSS.insertSheet();
   sheet.setName(sheetName);
-  sheet.setTabColor(tabColor || tabColors.shift() || 'green');
+  sheet.setTabColor(tabColor || 'green');
   writeHeaders(sheet, headersValues);
+  initData.length > 0 && setInitialSheetData(sheet, headersValues, initData);
   setSheetProtection(sheet, `${sheetName} Protected Range`);
   setSheetInProps(sheetName, sheet);
 }
@@ -167,23 +188,54 @@ function setSheetProtection(sheet: GoogleAppsScript.Spreadsheet.Sheet, descripti
   }
 }
 
-function setInitialDoNotReplyData() {
+function setInitialSheetData(sheet: GoogleAppsScript.Spreadsheet.Sheet, headers: string[], initialData: any[][]) {
   try {
-    const doNotEmailSheet = getSheetByName(DO_NOT_EMAIL_AUTO_SHEET_NAME);
-    if (!doNotEmailSheet) throw Error('Cannot Find Do Not Email Sheet');
-    const initData = doNotEmailSheet
-      .getRange(2, 1, DO_NOT_EMAIL_AUTO_INITIAL_DATA.length, DO_NOT_EMAIL_AUTO_INITIAL_DATA.length)
-      .getValues();
-    const hasInitialData = initData.every((row, index) => row[0] === DO_NOT_EMAIL_AUTO_INITIAL_DATA[index][0]);
+    const existingData = sheet.getRange(2, 1, headers.length, headers.length).getValues();
+    const hasInitialData = existingData.every((row, index) => row[0] === initialData[index][0]);
+    console.log({ hasInitialData });
+    console.log({ existingData });
+    console.log({ headers });
+    console.log({ initialData });
     if (!hasInitialData) {
-      DO_NOT_EMAIL_AUTO_INITIAL_DATA.forEach((row) => {
-        doNotEmailSheet.appendRow(row);
+      initialData.forEach((row) => {
+        sheet.appendRow(row);
       });
     }
   } catch (error) {
     console.error(error as any);
   }
 }
+
+// function updateEditableSheetsIfModified() {
+//   try {
+//     const sheetNames: [[SheetNames, string[], any[][]]] = [DO_NOT_EMAIL_AUTO_SHEET_NAME, DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME];
+//     sheetNames.forEach(([sheetName, headers, initData]) => {
+//       const sheet = getSheetByName(sheetName);
+//       if (!sheet) throw Error(`Could Not Find ${sheetName}, to update the sheet on initialization`);
+//       setInitialSheetData()
+//     });
+//   } catch (error) {
+//     console.error(error as any);
+//   }
+// }
+
+// function setInitialDoNotReplyData() {
+//   try {
+//     const doNotEmailSheet = getSheetByName(DO_NOT_EMAIL_AUTO_SHEET_NAME);
+//     if (!doNotEmailSheet) throw Error('Cannot Find Do Not Email Sheet');
+//     const initData = doNotEmailSheet
+//       .getRange(2, 1, DO_NOT_EMAIL_AUTO_INITIAL_DATA.length, DO_NOT_EMAIL_AUTO_INITIAL_DATA.length)
+//       .getValues();
+//     const hasInitialData = initData.every((row, index) => row[0] === DO_NOT_EMAIL_AUTO_INITIAL_DATA[index][0]);
+//     if (!hasInitialData) {
+//       DO_NOT_EMAIL_AUTO_INITIAL_DATA.forEach((row) => {
+//         doNotEmailSheet.appendRow(row);
+//       });
+//     }
+//   } catch (error) {
+//     console.error(error as any);
+//   }
+// }
 
 export function getAllDataFromSheet(sheetName: SheetNames) {
   try {
@@ -217,14 +269,22 @@ export function formatRowHeight() {
   sentResponsesSheet && sentResponsesSheet.setRowHeightsForced(2, sentResponsesSheet.getDataRange().getNumRows(), 21);
 }
 
-export function updateRepliesColumn(
-  activeSheet: GoogleAppsScript.Spreadsheet.Sheet,
-  indexRow: number,
-  dataValues: any[][],
-  emailMessage: GoogleAppsScript.Gmail.GmailMessage[]
-) {
-  const numCols = dataValues[indexRow].length;
-  activeSheet.getRange(indexRow + 2, numCols).setValue(getToEmailArray(emailMessage));
+export function addToRepliesArray(index: number, emailMessages: GoogleAppsScript.Gmail.GmailMessage[]) {
+  repliesToUpdateArray.push([index + 2, emailMessages]);
+}
+
+export function updateRepliesColumn(rowsToUpdate: ReplyToUpdateType) {
+  try {
+    const automatedSheet = getSheetByName('Automated Results List');
+    if (!automatedSheet) throw Error('Cannot find automated sheet to updated the replies column');
+    const dataValues = automatedSheet.getDataRange().getValues();
+    rowsToUpdate.forEach(([row, emailMessage]) => {
+      const numCols = dataValues[row].length;
+      automatedSheet.getRange(row, numCols).setValue(getToEmailArray(emailMessage));
+    });
+  } catch (error) {
+    console.error(error as any);
+  }
 }
 
 export function writeDomainsListToDoNotRespondSheet() {
@@ -256,7 +316,6 @@ export function initSpreadsheet() {
 
   setActiveSpreadSheet(SpreadsheetApp);
 
-  setInitialDoNotReplyData();
   setGlobalDoNotSendEmailAutoArrayList();
   getAndSetActiveSheetByName(AUTOMATED_SHEET_NAME);
 
