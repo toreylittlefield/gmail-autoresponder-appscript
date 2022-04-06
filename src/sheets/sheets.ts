@@ -1,6 +1,9 @@
 import { getToEmailArray } from '../email/email';
 import { getProps, setUserProps } from '../properties-service/properties-service';
 import {
+  ALWAYS_RESPOND_DOMAIN_LIST_HEADERS,
+  ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME,
+  ALWAYS_RESPOND_LIST_INITIAL_DATA,
   AUTOMATED_SHEET_HEADERS,
   AUTOMATED_SHEET_NAME,
   BOUNCED_SHEET_NAME,
@@ -23,12 +26,13 @@ export type SheetNames =
   | typeof SENT_SHEET_NAME
   | typeof FOLLOW_UP_EMAILS_SHEET
   | typeof BOUNCED_SHEET_NAME
+  | typeof ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME
   | typeof DO_NOT_EMAIL_AUTO_SHEET_NAME
   | typeof DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME;
 
 type ReplyToUpdateType = [row: number, emailMessage: GoogleAppsScript.Gmail.GmailMessage[]][];
 
-const tabColors = ['blue', 'green', 'red', 'purple', 'orange', 'yellow', 'black'] as const;
+const tabColors = ['blue', 'green', 'red', 'purple', 'orange', 'yellow', 'black', 'teal'] as const;
 
 export let activeSpreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet;
 export let activeSheet: GoogleAppsScript.Spreadsheet.Sheet;
@@ -63,11 +67,15 @@ function checkExistsOrCreateSpreadsheet() {
     spreadsheet.deleteSheet(firstSheet);
     createSheet(spreadsheet, SENT_SHEET_NAME, SENT_SHEET_NAME_HEADERS, { tabColor: 'green' });
     createSheet(spreadsheet, FOLLOW_UP_EMAILS_SHEET, FOLLOW_UP_EMAILS_HEADERS, { tabColor: 'black' });
+    createSheet(spreadsheet, BOUNCED_SHEET_NAME, BOUNCED_SHEET_NAME_HEADERS, { tabColor: 'red' });
+    createSheet(spreadsheet, ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME, ALWAYS_RESPOND_DOMAIN_LIST_HEADERS, {
+      tabColor: 'teal',
+      initData: ALWAYS_RESPOND_LIST_INITIAL_DATA,
+    });
     createSheet(spreadsheet, DO_NOT_EMAIL_AUTO_SHEET_NAME, DO_NOT_EMAIL_AUTO_SHEET_HEADERS, {
       tabColor: 'purple',
       initData: DO_NOT_EMAIL_AUTO_INITIAL_DATA,
     });
-    createSheet(spreadsheet, BOUNCED_SHEET_NAME, BOUNCED_SHEET_NAME_HEADERS, { tabColor: 'red' });
     createSheet(spreadsheet, DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME, DO_NOT_TRACK_DOMAIN_LIST_HEADERS, {
       tabColor: 'orange',
       initData: DO_NOT_TRACK_DOMAIN_LIST_INITIAL_DATA,
@@ -89,6 +97,13 @@ function createSheet(
   sheet.setTabColor(tabColor || 'green');
   writeHeaders(sheet, headersValues);
   initData.length > 0 && setInitialSheetData(sheet, headersValues, initData);
+
+  sheet.deleteColumns(headersValues.length + 1, sheet.getMaxColumns() - headersValues.length);
+
+  const startRowIndex = initData.length > 50 ? initData.length : 50;
+  sheet.deleteRows(startRowIndex, sheet.getMaxRows() - startRowIndex);
+
+  sheet.autoResizeColumns(1, headersValues.length);
   setSheetProtection(sheet, `${sheetName} Protected Range`);
   setSheetInProps(sheetName, sheet);
 }
