@@ -63,16 +63,15 @@ function buildEmailsObject(
   replyToEmail: string,
   bodyEmails: string[],
   emailSubject: string,
-  emailFrom: string
+  personFrom: string
 ): EmailReplySendArray {
   const emailObject: { [key: string]: EmailDataToSend } = {};
   bodyEmails.forEach((email) => {
     if (email !== replyToEmail) {
-      emailObject.email = { personName: emailFrom, emailSubject };
+      emailObject.email = { personName: personFrom, emailSubject };
     }
   });
   emailObject[replyToEmail] = 'replyToEmail';
-
   return Object.entries(emailObject);
 }
 
@@ -168,7 +167,8 @@ export function extractDataFromEmailSearch(event?: GoogleAppsScript.Events.TimeD
       const autoResponseMsg = updateRepliesColumnIfMessageHasReplies(firstMsgId, restMsgs);
 
       const from = firstMsg.getFrom();
-      const emailSubject = firstMsg.getSubject();
+      const emailThreadId = thread.getId();
+      const emailSubject = thread.getFirstMessageSubject();
 
       const body = firstMsg.getPlainBody();
       const replyTo = firstMsg.getReplyTo();
@@ -178,6 +178,7 @@ export function extractDataFromEmailSearch(event?: GoogleAppsScript.Events.TimeD
       // const emailReplyTo = [...new Set(replyTo.match(regexEmail))];
 
       const emailFrom = getEmailFromString(from);
+      const personFrom = from.split('<', 1)[0].trim();
       const emailReplyTo = getEmailFromString(replyTo);
 
       const bodyEmails = [...new Set(body.match(regexEmail))];
@@ -188,9 +189,27 @@ export function extractDataFromEmailSearch(event?: GoogleAppsScript.Events.TimeD
       // const isNoReplyLinkedIn = from.match(/noreply@linkedin\.com/gi);
       // if (isNoReplyLinkedIn) return;
 
-      checkAndAddToEmailMap(buildEmailsObject(replyTo, bodyEmails, emailSubject, emailFrom));
+      checkAndAddToEmailMap(buildEmailsObject(replyTo, bodyEmails, emailSubject, personFrom));
 
+      /**
+       * [
+  'Email Thread Id',
+  'Email Id',
+  'Date',
+  'From',
+  'ReplyTo',
+  'Person / Company Name',
+  'Subject',
+  'Body Emails',
+  'Body',
+  'Salary',
+  'Email Permalink',
+  'Has Email Response',
+];
+       */
       autoResultsListSheet.appendRow([
+        emailThreadId,
+
         firstMsg.getId(),
         firstMsg.getDate(),
         emailFrom,
