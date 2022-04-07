@@ -191,7 +191,10 @@ export function extractDataFromEmailSearch(event?: GoogleAppsScript.Events.TimeD
     // const threads = GmailApp.search(
     //   "-subject:'re:' -is:chats -is:draft has:nouserlabels -label:" + LABEL_NAME + ' to:(' + EMAIL_ACCOUNT + ')'
     // );
-    const threads = GmailApp.search('label:' + 'recruiters-linkedin-recruiters');
+    const labelToFilter = getSingleUserPropValue('labelToSearch');
+    if (!labelToFilter) throw Error('No Label To Filter By Found');
+    const threads = GmailApp.search('label:' + labelToFilter);
+    // 'recruiters-linkedin-recruiters');
     // + ' to:(' + EMAIL_ACCOUNT + ')');
 
     let salaries: number[] = [];
