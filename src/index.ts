@@ -1,4 +1,4 @@
-import { extractDataFromEmailSearch, sendTemplateEmail, setDraftTemplateAutoResponder } from './email/email';
+import { extractDataFromEmailSearch, sendTemplateEmail } from './email/email';
 import {
   activeSheet,
   activeSpreadsheet,
@@ -6,18 +6,31 @@ import {
   initSpreadsheet,
   writeDomainsListToDoNotRespondSheet,
 } from './sheets/sheets';
+import {
+  initializeSpreadsheets,
+  menuItemResetEntireSheet,
+  onOpen,
+  sendSelectedEmailsInPendingEmailsSheet,
+  setCannedMessageName,
+  setEmail,
+  setNameToSendInEmail,
+  toggleAutoResponseOnOff,
+} from './ui/ui';
 import { initialGlobalMap } from './utils/utils';
 
 // (?:for\W)(.*)(?= at)(?: at\W)(.*) match linkedin email "you applied at..."
 
-function runScript(e: GoogleAppsScript.Events.TimeDriven) {
+/**
+ * 1. search for emails with the label that have been received in the last 90 days
+ *
+ */
+
+export function runScript(e?: GoogleAppsScript.Events.TimeDriven) {
   try {
     // PropertiesService.getUserProperties().deleteAllProperties();
     initSpreadsheet();
     if (!activeSpreadsheet) throw Error('No Active Spreadsheet');
     if (!activeSheet) throw Error('No Active Sheet');
-
-    setDraftTemplateAutoResponder();
 
     initialGlobalMap('doNotTrackMap');
     initialGlobalMap('emailmessagesIdMap');
@@ -39,9 +52,24 @@ function runScript(e: GoogleAppsScript.Events.TimeDriven) {
 }
 
 /**
- * Runs The Autoresponder script
- *
- *
+ * Runs The Main Script
  * @customFunction
  */
 (global as any).runScript = runScript;
+
+/**
+ * Renders the ui menu in spreadsheet on open event
+ * @customFunction
+ */
+(global as any).onOpen = onOpen;
+
+/**
+ * Menu Options
+ */
+(global as any).toggleAutoResponseOnOff = toggleAutoResponseOnOff;
+(global as any).menuItemResetEntireSheet = menuItemResetEntireSheet;
+(global as any).initializeSpreadsheets = initializeSpreadsheets;
+(global as any).sendSelectedEmailsInPendingEmailsSheet = sendSelectedEmailsInPendingEmailsSheet;
+(global as any).setEmail = setEmail;
+(global as any).setCannedMessageName = setCannedMessageName;
+(global as any).setNameToSendInEmail = setNameToSendInEmail;
