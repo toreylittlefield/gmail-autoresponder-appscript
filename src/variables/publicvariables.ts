@@ -23,9 +23,24 @@ export const AUTOMATED_SHEET_HEADERS = [
   'Body Emails',
   'Body',
   'Salary',
-  'Email Permalink',
   'Thread Permalink',
   'Has Email Response',
+];
+
+/** Name of the sheet for the sent auto response email data */
+export const PENDING_EMAILS_TO_SEND_SHEET_NAME = 'Pending Emails To Send';
+export const PENDING_EMAILS_TO_SEND_HEADERS = [
+  'Send',
+  'Email Thread Id',
+  'Sent Email Message Id',
+  'In Response To Email Message Id',
+  'Date',
+  'From',
+  'ReplyTo',
+  'Person / Company Name',
+  'Subject',
+  'Body',
+  'Thread Permalink',
 ];
 
 /** Name of the sheet for the sent auto response email data */
@@ -40,12 +55,11 @@ export const SENT_SHEET_NAME_HEADERS = [
   'Person / Company Name',
   'Subject',
   'Body',
-  'Email Permalink',
   'Thread Permalink',
 ];
 
 /** Name of the sheet for the emails found results */
-export const FOLLOW_UP_EMAILS_SHEET = 'Follow Up Emails Received List';
+export const FOLLOW_UP_EMAILS_SHEET_NAME = 'Follow Up Emails Received List';
 export const FOLLOW_UP_EMAILS_HEADERS = [
   'From Domain',
   'Email Thread Id',
@@ -58,7 +72,6 @@ export const FOLLOW_UP_EMAILS_HEADERS = [
   'Body Emails',
   'Body',
   'Salary',
-  'Email Permalink',
   'Thread Permalink',
   'Has Email Response',
 ];
@@ -75,7 +88,6 @@ export const BOUNCED_SHEET_NAME_HEADERS = [
   'ReplyTo',
   'Subject',
   'Body',
-  'Email Permalink',
   'Thread Permalink',
 ];
 
@@ -98,4 +110,15 @@ export const DO_NOT_EMAIL_AUTO_INITIAL_DATA = [
   ['mailer-daemon@googlemail.com', new Date(), 0],
   ['@bounce', new Date(), 0],
   ['@bounced', new Date(), 0],
+];
+
+export const allSheets = [
+  AUTOMATED_SHEET_NAME,
+  PENDING_EMAILS_TO_SEND_SHEET_NAME,
+  SENT_SHEET_NAME,
+  FOLLOW_UP_EMAILS_SHEET_NAME,
+  BOUNCED_SHEET_NAME,
+  ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME,
+  DO_NOT_EMAIL_AUTO_SHEET_NAME,
+  DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME,
 ];
