@@ -1,4 +1,5 @@
 import { setDraftTemplateAutoResponder } from '../email/email';
+import { runScript } from '../index';
 import { getSingleUserPropValue, setUserProps } from '../properties-service/properties-service';
 import { checkExistsOrCreateSpreadsheet, WarningResetSheetsAndSpreadsheet } from '../sheets/sheets';
 
@@ -27,6 +28,26 @@ export function onOpen() {
     createMenuAfterStart(ui, menu);
   } else {
     menu.addItem(`Setup and Create Sheets`, `initializeSpreadsheets`).addToUi();
+  }
+}
+
+export async function initializeSpreadsheets() {
+  const ui = SpreadsheetApp.getUi(); // Or DocumentApp or FormApp.
+  const response = ui.alert(
+    `Create Sheets!`,
+    `This will create the sheets you need to run automations.`,
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (response === ui.Button.OK) {
+    await checkExistsOrCreateSpreadsheet();
+    setEmail();
+    setCannedMessageName();
+    setNameToSendInEmail();
+    ui.alert(`Email Sync`, `The script is going to sync your emails`, ui.ButtonSet.OK);
+    runScript();
+    SpreadsheetApp.getActiveSpreadsheet().removeMenu(menuName);
+    const menu = ui.createMenu(menuName);
+    createMenuAfterStart(ui, menu);
   }
 }
 
@@ -134,21 +155,6 @@ export function setNameToSendInEmail() {
 
 export function sendSelectedEmailsInPendingEmailsSheet() {}
 
-export function initializeSpreadsheets() {
-  const ui = SpreadsheetApp.getUi(); // Or DocumentApp or FormApp.
-  const response = ui.alert(
-    `Create Sheets!`,
-    `This will create the sheets you need to run automations.`,
-    ui.ButtonSet.OK_CANCEL
-  );
-  if (response === ui.Button.OK) {
-    checkExistsOrCreateSpreadsheet();
-    SpreadsheetApp.getActiveSpreadsheet().removeMenu(menuName);
-    const menu = ui.createMenu(menuName);
-    createMenuAfterStart(ui, menu);
-  }
-}
-
 export function toggleAutoResponseOnOff() {
   const ui = SpreadsheetApp.getUi();
   const isAutoResOn = PropertiesService.getUserProperties().getProperty('isAutoResOn');
@@ -181,5 +187,10 @@ export function menuItemResetEntireSheet() {
   );
   if (response === ui.Button.OK) {
     WarningResetSheetsAndSpreadsheet();
+    setEmail();
+    setCannedMessageName();
+    setNameToSendInEmail();
+    ui.alert(`Email Sync`, `The script is going to sync your emails`, ui.ButtonSet.OK);
+    runScript();
   }
 }
