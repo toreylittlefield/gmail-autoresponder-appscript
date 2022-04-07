@@ -1,3 +1,5 @@
+import { setDraftTemplateAutoResponder } from '../email/email';
+import { getSingleUserPropValue, setUserProps } from '../properties-service/properties-service';
 import { checkExistsOrCreateSpreadsheet, WarningResetSheetsAndSpreadsheet } from '../sheets/sheets';
 
 const menuName = `Autoresponder Email Settings Menu`;
@@ -5,6 +7,9 @@ const menuName = `Autoresponder Email Settings Menu`;
 function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScript.Base.Menu) {
   const optionsMenu = ui.createMenu('Options');
   optionsMenu.addItem(`Toggle Automatic Email Sending`, 'toggleAutoResponseOnOff');
+  optionsMenu.addItem(`Add / Edit Email`, 'setEmail');
+  optionsMenu.addItem(`Add / Edit Name To Send In Email`, 'setNameToSendInEmail');
+  optionsMenu.addItem(`Add / Edit Canned Message Name`, 'setCannedMessageName');
   optionsMenu.addItem('Reset Entire Sheet', 'menuItemResetEntireSheet');
 
   menu.addItem(`Sync Emails`, 'runScript');
@@ -14,7 +19,7 @@ function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScri
 
 export function onOpen() {
   const ui = SpreadsheetApp.getUi();
-  const hasSpreadsheetId = PropertiesService.getUserProperties().getProperty('spreadsheetId');
+  const hasSpreadsheetId = getSingleUserPropValue('spreadsheetId');
 
   const menu = ui.createMenu(menuName);
 
@@ -22,6 +27,108 @@ export function onOpen() {
     createMenuAfterStart(ui, menu);
   } else {
     menu.addItem(`Setup and Create Sheets`, `initializeSpreadsheets`).addToUi();
+  }
+}
+
+export function setEmail() {
+  const ui = SpreadsheetApp.getUi();
+  const currentEmail = getSingleUserPropValue('email');
+  const mainEmail = Session.getActiveUser().getEmail();
+  const emailAliases = GmailApp.getAliases();
+  const allEmails =
+    emailAliases.length > 0
+      ? `Main EMAIL: ${mainEmail}, 
+         EMAIL ALIASES: ${emailAliases.map((alias) => `\n ${alias}`)}`
+      : `Main email: ${mainEmail}`;
+  const message = currentEmail
+    ? `Current Email is set to: ${currentEmail} 
+    You Can Change This Email.
+    
+    You can also change to one of the following in your gmail account:
+    ${allEmails}
+    `
+    : `No Email Set. Add An Email. 
+    Use one of the following in your gmail account:
+    ${allEmails}`;
+  const promptResponse = ui.prompt(`Add / Edit Email`, message, ui.ButtonSet.OK_CANCEL);
+  const response = promptResponse.getSelectedButton();
+  if (response === ui.Button.OK) {
+    const newEmail = promptResponse.getResponseText();
+    setUserProps({ email: newEmail });
+    ui.alert(`Email Changed`, `Your email is now set to: ${getSingleUserPropValue('email')}`, ui.ButtonSet.OK);
+  }
+}
+
+export function setCannedMessageName() {
+  const ui = SpreadsheetApp.getUi();
+  const email = getSingleUserPropValue('email');
+
+  if (!email) {
+    ui.alert(`Please Set Email`, `You Need To Set An Email Before Setting The Message`, ui.ButtonSet.OK);
+    return;
+  }
+
+  const drafts = GmailApp.getDrafts();
+  const draftsFilteredByEmail = drafts.filter((draft) => {
+    const { getFrom, getSubject } = draft.getMessage();
+    return getFrom().match(email) && getSubject();
+  });
+
+  if (draftsFilteredByEmail.length === 0) {
+    ui.alert(
+      `No Templates Found`,
+      `No templates where found associated with the email ${email}. 
+    Check in GMAIL that you have saved a template / canned message.
+    See: https://support.google.com/a/users/answer/9308990?hl=en
+    `,
+      ui.ButtonSet.OK
+    );
+    return;
+  }
+
+  const subjectsToPickFromDrafts = draftsFilteredByEmail.map(({ getMessage }) => getMessage().getSubject());
+
+  const subject = getSingleUserPropValue('subject');
+
+  const subjectsString = `You can copy from one of these message templates from your account:
+  ${subjectsToPickFromDrafts.map((subject) => `\n ${subject}`)}`;
+
+  const message = subject
+    ? `Current Template / Canned message is set to: ${subject}.
+    You can change this canned message. 
+    
+    ${subjectsString}
+    `
+    : `No Template/Canned Message Set. Add An Message.
+       
+    ${subjectsString}
+    `;
+  const promptResponse = ui.prompt(`Add / Edit Canned/Template Message`, message, ui.ButtonSet.OK_CANCEL);
+  const response = promptResponse.getSelectedButton();
+  if (response === ui.Button.OK) {
+    const input = promptResponse.getResponseText();
+    setUserProps({ subject: input });
+    setDraftTemplateAutoResponder({ email, subject: input });
+    ui.alert(
+      `Canned message Changed`,
+      `Your template message is now set to ${getSingleUserPropValue('subject')}`,
+      ui.ButtonSet.OK
+    );
+  }
+}
+
+export function setNameToSendInEmail() {
+  const ui = SpreadsheetApp.getUi();
+  const nameForEmail = getSingleUserPropValue('nameForEmail');
+  const message = nameForEmail
+    ? `Current name in email is set to ${nameForEmail}. You can change this name.`
+    : `No name is sent for email. Add a name to appear in the email.`;
+  const promptResponse = ui.prompt(`Add / Edit Name To Appear In Email`, message, ui.ButtonSet.OK_CANCEL);
+  const response = promptResponse.getSelectedButton();
+  if (response === ui.Button.OK) {
+    const input = promptResponse.getResponseText();
+    setUserProps({ nameForEmail: input });
+    ui.alert(`Name Changed`, `Your name is now set to ${getSingleUserPropValue('nameForEmail')}`, ui.ButtonSet.OK);
   }
 }
 
