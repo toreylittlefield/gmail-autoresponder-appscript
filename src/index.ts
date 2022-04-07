@@ -13,6 +13,7 @@ import {
   sendSelectedEmailsInPendingEmailsSheet,
   setCannedMessageName,
   setEmail,
+  setLabelToSearchInGmail,
   setNameToSendInEmail,
   toggleAutoResponseOnOff,
 } from './ui/ui';
@@ -73,3 +74,4 @@ export function runScript(e?: GoogleAppsScript.Events.TimeDriven) {
 (global as any).setEmail = setEmail;
 (global as any).setCannedMessageName = setCannedMessageName;
 (global as any).setNameToSendInEmail = setNameToSendInEmail;
+(global as any).setLabelToSearchInGmail = setLabelToSearchInGmail;
