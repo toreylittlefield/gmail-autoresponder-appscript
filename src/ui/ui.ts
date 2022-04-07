@@ -4,13 +4,12 @@ const menuName = `Autoresponder Email Settings Menu`;
 
 function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScript.Base.Menu) {
   const optionsMenu = ui.createMenu('Options');
+  optionsMenu.addItem(`Toggle Automatic Email Sending`, 'toggleAutoResponseOnOff');
   optionsMenu.addItem('Reset Entire Sheet', 'menuItemResetEntireSheet');
 
-  menu
-    .addItem(`Toggle Automatic Email Sending`, 'toggleAutoResponseOnOff')
-    .addSeparator()
-    .addSubMenu(optionsMenu)
-    .addToUi();
+  menu.addItem(`Sync Emails`, 'runScript');
+  menu.addItem(`Send Selected Pending Emails`, 'sendSelectedEmailsInPendingEmailsSheet');
+  menu.addSeparator().addSubMenu(optionsMenu).addToUi();
 }
 
 export function onOpen() {
@@ -19,12 +18,14 @@ export function onOpen() {
 
   const menu = ui.createMenu(menuName);
 
-  if (!hasSpreadsheetId) {
+  if (hasSpreadsheetId) {
     createMenuAfterStart(ui, menu);
   } else {
     menu.addItem(`Setup and Create Sheets`, `initializeSpreadsheets`).addToUi();
   }
 }
+
+export function sendSelectedEmailsInPendingEmailsSheet() {}
 
 export function initializeSpreadsheets() {
   const ui = SpreadsheetApp.getUi(); // Or DocumentApp or FormApp.
@@ -34,7 +35,7 @@ export function initializeSpreadsheets() {
     ui.ButtonSet.OK_CANCEL
   );
   if (response === ui.Button.OK) {
-    checkExistsOrCreateSpreadsheet;
+    checkExistsOrCreateSpreadsheet();
     SpreadsheetApp.getActiveSpreadsheet().removeMenu(menuName);
     const menu = ui.createMenu(menuName);
     createMenuAfterStart(ui, menu);
