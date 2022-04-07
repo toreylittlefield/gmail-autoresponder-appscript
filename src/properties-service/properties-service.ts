@@ -1,7 +1,17 @@
 import { allSheets } from '../variables/publicvariables';
 
 type Sheets = typeof allSheets[number];
-type UserPropsKeys = 'subject' | 'email' | 'draftId' | 'messageId' | 'spreadsheetId' | 'nameForEmail' | Sheets;
+type UserPropsKeys =
+  | 'subject'
+  | 'email'
+  | 'draftId'
+  | 'messageId'
+  | 'spreadsheetId'
+  | 'nameForEmail'
+  | 'labelToSearch'
+  | 'labelId'
+  | 'filterId'
+  | Sheets;
 
 export function setUserProps(props: Partial<Record<UserPropsKeys, string>>) {
   const userProps = PropertiesService.getUserProperties();
