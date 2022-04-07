@@ -2,7 +2,7 @@
 export const FUNCTION_NAME = 'AutoResponder';
 
 /** Label to create for and attach to email messages */
-export const LABEL_NAME = 'hasAutoResponse';
+export const LABEL_NAME = 'auto-responder-label';
 
 /** Regex For Bounced Messages */
 export const BOUNCED_MESSAGES_REGEX = new RegExp('mailer-daemon@googlemail.com|@bounce|@bounced', 'gi');

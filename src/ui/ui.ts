@@ -2,6 +2,7 @@ import { setDraftTemplateAutoResponder } from '../email/email';
 import { runScript } from '../index';
 import { getSingleUserPropValue, setUserProps } from '../properties-service/properties-service';
 import { checkExistsOrCreateSpreadsheet, WarningResetSheetsAndSpreadsheet } from '../sheets/sheets';
+import { LABEL_NAME } from '../variables/publicvariables';
 
 const menuName = `Autoresponder Email Settings Menu`;
 
@@ -271,7 +272,7 @@ function createFilterAndLabel(currentEmail: string, ui: GoogleAppsScript.Base.Ui
         backgroundColor: '#42d692',
         textColor: '#ffffff',
       },
-      name: 'auto-responder-label',
+      name: LABEL_NAME,
       labelListVisibility: 'labelShow',
       messageListVisibility: 'show',
       type: 'user',
