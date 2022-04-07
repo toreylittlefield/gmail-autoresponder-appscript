@@ -1,12 +1,14 @@
-import { CANNED_MSG_NAME, EMAIL_ACCOUNT } from '../variables/privatevariables';
+import { allSheets } from '../variables/publicvariables';
 
-export function setUserProps(props: Record<string, any>) {
+type Sheets = typeof allSheets[number];
+type UserPropsKeys = 'subject' | 'email' | 'draftId' | 'messageId' | 'spreadsheetId' | 'nameForEmail' | Sheets;
+
+export function setUserProps(props: Partial<Record<UserPropsKeys, string>>) {
   const userProps = PropertiesService.getUserProperties();
-
   userProps.setProperties(props);
 }
 
-export function getProps(keys: string[]) {
+export function getUserProps(keys: UserPropsKeys[]) {
   const userProps = PropertiesService.getUserProperties();
   const props: Record<string, any> = {};
   keys.forEach((key) => {
@@ -16,10 +18,8 @@ export function getProps(keys: string[]) {
   return props;
 }
 
-export function setInitialEmailProps() {
+export function getSingleUserPropValue(key: UserPropsKeys) {
   const userProps = PropertiesService.getUserProperties();
-
-  if (!userProps.getProperty('subject') || !userProps.getProperty('email')) {
-    setUserProps({ subject: CANNED_MSG_NAME, email: EMAIL_ACCOUNT });
-  }
+  const value = userProps.getProperty(key);
+  return value;
 }
