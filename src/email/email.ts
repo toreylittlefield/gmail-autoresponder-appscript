@@ -1,7 +1,6 @@
-import { getProps, setInitialEmailProps, setUserProps } from '../properties-service/properties-service';
+import { getSingleUserPropValue, getUserProps, setUserProps } from '../properties-service/properties-service';
 import { addToRepliesArray, doNotSendMailAutoMap, doNotTrackMap, getSheetByName } from '../sheets/sheets';
 import { calcAverage, getDomainFromEmailAddress, getEmailFromString, regexEmail, regexSalary } from '../utils/utils';
-import { EMAIL_ACCOUNT, NAME_TO_SEND_IN_EMAIL } from '../variables/privatevariables';
 import { LABEL_NAME } from '../variables/publicvariables';
 
 type EmailDataToSend = 'replyToEmail' | { emailSubject: string; personName: string };
@@ -20,9 +19,25 @@ export function setTemplateMsg({ subject, email }: { subject: string; email: str
   });
 }
 
-export function setDraftTemplateAutoResponder() {
-  setInitialEmailProps();
-  const props = getProps(['subject', 'email', 'draftId', 'messageId']);
+type SetDraftTemplate = {
+  subject?: string;
+  email?: string;
+};
+
+function setInitialEmailProps({ subject = '', email = '' }: SetDraftTemplate) {
+  if (subject && email) {
+    setUserProps({ subject, email });
+    return;
+  }
+  // const userProps = PropertiesService.getUserProperties();
+  // if (!userProps.getProperty('subject') || !userProps.getProperty('email')) {
+  //   setUserProps({ subject: subject || CANNED_MSG_NAME, email: email || EMAIL_ACCOUNT });
+  // }
+}
+
+export function setDraftTemplateAutoResponder(obj: SetDraftTemplate = { email: '', subject: '' }) {
+  setInitialEmailProps(obj);
+  const props = getUserProps(['subject', 'email', 'draftId', 'messageId']);
   let { subject, email, draftId, messageId } = props;
   if (!draftId || !messageId) {
     setTemplateMsg({ subject, email });
@@ -30,19 +45,24 @@ export function setDraftTemplateAutoResponder() {
 }
 
 function getDraftTemplateAutoResponder() {
-  const { draftId } = getProps(['draftId']);
+  const { draftId } = getUserProps(['draftId']);
   const draft = GmailApp.getDraft(draftId);
   return draft;
 }
 
 export function sendTemplateEmail(recipient: string, subject: string, htmlBodyMessage?: string) {
   try {
+    const name = getSingleUserPropValue('nameForEmail');
+    const email = getSingleUserPropValue('email');
+    if (!name) throw Error('You need to set a name to appear in the email');
+    if (!email) throw Error('You need to set the email to send from');
+
     const body = htmlBodyMessage || getDraftTemplateAutoResponder().getMessage().getBody();
     if (!body) throw Error('Could not find draft and send Email');
     GmailApp.sendEmail(recipient, subject, '', {
-      from: EMAIL_ACCOUNT,
+      from: email,
       htmlBody: body,
-      name: NAME_TO_SEND_IN_EMAIL,
+      name: name,
     });
   } catch (error) {
     console.error(error as any);
@@ -94,7 +114,9 @@ export function getToEmailArray(emailMessages: GoogleAppsScript.Gmail.GmailMessa
 }
 
 function getAutoResponseMsgsFromThread(restMsgs: GoogleAppsScript.Gmail.GmailMessage[]) {
-  const ourEmailDomain = '@' + EMAIL_ACCOUNT.split('@')[1].toString();
+  const email = getSingleUserPropValue('email');
+  if (!email) throw Error(`No email is set, you need to set an email, ${getAutoResponseMsgsFromThread.name}`);
+  const ourEmailDomain = '@' + email.split('@')[1].toString();
 
   const hasResponseFromRegex = new RegExp(`${ourEmailDomain}|canned\.response@${ourEmailDomain}`);
 
@@ -132,10 +154,26 @@ function isDomainEmailInDoNotTrackSheet(fromEmail: string) {
   return false;
 }
 
+type EmailListItem = [
+  EmailThreadId: string,
+  EmailMessageId: string,
+  Date: GoogleAppsScript.Base.Date,
+  From: string,
+  ReplyTo: string,
+  PersonCompanyName: string,
+  Subject: string,
+  BodyEmails: string | undefined,
+  Body: string,
+  Salary: string | undefined,
+  ThreadPermalink: string,
+  HasEmailResponse: string | false
+];
+
 export function extractDataFromEmailSearch(event?: GoogleAppsScript.Events.TimeDriven) {
   try {
     const autoResultsListSheet = getSheetByName('Automated Results List');
     if (!autoResultsListSheet) throw Error('Cannot find Automated Results List Sheet');
+    const emailsForList: EmailListItem[] = [];
     console.log({ event });
     // Search for subject:
     // const subject       = "this is a test";
@@ -157,17 +195,19 @@ export function extractDataFromEmailSearch(event?: GoogleAppsScript.Events.TimeD
     // + ' to:(' + EMAIL_ACCOUNT + ')');
 
     let salaries: number[] = [];
-    threads.forEach((thread, threadIndex) => {
-      if (threadIndex > 10) return;
-      // Respond to email
+    threads.forEach((thread, _threadIndex) => {
+      // if (threadIndex > 200) return;
+
+      const emailMessageCount = thread.getMessageCount();
       const [firstMsg, ...restMsgs] = thread.getMessages();
 
       const firstMsgId = firstMsg.getId();
 
-      const autoResponseMsg = updateRepliesColumnIfMessageHasReplies(firstMsgId, restMsgs);
+      const autoResponseMsg = emailMessageCount > 1 ? updateRepliesColumnIfMessageHasReplies(firstMsgId, restMsgs) : [];
 
       const from = firstMsg.getFrom();
       const emailThreadId = thread.getId();
+      const emailThreadPermaLink = thread.getPermalink();
       const emailSubject = thread.getFirstMessageSubject();
 
       const body = firstMsg.getPlainBody();
@@ -194,7 +234,7 @@ export function extractDataFromEmailSearch(event?: GoogleAppsScript.Events.TimeD
       /**
        * [
   'Email Thread Id',
-  'Email Id',
+  'Email Message Id',
   'Date',
   'From',
   'ReplyTo',
@@ -203,35 +243,45 @@ export function extractDataFromEmailSearch(event?: GoogleAppsScript.Events.TimeD
   'Body Emails',
   'Body',
   'Salary',
-  'Email Permalink',
+  'Thread Permalink',
   'Has Email Response',
 ];
        */
-      autoResultsListSheet.appendRow([
-        emailThreadId,
 
+      if (emailmessagesIdMap.has(emailThreadId)) return;
+
+      emailsForList.push([
+        emailThreadId,
         firstMsg.getId(),
         firstMsg.getDate(),
         emailFrom,
-        emailReplyTo.length > 0 ? emailReplyTo.toString() : undefined,
+        emailReplyTo.toString(),
+        personFrom,
         emailSubject,
         bodyEmails.length > 0 ? bodyEmails.toString() : undefined,
         body,
         salaryAmount ? salaryAmount.toString() : undefined,
-        thread.getPermalink(),
+        emailThreadPermaLink,
         autoResponseMsg.length > 0 ? getToEmailArray(autoResponseMsg) : false,
       ]);
 
-      // messaging-digest-noreply@linkedin.com
-      // inmail-hit-reply@linkedin.com
       salaryAmount && salaryAmount.length > 0 && salaries.push(calcAverage(salaryAmount));
-
-      // thread.reply('', { htmlBody: response_body, from: EMAIL_ACCOUNT });
 
       // Add label to email for exclusion
       // thread.addLabel(label);
     });
+
+    if (emailsForList.length > 0) {
+      const numRows = emailsForList.length;
+      const numColumns = emailsForList[0].length;
+      autoResultsListSheet.insertRowsBefore(2, numRows);
+      const range = autoResultsListSheet.getRange(2, 1, numRows, numColumns);
+      range.setValues(emailsForList);
+      autoResultsListSheet.sort(3, false);
+    }
+
     addSentEmailsToDoNotReplyMap(Array.from(sendToEmailsMap.keys()));
+
     console.log({ salaries: calcAverage(salaries) });
   } catch (error) {
     console.error(error as any);
