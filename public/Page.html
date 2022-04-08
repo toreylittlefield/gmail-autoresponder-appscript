@@ -161,9 +161,7 @@
         });
     }
 
-    function onSuccessGetEmails(emailsObject) {
-        const { emailAliases, mainEmail, currentEmailUserStore, formName } = emailsObject;
-
+    function setEmailForm(emailAliases, mainEmail, currentEmailUserStore) {
         const emailValues = Object.values([mainEmail, ...emailAliases]);
 
         const fragment = document.createDocumentFragment();
@@ -183,6 +181,17 @@
         datalist.appendChild(fragment);
 
         document.querySelector(`#email-form #current-value`).textContent += `${currentEmailUserStore}`;
+    }
+
+    function setNameForm(nameForEmail) {
+        document.querySelector(`#name-form #current-value`).textContent += `${nameForEmail}`;
+    }
+
+    function onSuccessGetUserProperties(emailsObject) {
+        const { emailAliases, mainEmail, currentEmailUserStore, nameForEmail } = emailsObject;
+
+        setEmailForm(emailAliases, mainEmail, currentEmailUserStore)
+        setNameForm(nameForEmail)
     }
 
     /** 
@@ -243,7 +252,7 @@
     }
     window.addEventListener('load', onLoadWrapper);
 
-    google.script.run.withSuccessHandler(onSuccessGetEmails).getUserEmails();
+    google.script.run.withSuccessHandler(onSuccessGetUserProperties).getUserPropertiesForPageModal();
 </script>
 
 <body>
@@ -297,32 +306,34 @@
 
                 <form id="name-form">
                     <fieldset>
-                        <legend>Current Email Configuration</legend>
+                        <legend>Current Send As Name Configuration</legend>
                         <div class="mdl-card__title">
 
-                            <h2 class="mdl-card__subtitle-text" id="current-email"></h2>
+                            <h2 class="mdl-card__subtitle-text" id="current-value"></h2>
                             <div id="loader" class="loader hide"></div>
                         </div>
                         <div class="btn-group" role="group">
                             <div style="flex-basis: 70%; width: auto;"
                                 class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                                <label class="mdl-textfield__label" for="email">Choose a email:</label>
-                                <input class="mdl-textfield__input" list="available-emails" id="email-input"
-                                    name="email" type="email" />
+                                <label class="mdl-textfield__label" for="nameForEmail">Enter a name to send as in
+                                    emails:</label>
+                                <input class="mdl-textfield__input" id="name-input" name="nameForEmail" type="text"
+                                    placeholder="Torey Littlefield - Software Engineer" />
                             </div>
-                            <datalist id="available-emails"> </datalist>
-                            <button id="email-submit" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect
+                            <button id="name-submit" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect
                                     mdl-button--primary" type="submit">Save</button>
                         </div>
                         <details>
                             <summary>Details</summary>
-                            <p>This is the email that will be use to search for incoming emails and filter by in Gmail
+                            <p>Add a name to appear in the emails you send from the autoresponder.
+                                For example, if you get married, you could change from "Lisa Brown" at
+                                sportsfan@gmail.com to "Lisa Jones" at sportsfan@gmail.com.
                             </p>
                             <p>
-                                You can also add aliases to your gmail account see:
+                                See :
                                 <a target="_blank" ref="noopener"
-                                    href="https://support.google.com/mail/answer/22370?hl=en#zippy=%2Cfilter-using-your-gmail-alias%2Csend-from-a-work-or-school-group-alias">Send
-                                    emails from a different address or alias</a>
+                                    href="https://support.google.com/mail/answer/8158?hl=en#:~:text=Click%20the%20Accounts%20and%20Import,the%20bottom%2C%20click%20Save%20changes">
+                                    How to change your name</a>
                             </p>
                         </details>
 
