@@ -126,38 +126,11 @@
             /** @type {FormIds} */
             const id = form.id;
 
-            switch (id) {
-                case 'email-form': {
-                    form.addEventListener('submit', function (event) {
-                        event.preventDefault();
-                        formIdFromEvent = id;
-                        console.log(formIdFromEvent)
-                        handleSubmitEmailForm(this);
-                    });
-                    break;
-                }
-                case 'name-form': {
-                    form.addEventListener('submit', function (event) {
-                        event.preventDefault();
-                        // handleSubmitEmailForm(this);
-                    });
-                    break;
-                }
-                case 'canned-form': {
-                    form.addEventListener('submit', function (event) {
-                        event.preventDefault();
-                        // handleSubmitEmailForm(this);
-                    });
-                    break;
-                }
-                case 'label-form': {
-                    form.addEventListener('submit', function (event) {
-                        event.preventDefault();
-                        // handleSubmitEmailForm(this);
-                    });
-                    break;
-                }
-            }
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                formIdFromEvent = id;
+                handleSubmitForm(this);
+            });
         });
     }
 
@@ -180,15 +153,24 @@
         const datalist = document.getElementById('available-emails');
         datalist.appendChild(fragment);
 
-        document.querySelector(`#email-form #current-value`).textContent += `${currentEmailUserStore}`;
+        setEmail(currentEmailUserStore);
     }
+
+    function setEmail(currentEmailUserStore) {
+        document.querySelector(`#email-form #current-value`).textContent = `${currentEmailUserStore}`;
+    }
+
 
     function setNameForm(nameForEmail) {
-        document.querySelector(`#name-form #current-value`).textContent += `${nameForEmail}`;
+        setName(nameForEmail)
     }
 
-    function onSuccessGetUserProperties(emailsObject) {
-        const { emailAliases, mainEmail, currentEmailUserStore, nameForEmail } = emailsObject;
+    function setName(nameForEmail) {
+        document.querySelector(`#name-form #current-value`).textContent = `${nameForEmail}`;
+    }
+
+    function onSuccessGetUserProperties(userProperties) {
+        const { emailAliases, mainEmail, currentEmailUserStore, nameForEmail } = userProperties;
 
         setEmailForm(emailAliases, mainEmail, currentEmailUserStore)
         setNameForm(nameForEmail)
@@ -200,14 +182,14 @@
     */
     function toggleLoading(formId, disabled) {
         const loader = document.querySelector(`#${formId} #loader`);
-        const submitButton = document.querySelector(`#${formId} button[type = 'submit']`);
+        const submitButton = document.querySelector(`#${formId} button[type='submit']`);
         loader.classList.toggle('hide');
         loader.classList.toggle('show');
         submitButton.disabled = disabled;
     }
 
 
-    function handleSubmitEmailForm(formObject) {
+    function handleSubmitForm(formObject) {
         toggleLoading(formIdFromEvent, true);
         google.script.run.withSuccessHandler(processCallbackSuccess).processFormEventsFromPage(formObject);
     }
@@ -221,8 +203,10 @@
     */
     function processCallbackSuccess(formObject) {
         console.log({ formObject })
+        const [key] = Object.keys(formObject);
+        const [value] = Object.values(formObject);
         if (formObject.email) {
-            processEmailForm(formObject)
+            setEmail(formObject.email)
         }
         if (formObject.subject) {
         }
@@ -230,17 +214,16 @@
 
         }
         if (formObject.nameForEmail) {
-
+            setName(formObject.nameForEmail)
         }
+        alert(`${key} Changed!
+        Your ${key} is now set to:
+            ${value}`);
         toggleLoading(formIdFromEvent, false);
     }
 
     function processEmailForm({ email }) {
-        const currentEmailH3 = document.querySelector(`#${formIdFromEvent} #current-value`);
-        currentEmailH3.textContent = email;
-        alert(`Email Changed!
-        Your email is now set to:
-            ${email}`);
+        setEmail(email);
     }
 
     function onLoadWrapper() {
