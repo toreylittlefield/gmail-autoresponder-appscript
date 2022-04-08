@@ -7,14 +7,17 @@ import {
   writeDomainsListToDoNotRespondSheet,
 } from './sheets/sheets';
 import {
+  getUserPropertiesForPageModal,
   initializeSpreadsheets,
   menuItemResetEntireSheet,
   onOpen,
+  processFormEventsFromPage,
   sendSelectedEmailsInPendingEmailsSheet,
   setCannedMessageName,
   setEmail,
   setLabelToSearchInGmail,
   setNameToSendInEmail,
+  showDialog,
   toggleAutoResponseOnOff,
 } from './ui/ui';
 import { initialGlobalMap } from './utils/utils';
@@ -75,3 +78,6 @@ export function runScript(e?: GoogleAppsScript.Events.TimeDriven) {
 (global as any).setCannedMessageName = setCannedMessageName;
 (global as any).setNameToSendInEmail = setNameToSendInEmail;
 (global as any).setLabelToSearchInGmail = setLabelToSearchInGmail;
+(global as any).showDialog = showDialog;
+(global as any).getUserPropertiesForPageModal = getUserPropertiesForPageModal;
+(global as any).processFormEventsFromPage = processFormEventsFromPage;
