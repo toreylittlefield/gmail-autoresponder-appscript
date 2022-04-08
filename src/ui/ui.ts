@@ -1,6 +1,11 @@
 import { setDraftTemplateAutoResponder } from '../email/email';
 import { runScript } from '../index';
-import { getSingleUserPropValue, setUserProps, UserRecords } from '../properties-service/properties-service';
+import {
+  getSingleUserPropValue,
+  getUserProps,
+  setUserProps,
+  UserRecords,
+} from '../properties-service/properties-service';
 import { checkExistsOrCreateSpreadsheet, WarningResetSheetsAndSpreadsheet } from '../sheets/sheets';
 import { LABEL_NAME } from '../variables/publicvariables';
 
@@ -337,19 +342,21 @@ function getUserNameForEmail() {
   return { nameForEmail };
 }
 
+//@ts-expect-error
 export function processFormEventsFromPage(formObject: Partial<Record<UserRecords, string>>) {
-  //   setUserProps(formObject);
   if (formObject.email) {
     setUserProps({ email: formObject.email });
+    return getUserProps(['email']);
   }
   if (formObject.labelToSearch) {
     setUserProps({ labelToSearch: formObject.labelToSearch });
   }
   if (formObject.nameForEmail) {
     setUserProps({ nameForEmail: formObject.nameForEmail });
+    return getUserProps(['nameForEmail']);
   }
   if (formObject.subject) {
     setUserProps({ subject: formObject.subject });
   }
-  return formObject;
+  //   return formObject;
 }
