@@ -1,6 +1,7 @@
 const path = require('path');
 const GasPlugin = require('gas-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 
 const config = {
   entry: './src/index.ts',
@@ -34,7 +35,19 @@ const config = {
       }),
     ],
   },
-  plugins: [new GasPlugin()],
+  plugins: [
+    new GasPlugin(),
+    new CopyPlugin({
+      patterns: [
+        {
+          from: 'public/*.html',
+          to({ context, absoluteFileName }) {
+            return '[name][ext]';
+          },
+        },
+      ],
+    }),
+  ],
 };
 
 module.exports = config;
