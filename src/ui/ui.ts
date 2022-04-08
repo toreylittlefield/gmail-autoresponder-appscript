@@ -1,6 +1,6 @@
 import { setDraftTemplateAutoResponder } from '../email/email';
 import { runScript } from '../index';
-import { getSingleUserPropValue, setUserProps } from '../properties-service/properties-service';
+import { getSingleUserPropValue, setUserProps, UserRecords } from '../properties-service/properties-service';
 import { checkExistsOrCreateSpreadsheet, WarningResetSheetsAndSpreadsheet } from '../sheets/sheets';
 import { LABEL_NAME } from '../variables/publicvariables';
 
@@ -17,6 +17,7 @@ function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScri
 
   optionsMenu.addItem('Reset Entire Sheet', 'menuItemResetEntireSheet');
 
+  menu.addItem('Show dialog', 'showDialog');
   menu.addItem(`Sync Emails`, 'runScript');
   menu.addItem(`Send Selected Pending Emails`, 'sendSelectedEmailsInPendingEmailsSheet');
   menu.addSeparator().addSubMenu(optionsMenu).addToUi();
@@ -304,4 +305,51 @@ function createFilterAndLabel(currentEmail: string, ui: GoogleAppsScript.Base.Ui
     );
     setUserProps({ labelToSearch: resLabel.name, labelId: resLabel.id, filterId: resFilter.id });
   }
+}
+
+export function showDialog() {
+  var html = HtmlService.createHtmlOutputFromFile('dist/Page').setWidth(400).setHeight(300);
+  SpreadsheetApp.getUi() // Or DocumentApp or SlidesApp or FormApp.
+    .showModalDialog(html, 'Configure Email To Search & Send From');
+}
+
+export function getUserPropertiesForPageModal() {
+  const { currentEmailUserStore, emailAliases, mainEmail } = getUserEmails();
+  const { nameForEmail } = getUserNameForEmail();
+
+  return {
+    emailAliases,
+    mainEmail,
+    currentEmailUserStore,
+    nameForEmail,
+  };
+}
+
+function getUserEmails() {
+  const emailAliases = GmailApp.getAliases();
+  const mainEmail = Session.getActiveUser().getEmail();
+  const currentEmailUserStore = getSingleUserPropValue('email') || 'none set';
+  return { emailAliases, mainEmail, currentEmailUserStore };
+}
+
+function getUserNameForEmail() {
+  const nameForEmail = getSingleUserPropValue('nameForEmail');
+  return { nameForEmail };
+}
+
+export function processFormEventsFromPage(formObject: Partial<Record<UserRecords, string>>) {
+  //   setUserProps(formObject);
+  if (formObject.email) {
+    setUserProps({ email: formObject.email });
+  }
+  if (formObject.labelToSearch) {
+    setUserProps({ labelToSearch: formObject.labelToSearch });
+  }
+  if (formObject.nameForEmail) {
+    setUserProps({ nameForEmail: formObject.nameForEmail });
+  }
+  if (formObject.subject) {
+    setUserProps({ subject: formObject.subject });
+  }
+  return formObject;
 }
