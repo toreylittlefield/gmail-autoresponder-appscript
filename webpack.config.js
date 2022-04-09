@@ -1,14 +1,18 @@
 const path = require('path');
 const GasPlugin = require('gas-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
-const CopyPlugin = require('copy-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const InlineChunkHtmlPlugin = require('react-dev-utils/InlineChunkHtmlPlugin');
 
 const config = {
-  entry: './src/index.ts',
-
+  entry: {
+    appscript: './src/index.ts',
+    client: './public/client.js',
+  },
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js',
+    clean: true,
+    filename: '[name].js',
   },
   module: {
     rules: [
@@ -36,17 +40,17 @@ const config = {
     ],
   },
   plugins: [
-    new GasPlugin(),
-    new CopyPlugin({
-      patterns: [
-        {
-          from: 'public/*.html',
-          to({ context, absoluteFileName }) {
-            return '[name][ext]';
-          },
-        },
-      ],
+    // Generates an `Page.html` file with the <script> injected.
+    new HtmlWebpackPlugin({
+      inject: true,
+      template: path.resolve('public/Page.html'),
+      filename: 'Page.html',
+      inlineSource: '.(js|css)$',
+      chunks: ['client'],
     }),
+    // Inlines chunks with `runtime` in the name
+    new InlineChunkHtmlPlugin(HtmlWebpackPlugin, [/client/]),
+    new GasPlugin({ include: ['src/**/*.ts'] }),
   ],
 };
 
