@@ -1,3 +1,4 @@
 **/**
 !dist/**
+dist/client.js
 !appsscript.json
