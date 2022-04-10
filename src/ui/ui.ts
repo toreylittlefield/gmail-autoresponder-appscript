@@ -321,7 +321,7 @@ export function userOptionsModal() {
 export function getUserPropertiesForPageModal() {
   const { currentEmailUserStore, emailAliases, mainEmail } = getUserEmails();
   const { nameForEmail } = getUserNameForEmail();
-  const { subject, subjectsToPickFromDrafts } = getUserCannedMessage();
+  const { subject, draftsList } = getUserCannedMessage();
 
   return {
     emailAliases,
@@ -329,7 +329,7 @@ export function getUserPropertiesForPageModal() {
     currentEmailUserStore,
     nameForEmail,
     subject,
-    subjectsToPickFromDrafts,
+    draftsList,
   };
 }
 
@@ -345,26 +345,27 @@ function getUserNameForEmail() {
   return { nameForEmail };
 }
 
-type DraftsToPick = { subject: string; draftId: string };
+type DraftsToPick = { subject: string; draftId: string; subjectBody: string };
 
-function getUserCannedMessage(): { subjectsToPickFromDrafts: DraftsToPick[]; subject: string } {
+function getUserCannedMessage(): { draftsList: DraftsToPick[]; subject: string } {
   const email = getSingleUserPropValue('email');
   if (!email) {
-    return { subjectsToPickFromDrafts: [], subject: '' };
+    return { draftsList: [], subject: '' };
   }
   const drafts = GmailApp.getDrafts();
   const draftsFilteredByEmail = drafts.filter((draft) => {
     const { getTo, getSubject } = draft.getMessage();
     return getTo() === '' && getSubject();
   });
-  let subjectsToPickFromDrafts = draftsFilteredByEmail.map(({ getId, getMessage }) => ({
+  let draftsList = draftsFilteredByEmail.map(({ getId, getMessage }) => ({
     draftId: getId(),
     subject: getMessage().getSubject().trim(),
+    subjectBody: getMessage().getPlainBody(),
   }));
 
   const subject = getSingleUserPropValue('subject');
 
-  return { subjectsToPickFromDrafts, subject: subject || '' };
+  return { draftsList, subject: subject || '' };
 }
 
 //@ts-expect-error
