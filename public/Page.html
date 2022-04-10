@@ -20,20 +20,6 @@
         align-items: center;
     }
 
-    .btn {
-        border: 1px solid;
-        border-bottom-left-radius: 0.5rem;
-        border-top-left-radius: 0.5rem;
-    }
-
-    .btn.submit {
-        background-color: green;
-    }
-
-    .btn.cancel {
-        background-color: yellow;
-    }
-
     .show {
         visibility: visible;
         opacity: 1;
@@ -44,21 +30,11 @@
         opacity: 0;
     }
 
-    .loader {
-        border: 8px solid #f3f3f3;
-        border-radius: 50%;
-        border-top: 8px solid #3498db;
-        width: 15px;
-        height: 15px;
-        -webkit-animation: spin 2s linear infinite;
-        /* Safari */
-        animation: spin 2s linear infinite;
-    }
-
     details {
         border: 1px solid #aaa;
         border-radius: 4px;
         padding: .5em .5em 0;
+        margin-bottom: .75rem;
     }
 
     summary {
@@ -74,27 +50,6 @@
     details[open] summary {
         border-bottom: 1px solid #aaa;
         margin-bottom: .5em;
-    }
-
-    /* Safari */
-    @-webkit-keyframes spin {
-        0% {
-            -webkit-transform: rotate(0deg);
-        }
-
-        100% {
-            -webkit-transform: rotate(360deg);
-        }
-    }
-
-    @keyframes spin {
-        0% {
-            transform: rotate(0deg);
-        }
-
-        100% {
-            transform: rotate(360deg);
-        }
     }
 </style>
 
@@ -113,7 +68,7 @@
                         <div class="mdl-card__title">
 
                             <h2 class="mdl-card__subtitle-text" id="current-value"></h2>
-                            <div id="loader" class="loader hide"></div>
+                            <div id="loader" class="mdl-spinner mdl-js-spinner is-active hide"></div>
                         </div>
                         <div class="btn-group" role="group">
                             <div style="flex-basis: 70%; width: auto;"
