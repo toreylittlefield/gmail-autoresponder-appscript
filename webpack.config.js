@@ -46,6 +46,7 @@ const config = {
       template: path.resolve('public/Page.html'),
       filename: 'Page.html',
       inlineSource: '.(js|css)$',
+      cache: false,
       chunks: ['client'],
     }),
     // Inlines chunks with `runtime` in the name
