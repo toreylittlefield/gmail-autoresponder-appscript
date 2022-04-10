@@ -11,7 +11,7 @@ type UserPropsKeys =
   | 'labelId'
   | 'filterId';
 
-type DraftsToPick = { subject: string; draftId: string };
+type DraftsList = { subject: string; draftId: string; subjectBody: string };
 
 type OnSucessPayload = {
   emailAliases: string[];
@@ -19,7 +19,7 @@ type OnSucessPayload = {
   currentEmailUserStore: string;
   nameForEmail: string;
   subject: string;
-  subjectsToPickFromDrafts: DraftsToPick[];
+  draftsList: DraftsList[];
 };
 
 let formIdFromEvent: FormIds;
@@ -71,9 +71,18 @@ function setSubject(subject: string) {
   if (titleElement) titleElement.textContent = `${subject}`;
 }
 
-function setSubjectForm(subject: string, subjectsToPickFromDrafts: DraftsToPick[]) {
-  const subjects = subjectsToPickFromDrafts.map(({ subject }) => subject);
-  const draftIds = subjectsToPickFromDrafts.map(({ draftId }) => draftId);
+function setSubjectBody(subject: string) {
+  const textArea = document.getElementById('subject-body') as HTMLTextAreaElement;
+  textArea.textContent = subject;
+}
+
+function setSubjectForm(subject: string, draftsList: DraftsList[]) {
+  const subjects = draftsList.map(({ subject }) => subject);
+  const draftIds = draftsList.map(({ draftId }) => draftId);
+
+  const foundSubject = draftsList.find((draft) => draft.subject === subject);
+  if (foundSubject) setSubjectBody(foundSubject.subjectBody);
+
   appendToDataList('available-subjects', createChildElements(subjects, { key: 'draftId', dataSetValues: draftIds }));
 
   const input = document.getElementById('subject-input');
@@ -87,6 +96,8 @@ function setSubjectForm(subject: string, subjectsToPickFromDrafts: DraftsToPick[
               const draftId = child.dataset.draftId;
               if (child.value === this.value) {
                 this.dataset.draftId = draftId;
+                const foundSubject = draftsList.find((draft) => draft.draftId === draftId);
+                if (foundSubject) setSubjectBody(foundSubject.subjectBody);
                 this.setCustomValidity('');
               } else {
                 delete this.dataset.draftId;
@@ -132,12 +143,11 @@ function setName(nameForEmail: string) {
 }
 
 function onSuccessGetUserProperties(userProperties: OnSucessPayload) {
-  const { emailAliases, mainEmail, currentEmailUserStore, nameForEmail, subject, subjectsToPickFromDrafts } =
-    userProperties;
+  const { emailAliases, mainEmail, currentEmailUserStore, nameForEmail, subject, draftsList } = userProperties;
 
   setEmailForm(emailAliases, mainEmail, currentEmailUserStore);
   setNameForm(nameForEmail);
-  setSubjectForm(subject, subjectsToPickFromDrafts);
+  setSubjectForm(subject, draftsList);
 }
 
 function toggleLoading(formId: string, disabled: boolean) {
