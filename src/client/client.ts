@@ -1,28 +1,29 @@
-/**
- * @typedef {'email-form' | 'name-form' | 'canned-form' | 'label-form'} FormIds
- */
+type FormIds = 'email-form' | 'name-form' | 'canned-form' | 'label-form';
 
-/**
-    * @typedef {  'subject' | 'email'
+type UserPropsKeys =
+  | 'subject'
+  | 'email'
   | 'draftId'
   | 'messageId'
   | 'spreadsheetId'
   | 'nameForEmail'
   | 'labelToSearch'
   | 'labelId'
-  | 'filterId'} UserPropsKeys
-    */
+  | 'filterId';
 
-let forms = [];
+type OnSucessPayload = {
+  emailAliases: string[];
+  mainEmail: string;
+  currentEmailUserStore: string;
+  nameForEmail: string;
+};
 
-/** @type FormIds */
-let formIdFromEvent = '';
+let formIdFromEvent: FormIds;
 
 function attachFormSubmitListeners() {
-  forms = Array.from(document.querySelectorAll('form'));
+  const forms = Array.from(document.querySelectorAll('form'));
   forms.forEach((form) => {
-    /** @type {FormIds} */
-    const id = form.id;
+    const id = form.id as FormIds;
 
     form.addEventListener('submit', function (event) {
       event.preventDefault();
@@ -32,13 +33,13 @@ function attachFormSubmitListeners() {
   });
 }
 
-function setEmailForm(emailAliases, mainEmail, currentEmailUserStore) {
+function setEmailForm(emailAliases: string[], mainEmail: string, currentEmailUserStore: string) {
   const emailValues = Object.values([mainEmail, ...emailAliases]);
 
   const fragment = document.createDocumentFragment();
 
   emailValues.forEach((email) => {
-    const option = document.createElement('OPTION');
+    const option = document.createElement('OPTION') as HTMLOptionElement;
     option.value = email;
 
     const input = document.getElementById('email-input');
@@ -49,56 +50,50 @@ function setEmailForm(emailAliases, mainEmail, currentEmailUserStore) {
   });
 
   const datalist = document.getElementById('available-emails');
-  datalist.appendChild(fragment);
+  if (datalist) {
+    datalist.appendChild(fragment);
+  }
 
   setEmail(currentEmailUserStore);
 }
 
-function setEmail(currentEmailUserStore) {
-  document.querySelector(`#email-form #current-value`).textContent = `${currentEmailUserStore}`;
+function setEmail(currentEmailUserStore: string) {
+  const titleElement = document.querySelector(`#email-form #current-value`);
+  if (titleElement) titleElement.textContent = `${currentEmailUserStore}`;
 }
 
-function setNameForm(nameForEmail) {
+function setNameForm(nameForEmail: string) {
   setName(nameForEmail);
 }
 
-function setName(nameForEmail) {
-  document.querySelector(`#name-form #current-value`).textContent = `${nameForEmail}`;
+function setName(nameForEmail: string) {
+  const titleElement = document.querySelector(`#name-form #current-value`);
+  if (titleElement) titleElement.textContent = `${nameForEmail}`;
 }
 
-function onSuccessGetUserProperties(userProperties) {
+function onSuccessGetUserProperties(userProperties: OnSucessPayload) {
   const { emailAliases, mainEmail, currentEmailUserStore, nameForEmail } = userProperties;
 
   setEmailForm(emailAliases, mainEmail, currentEmailUserStore);
   setNameForm(nameForEmail);
 }
 
-/**
- * @param {FormIds} formId
- * @param {boolean} disabled
- */
-function toggleLoading(formId, disabled) {
+function toggleLoading(formId: string, disabled: boolean) {
   const loader = document.querySelector(`#${formId} #loader`);
-  const submitButton = document.querySelector(`#${formId} button[type='submit']`);
-  loader.classList.toggle('hide');
-  loader.classList.toggle('show');
+  const submitButton = document.querySelector(`#${formId} button[type='submit']`) as HTMLButtonElement;
   submitButton.disabled = disabled;
+  if (loader) {
+    loader.classList.toggle('hide');
+    loader.classList.toggle('show');
+  }
 }
 
-function handleSubmitForm(formObject) {
+function handleSubmitForm(formObject: any) {
   toggleLoading(formIdFromEvent, true);
   google.script.run.withSuccessHandler(processCallbackSuccess).processFormEventsFromPage(formObject);
 }
 
-/**
- * @param {Object} formObject
- * @param {string} [formObject.email]
- * @param {string} [formObject.subject]
- * @param {string} [formObject.labelToSearch]
- * @param {string} [formObject.nameForEmail]
- */
-function processCallbackSuccess(formObject) {
-  console.log({ formObject });
+function processCallbackSuccess(formObject: Record<UserPropsKeys, string>) {
   const [key] = Object.keys(formObject);
   const [value] = Object.values(formObject);
   if (formObject.email) {
@@ -117,15 +112,17 @@ function processCallbackSuccess(formObject) {
   toggleLoading(formIdFromEvent, false);
 }
 
-function processEmailForm({ email }) {
-  setEmail(email);
-}
-
 function onLoadWrapper() {
   attachFormSubmitListeners();
   setTimeout(() => {
-    document.getElementById('p2').classList.toggle('hide');
-    document.getElementById('main-wrapper').classList.toggle('hide');
+    const loader = document.getElementById('p2');
+    if (loader) {
+      loader.classList.toggle('hide');
+    }
+    const app = document.getElementById('main-wrapper');
+    if (app) {
+      app.classList.toggle('hide');
+    }
   }, 500);
 }
 window.addEventListener('load', onLoadWrapper);
