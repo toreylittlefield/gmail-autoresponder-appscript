@@ -17,7 +17,7 @@ import {
   setEmail,
   setLabelToSearchInGmail,
   setNameToSendInEmail,
-  showDialog,
+  userOptionsModal,
   toggleAutoResponseOnOff,
 } from './ui/ui';
 import { initialGlobalMap } from './utils/utils';
@@ -78,6 +78,6 @@ export function runScript(e?: GoogleAppsScript.Events.TimeDriven) {
 (global as any).setCannedMessageName = setCannedMessageName;
 (global as any).setNameToSendInEmail = setNameToSendInEmail;
 (global as any).setLabelToSearchInGmail = setLabelToSearchInGmail;
-(global as any).showDialog = showDialog;
+(global as any).userOptionsModal = userOptionsModal;
 (global as any).getUserPropertiesForPageModal = getUserPropertiesForPageModal;
 (global as any).processFormEventsFromPage = processFormEventsFromPage;
