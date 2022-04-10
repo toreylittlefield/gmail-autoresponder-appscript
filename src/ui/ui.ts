@@ -22,7 +22,7 @@ function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScri
 
   optionsMenu.addItem('Reset Entire Sheet', 'menuItemResetEntireSheet');
 
-  menu.addItem('Show dialog', 'showDialog');
+  menu.addItem('User Options', 'userOptionsModal');
   menu.addItem(`Sync Emails`, 'runScript');
   menu.addItem(`Send Selected Pending Emails`, 'sendSelectedEmailsInPendingEmailsSheet');
   menu.addSeparator().addSubMenu(optionsMenu).addToUi();
@@ -312,21 +312,24 @@ function createFilterAndLabel(currentEmail: string, ui: GoogleAppsScript.Base.Ui
   }
 }
 
-export function showDialog() {
-  var html = HtmlService.createHtmlOutputFromFile('dist/Page').setWidth(400).setHeight(300);
+export function userOptionsModal() {
+  var html = HtmlService.createHtmlOutputFromFile('dist/Page').setWidth(400).setHeight(500);
   SpreadsheetApp.getUi() // Or DocumentApp or SlidesApp or FormApp.
-    .showModalDialog(html, 'Configure Email To Search & Send From');
+    .showModalDialog(html, 'User Options');
 }
 
 export function getUserPropertiesForPageModal() {
   const { currentEmailUserStore, emailAliases, mainEmail } = getUserEmails();
   const { nameForEmail } = getUserNameForEmail();
+  const { subject, subjectsToPickFromDrafts } = getUserCannedMessage();
 
   return {
     emailAliases,
     mainEmail,
     currentEmailUserStore,
     nameForEmail,
+    subject,
+    subjectsToPickFromDrafts,
   };
 }
 
@@ -342,6 +345,28 @@ function getUserNameForEmail() {
   return { nameForEmail };
 }
 
+type DraftsToPick = { subject: string; draftId: string };
+
+function getUserCannedMessage(): { subjectsToPickFromDrafts: DraftsToPick[]; subject: string } {
+  const email = getSingleUserPropValue('email');
+  if (!email) {
+    return { subjectsToPickFromDrafts: [], subject: '' };
+  }
+  const drafts = GmailApp.getDrafts();
+  const draftsFilteredByEmail = drafts.filter((draft) => {
+    const { getTo, getSubject } = draft.getMessage();
+    return getTo() === '' && getSubject();
+  });
+  let subjectsToPickFromDrafts = draftsFilteredByEmail.map(({ getId, getMessage }) => ({
+    draftId: getId(),
+    subject: getMessage().getSubject().trim(),
+  }));
+
+  const subject = getSingleUserPropValue('subject');
+
+  return { subjectsToPickFromDrafts, subject: subject || '' };
+}
+
 //@ts-expect-error
 export function processFormEventsFromPage(formObject: Partial<Record<UserRecords, string>>) {
   if (formObject.email) {
@@ -355,8 +380,8 @@ export function processFormEventsFromPage(formObject: Partial<Record<UserRecords
     setUserProps({ nameForEmail: formObject.nameForEmail });
     return getUserProps(['nameForEmail']);
   }
-  if (formObject.subject) {
-    setUserProps({ subject: formObject.subject });
+  if (formObject.subject && formObject.draftId) {
+    setUserProps({ subject: formObject.subject, draftId: formObject.draftId });
+    return getUserProps(['subject']);
   }
-  //   return formObject;
 }
