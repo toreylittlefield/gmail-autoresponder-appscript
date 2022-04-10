@@ -143,39 +143,39 @@
         <!-- END NAME FORM -->
 
 
-        <!-- SET CANNED / TEMPLATE MSG FORM -->
+        <!-- SET Subject CANNED / TEMPLATE MSG FORM -->
 
         <div class="mdl-cell mdl-cell--12-col">
             <div class="mdl-card mdl-shadow--2dp" style="padding: 0px 5px;">
 
-                <form id="canned-form">
+                <form id="subject-form">
                     <fieldset>
-                        <legend>Current Email Configuration</legend>
+                        <legend>Current Template Message</legend>
                         <div class="mdl-card__title">
 
-                            <h2 class="mdl-card__subtitle-text" id="current-email"></h2>
+                            <h2 class="mdl-card__subtitle-text" id="current-value"></h2>
                             <div id="loader" class="loader hide"></div>
                         </div>
                         <div class="btn-group" role="group">
                             <div style="flex-basis: 70%; width: auto;"
                                 class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                                <label class="mdl-textfield__label" for="email">Choose a email:</label>
-                                <input class="mdl-textfield__input" list="available-emails" id="email-input"
-                                    name="email" type="email" />
+                                <label class="mdl-textfield__label" for="subject">Choose a template:</label>
+                                <input class="mdl-textfield__input" list="available-subjects" id="subject-input"
+                                    name="subject" type="text" />
                             </div>
-                            <datalist id="available-emails"> </datalist>
-                            <button id="email-submit" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect
+                            <datalist id="available-subjects"> </datalist>
+                            <button id="subject-submit" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect
                             mdl-button--primary" type="submit">Save</button>
                         </div>
                         <details>
                             <summary>Details</summary>
-                            <p>This is the email that will be use to search for incoming emails and filter by in Gmail
-                            </p>
+                            <p>Choose a template / canned message to send as the body of the email for your
+                                autoresponses</p>
                             <p>
-                                You can also add aliases to your gmail account see:
+                                Check in GMAIL that you have saved a template / canned message.
                                 <a target="_blank" ref="noopener"
-                                    href="https://support.google.com/mail/answer/22370?hl=en#zippy=%2Cfilter-using-your-gmail-alias%2Csend-from-a-work-or-school-group-alias">Send
-                                    emails from a different address or alias</a>
+                                    href="https://support.google.com/a/users/answer/9308990?hl=en">See creating and
+                                    canned messages / templates in Gmail</a>
                             </p>
                         </details>
 
