@@ -156,6 +156,11 @@
                             <h2 class="mdl-card__subtitle-text" id="current-value"></h2>
                             <div id="loader" class="loader hide"></div>
                         </div>
+                        <div class="mdl-textfield mdl-js-textfield">
+                            <textarea readonly class="mdl-textfield__input" type="text" rows="3"
+                                id="subject-body"></textarea>
+                            <!-- <label class="mdl-textfield__label" for="subject-body">Email Body</label> -->
+                        </div>
                         <div class="btn-group" role="group">
                             <div style="flex-basis: 70%; width: auto;"
                                 class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
@@ -193,21 +198,21 @@
 
                 <form id="label-form">
                     <fieldset>
-                        <legend>Current Email Configuration</legend>
+                        <legend>Current Label Configuration</legend>
                         <div class="mdl-card__title">
 
-                            <h2 class="mdl-card__subtitle-text" id="current-email"></h2>
+                            <h2 class="mdl-card__subtitle-text" id="current-value"></h2>
                             <div id="loader" class="loader hide"></div>
                         </div>
                         <div class="btn-group" role="group">
                             <div style="flex-basis: 70%; width: auto;"
                                 class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                                <label class="mdl-textfield__label" for="email">Choose a email:</label>
-                                <input class="mdl-textfield__input" list="available-emails" id="email-input"
-                                    name="email" type="email" />
+                                <label class="mdl-textfield__label" for="email">Choose a Gmail label:</label>
+                                <input class="mdl-textfield__input" list="available-labels" id="email-label"
+                                    name="label" type="text" />
                             </div>
-                            <datalist id="available-emails"> </datalist>
-                            <button id="email-submit" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect
+                            <datalist id="available-labels"> </datalist>
+                            <button id="label-submit" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect
                             mdl-button--primary" type="submit">Save</button>
                         </div>
                         <details>
