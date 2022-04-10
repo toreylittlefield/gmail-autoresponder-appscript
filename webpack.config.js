@@ -7,7 +7,7 @@ const InlineChunkHtmlPlugin = require('react-dev-utils/InlineChunkHtmlPlugin');
 const config = {
   entry: {
     appscript: './src/index.ts',
-    client: './public/client.js',
+    client: './src/client/client.ts',
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
