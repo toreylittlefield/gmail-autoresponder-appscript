@@ -76,7 +76,7 @@ export async function checkExistsOrCreateSpreadsheet(): Promise<'done'> {
         if (file.isTrashed()) throw Error('File in trash, creating a new sheet');
       } catch (error) {
         PropertiesService.getUserProperties().deleteAllProperties();
-        spreadsheetId = null;
+        spreadsheetId = undefined;
       }
     }
 
