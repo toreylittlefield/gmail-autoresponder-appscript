@@ -207,9 +207,9 @@
                         <div class="btn-group" role="group">
                             <div style="flex-basis: 70%; width: auto;"
                                 class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                                <label class="mdl-textfield__label" for="email">Choose a Gmail label:</label>
+                                <label class="mdl-textfield__label" for="labelToSearch">Choose a Gmail label:</label>
                                 <input class="mdl-textfield__input" list="available-labels" id="email-label"
-                                    name="label" type="text" />
+                                    name="labelToSearch" type="text" />
                             </div>
                             <datalist id="available-labels"> </datalist>
                             <button id="label-submit" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect
@@ -217,13 +217,17 @@
                         </div>
                         <details>
                             <summary>Details</summary>
-                            <p>This is the email that will be use to search for incoming emails and filter by in Gmail
+                            <p>To Create Labels In Gmail See:
+                                <a target="_blank" ref="noopener"
+                                    href="https://support.google.com/mail/answer/118708?hl=en">Create Labels In
+                                    Gmail</a>
                             </p>
                             <p>
-                                You can also add aliases to your gmail account see:
+                                If you're not familiar with using Gmail Filters and Labels please see the following
+                                article:
                                 <a target="_blank" ref="noopener"
-                                    href="https://support.google.com/mail/answer/22370?hl=en#zippy=%2Cfilter-using-your-gmail-alias%2Csend-from-a-work-or-school-group-alias">Send
-                                    emails from a different address or alias</a>
+                                    href="https://support.google.com/a/users/answer/9308833?hl=en">Gmail: Advanced tips
+                                    Automatically label and sort messages</a>
                             </p>
                         </details>
 
@@ -237,7 +241,6 @@
 
     </div>
 
-    <div id="output"></div>
 </body>
 
 </html>
