@@ -20,6 +20,8 @@ type OnSucessPayload = {
   nameForEmail: string;
   subject: string;
   draftsList: DraftsList[];
+  currentLabel: string;
+  userLabels: string[];
 };
 
 let formIdFromEvent: FormIds;
@@ -116,6 +118,40 @@ function setSubjectForm(subject: string, draftsList: DraftsList[]) {
   setSubject(subject);
 }
 
+function setLabel(currentLabel: string) {
+  const titleElement = document.querySelector(`#label-form #current-value`);
+  if (titleElement) titleElement.textContent = `${currentLabel}`;
+}
+
+function addCreateLabelButton() {
+  const button = document.getElementById('label-submit');
+  if (button instanceof HTMLButtonElement) {
+    button.textContent = 'Create New Label';
+  }
+}
+
+function hideInput(formId: FormIds) {
+  const input = document.querySelector(`#${formId} input`);
+  if (input instanceof HTMLInputElement) {
+    const parent = input.parentElement;
+    if (parent) {
+      parent.classList.toggle('hide');
+      input.value = 'create-label';
+    }
+  }
+}
+
+function setLabelForm(currentLabel: string, userLabels: string[]) {
+  if (userLabels.length === 0) {
+    addCreateLabelButton();
+    setLabel('No Labels Found');
+    hideInput('label-form');
+  } else {
+    appendToDataList('available-labels', createChildElements(userLabels));
+    setLabel(currentLabel);
+  }
+}
+
 function setEmailForm(emailAliases: string[], mainEmail: string, currentEmailUserStore: string) {
   const emailValues = Object.values([mainEmail, ...emailAliases]);
 
@@ -143,11 +179,21 @@ function setName(nameForEmail: string) {
 }
 
 function onSuccessGetUserProperties(userProperties: OnSucessPayload) {
-  const { emailAliases, mainEmail, currentEmailUserStore, nameForEmail, subject, draftsList } = userProperties;
+  const {
+    emailAliases,
+    mainEmail,
+    currentEmailUserStore,
+    nameForEmail,
+    subject,
+    draftsList,
+    currentLabel,
+    userLabels,
+  } = userProperties;
 
   setEmailForm(emailAliases, mainEmail, currentEmailUserStore);
   setNameForm(nameForEmail);
   setSubjectForm(subject, draftsList);
+  setLabelForm(currentLabel, userLabels);
 }
 
 function toggleLoading(formId: string, disabled: boolean) {
@@ -188,6 +234,7 @@ function processCallbackSuccess(formObject: Record<UserPropsKeys, string>) {
     setSubject(formObject.subject);
   }
   if (formObject.labelToSearch) {
+    setLabel(formObject.labelToSearch);
   }
   if (formObject.nameForEmail) {
     setName(formObject.nameForEmail);
