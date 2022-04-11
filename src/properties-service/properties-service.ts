@@ -19,13 +19,12 @@ export function setUserProps(props: Partial<Record<UserPropsKeys, string>>) {
   const userProps = PropertiesService.getUserProperties();
   userProps.setProperties(props);
 }
-
-export function getUserProps(keys: UserPropsKeys[]) {
+export function getUserProps<T extends UserPropsKeys>(keys: T[]) {
   const userProps = PropertiesService.getUserProperties();
-  const props: Record<string, any> = {};
+  const props: Partial<Record<T, string>> = {};
   keys.forEach((key) => {
     const value = userProps.getProperty(key);
-    props[key] = value;
+    if (value) props[key] = value;
   });
   return props;
 }
