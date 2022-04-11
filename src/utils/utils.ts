@@ -1,4 +1,5 @@
 import { emailmessagesIdMap } from '../email/email';
+import { getUserProps } from '../properties-service/properties-service';
 import { doNotTrackMap, getAllDataFromSheet, SheetNames } from '../sheets/sheets';
 
 export function calcAverage(numbersArray: any[]): number {
@@ -54,4 +55,33 @@ export function initialGlobalMap(mapName: MapNames) {
   } catch (error) {
     console.error(error as any);
   }
+}
+
+export function hasAllRequiredUserProps() {
+  const ui = SpreadsheetApp.getUi();
+  const userConfiguration = getUserProps(['email', 'nameForEmail', 'labelToSearch', 'subject', 'draftId']);
+  const userConfigKeysLength = Object.keys(userConfiguration).length;
+  if (userConfigKeysLength === 0) {
+    ui.alert(
+      `Error`,
+      `No User Configuration Set. Please set your email and other user configurations before syncing emails`,
+      ui.ButtonSet.OK
+    );
+    return false;
+  }
+  if (userConfigKeysLength > 0) {
+    const { email = '', draftId = '', labelToSearch = '', nameForEmail = '', subject = '' } = userConfiguration;
+    const userConfigArray = Object.entries({ email, draftId, labelToSearch, nameForEmail, subject });
+    const hasEveryUserProp = userConfigArray.every(([key, val]) => {
+      if (!val) {
+        ui.alert(
+          `${key} is not set in your user configurations. Please set this value first before attempting to sync emails`
+        );
+        return false;
+      }
+      return true;
+    });
+    return hasEveryUserProp;
+  }
+  return false;
 }
