@@ -13,14 +13,10 @@ import {
   onOpen,
   processFormEventsFromPage,
   sendSelectedEmailsInPendingEmailsSheet,
-  setCannedMessageName,
-  setEmail,
-  setLabelToSearchInGmail,
-  setNameToSendInEmail,
-  userOptionsModal,
   toggleAutoResponseOnOff,
+  userConfigurationModal,
 } from './ui/ui';
-import { initialGlobalMap } from './utils/utils';
+import { hasAllRequiredUserProps, initialGlobalMap } from './utils/utils';
 
 // (?:for\W)(.*)(?= at)(?: at\W)(.*) match linkedin email "you applied at..."
 
@@ -29,8 +25,10 @@ import { initialGlobalMap } from './utils/utils';
  *
  */
 
-export function runScript(e?: GoogleAppsScript.Events.TimeDriven) {
+export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
   try {
+    const hasReqProps = hasAllRequiredUserProps();
+    if (!hasReqProps) return;
     // PropertiesService.getUserProperties().deleteAllProperties();
     initSpreadsheet();
     if (!activeSpreadsheet) throw Error('No Active Spreadsheet');
@@ -59,7 +57,7 @@ export function runScript(e?: GoogleAppsScript.Events.TimeDriven) {
  * Runs The Main Script
  * @customFunction
  */
-(global as any).runScript = runScript;
+(global as any).getEmailsFromGmail = getEmailsFromGmail;
 
 /**
  * Renders the ui menu in spreadsheet on open event
@@ -74,10 +72,6 @@ export function runScript(e?: GoogleAppsScript.Events.TimeDriven) {
 (global as any).menuItemResetEntireSheet = menuItemResetEntireSheet;
 (global as any).initializeSpreadsheets = initializeSpreadsheets;
 (global as any).sendSelectedEmailsInPendingEmailsSheet = sendSelectedEmailsInPendingEmailsSheet;
-(global as any).setEmail = setEmail;
-(global as any).setCannedMessageName = setCannedMessageName;
-(global as any).setNameToSendInEmail = setNameToSendInEmail;
-(global as any).setLabelToSearchInGmail = setLabelToSearchInGmail;
-(global as any).userOptionsModal = userOptionsModal;
+(global as any).userConfigurationModal = userConfigurationModal;
 (global as any).getUserPropertiesForPageModal = getUserPropertiesForPageModal;
 (global as any).processFormEventsFromPage = processFormEventsFromPage;
