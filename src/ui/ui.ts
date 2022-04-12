@@ -1,4 +1,3 @@
-import { getEmailsFromGmail } from '../index';
 import {
   getSingleUserPropValue,
   getUserProps,
@@ -18,7 +17,7 @@ function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScri
   optionsMenu.addItem('Reset Entire Sheet', 'menuItemResetEntireSheet');
 
   menu.addItem('User Configuration', 'userConfigurationModal');
-  menu.addItem(`Sync Emails`, 'getEmailsFromGmail');
+  menu.addItem(`Sync Emails`, 'uiGetEmailsFromGmail');
   menu.addItem(`Send Selected Pending Emails`, 'sendSelectedEmailsInPendingEmailsSheet');
   menu.addSeparator().addSubMenu(optionsMenu).addToUi();
 }
@@ -47,8 +46,11 @@ export async function initializeSpreadsheets() {
       console.error(err);
       WarningResetSheetsAndSpreadsheet();
     });
-    ui.alert(`Email Sync`, `The script is going to sync your emails`, ui.ButtonSet.OK);
-    getEmailsFromGmail();
+    ui.alert(
+      `Next Steps`,
+      `Please fill out the "User Configuration" settings with your email and other options before sync emails`,
+      ui.ButtonSet.OK
+    );
     SpreadsheetApp.getActiveSpreadsheet().removeMenu(menuName);
     const menu = ui.createMenu(menuName);
     createMenuAfterStart(ui, menu);
@@ -66,7 +68,7 @@ export function sendSelectedEmailsInPendingEmailsSheet() {}
 
 export function toggleAutoResponseOnOff() {
   const ui = SpreadsheetApp.getUi();
-  const isAutoResOn = PropertiesService.getUserProperties().getProperty('isAutoResOn');
+  const isAutoResOn = getSingleUserPropValue('isAutoResOn');
   const onOrOff = isAutoResOn === 'On' ? 'Off' : 'On';
   const response = ui.alert(
     `Confirm: Turn Automatic Emailing ${onOrOff}?`,
@@ -97,8 +99,11 @@ export function menuItemResetEntireSheet() {
   if (response === ui.Button.OK) {
     WarningResetSheetsAndSpreadsheet();
 
-    ui.alert(`Email Sync`, `The script is going to sync your emails`, ui.ButtonSet.OK);
-    getEmailsFromGmail();
+    ui.alert(
+      `Next Steps`,
+      `Please reconfigure your "User Configuration" settings before syncing your emails`,
+      ui.ButtonSet.OK
+    );
   }
 }
 
@@ -187,10 +192,6 @@ function getUserNameForEmail() {
 type DraftsToPick = { subject: string; draftId: string; subjectBody: string };
 
 function getUserCannedMessage(): { draftsList: DraftsToPick[]; subject: string } {
-  const email = getSingleUserPropValue('email');
-  if (!email) {
-    return { draftsList: [], subject: '' };
-  }
   const drafts = GmailApp.getDrafts();
   const draftsFilteredByEmail = drafts.filter((draft) => {
     const { getTo, getSubject } = draft.getMessage();
