@@ -1,4 +1,5 @@
 import { getToEmailArray } from '../email/email';
+import { doNotSendMailAutoMap, emailsToSendMap } from '../global/maps';
 import { getUserProps, setUserProps } from '../properties-service/properties-service';
 import {
   allSheets,
@@ -34,14 +35,12 @@ export type SheetNames =
   | typeof DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME
   | typeof PENDING_EMAILS_TO_SEND_SHEET_NAME;
 
-type ReplyToUpdateType = [row: number, emailMessage: GoogleAppsScript.Gmail.GmailMessage[]][];
-
 const tabColors = ['blue', 'green', 'red', 'purple', 'orange', 'yellow', 'black', 'teal', 'gold'] as const;
 
 export let activeSpreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet;
 export let activeSheet: GoogleAppsScript.Spreadsheet.Sheet;
-export const doNotSendMailAutoMap = new Map<string, number>();
-export const doNotTrackMap = new Map<string, boolean>();
+
+type ReplyToUpdateType = [row: number, emailMessage: GoogleAppsScript.Gmail.GmailMessage[]][];
 export const repliesToUpdateArray: ReplyToUpdateType = [];
 
 export function WarningResetSheetsAndSpreadsheet() {
@@ -92,7 +91,6 @@ export async function checkExistsOrCreateSpreadsheet(): Promise<'done'> {
       // spreadsheet.deleteSheet(firstSheet);
       createSheet(spreadsheet, PENDING_EMAILS_TO_SEND_SHEET_NAME, PENDING_EMAILS_TO_SEND_HEADERS, {
         tabColor: 'gold',
-        columnNumberForCheckbox: 1,
       });
       createSheet(spreadsheet, SENT_SHEET_NAME, SENT_SHEET_NAME_HEADERS, { tabColor: 'green' });
       createSheet(spreadsheet, FOLLOW_UP_EMAILS_SHEET_NAME, FOLLOW_UP_EMAILS_HEADERS, { tabColor: 'black' });
@@ -114,21 +112,20 @@ export async function checkExistsOrCreateSpreadsheet(): Promise<'done'> {
   });
 }
 
-type Options = { tabColor: typeof tabColors[number]; initData: any[][]; columnNumberForCheckbox: number | null };
+type Options = { tabColor: typeof tabColors[number]; initData: any[][] };
 
 function createSheet(
   activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet,
   sheetName: SheetNames,
   headersValues: string[],
-  options: Partial<Options> = { initData: [], tabColor: 'green', columnNumberForCheckbox: null }
+  options: Partial<Options> = { initData: [], tabColor: 'green' }
 ) {
-  const { initData = [], tabColor = '', columnNumberForCheckbox = null } = options;
+  const { initData = [], tabColor = '' } = options;
   const sheet = activeSS.insertSheet();
   sheet.setName(sheetName);
   sheet.setTabColor(tabColor || 'green');
   writeHeaders(sheet, headersValues);
   initData.length > 0 && setInitialSheetData(sheet, headersValues, initData);
-  columnNumberForCheckbox && sheet.getRange(2, columnNumberForCheckbox, sheet.getMaxRows() - 1).insertCheckboxes();
   sheet.deleteColumns(headersValues.length + 1, sheet.getMaxColumns() - headersValues.length);
 
   const startRowIndex = initData.length > 50 ? initData.length : 50;
@@ -137,6 +134,10 @@ function createSheet(
   sheet.autoResizeColumns(1, headersValues.length);
   setSheetProtection(sheet, `${sheetName} Protected Range`);
   setSheetInProps(sheetName, sheet);
+}
+
+export function setColumnToCheckBox(sheet: GoogleAppsScript.Spreadsheet.Sheet, columnNumberForCheckbox: number) {
+  sheet.getRange(2, columnNumberForCheckbox, sheet.getMaxRows() - 1).insertCheckboxes();
 }
 
 function getSpreadSheetId() {
@@ -265,23 +266,44 @@ export function getAllDataFromSheet(sheetName: SheetNames) {
   }
 }
 
-export function setGlobalDoNotSendEmailAutoArrayList() {
-  try {
-    const doNotReplyList = getAllDataFromSheet('Do Not Autorespond List');
-    if (!doNotReplyList) throw Error('Could Not Set The Global Do Not Reply Array');
-    doNotReplyList.forEach(([domain, _, count]) => doNotSendMailAutoMap.set(domain, count));
-  } catch (error) {
-    console.error(error as any);
-  }
+export function getNumRowsAndColsFromArray(arrayOfRows: any[][]) {
+  return {
+    numRows: arrayOfRows.length,
+    numCols: arrayOfRows[0].length,
+  };
 }
 
-export function formatRowHeight() {
-  const automatedSheet = getSheetByName('Automated Results List');
+export function setValuesInRangeAndSortSheet(
+  numRows: number,
+  numCols: number,
+  arrayOfRows: any[][],
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  sortOptions?: { sortByCol: number; asc: boolean },
+  range = { startRow: 2, startCol: 1 }
+) {
+  const dataRange = sheet.getRange(range.startRow, range.startCol, numRows, numCols);
+  dataRange.setValues(arrayOfRows);
+  sortOptions && sheet.sort(sortOptions.sortByCol, sortOptions.asc);
+}
+
+export function addRowsToTopOfSheet(numRows: number, sheet: GoogleAppsScript.Spreadsheet.Sheet) {
+  sheet.insertRowsBefore(2, numRows);
+}
+
+// export function setGlobalDoNotSendEmailAutoArrayList() {
+//   try {
+//     const doNotReplyList = getAllDataFromSheet('Do Not Autorespond List');
+//     if (!doNotReplyList) throw Error('Could Not Set The Global Do Not Reply Array');
+//     doNotReplyList.forEach(([domain, _, count]) => doNotSendMailAutoMap.set(domain, count));
+//   } catch (error) {
+//     console.error(error as any);
+//   }
+// }
+
+export function formatRowHeight(sheetName: SheetNames) {
+  const sheet = getSheetByName(sheetName);
   //@ts-expect-error
-  automatedSheet && automatedSheet.setRowHeightsForced(2, automatedSheet.getDataRange().getNumRows(), 21);
-  const sentResponsesSheet = getSheetByName('Sent Automated Responses');
-  //@ts-expect-error
-  sentResponsesSheet && sentResponsesSheet.setRowHeightsForced(2, sentResponsesSheet.getDataRange().getNumRows(), 21);
+  sheet && sheet.setRowHeightsForced(2, sheet.getDataRange().getNumRows(), 21);
 }
 
 export function addToRepliesArray(index: number, emailMessages: GoogleAppsScript.Gmail.GmailMessage[]) {
@@ -300,6 +322,81 @@ export function updateRepliesColumn(rowsToUpdate: ReplyToUpdateType) {
   } catch (error) {
     console.error(error as any);
   }
+}
+
+type ValidSentRowInSheet = [
+  emailThreadId: string,
+  inResponseToEmailMessageId: string,
+  isReplyorNewEmail: 'new' | 'reply',
+  date: GoogleAppsScript.Base.Date,
+  emailFrom: string,
+  emailSendTo: string,
+  personFrom: string,
+  emailSubject: string,
+  emailBody: string,
+  emailThreadPermaLink: string
+];
+export function writeEmailsToPendingSheet() {
+  const pendingEmailsSheet = getSheetByName('Pending Emails To Send');
+  if (!pendingEmailsSheet) {
+    throw Error(`Could Not Find Pending Emails To Send Sheet`);
+  }
+  const emailObjects = Array.from(emailsToSendMap.values());
+  const validSentRows: ValidSentRowInSheet[] = emailObjects.map(
+    ({
+      date,
+      emailBody,
+      emailFrom,
+      emailSubject,
+      emailThreadId,
+      emailThreadPermaLink,
+      inResponseToEmailMessageId,
+      personFrom,
+      emailSendTo,
+      isReplyorNewEmail,
+    }) => {
+      return [
+        emailThreadId,
+        inResponseToEmailMessageId,
+        isReplyorNewEmail,
+        date,
+        emailFrom,
+        emailSendTo,
+        personFrom,
+        emailSubject,
+        emailBody,
+        emailThreadPermaLink,
+      ];
+    }
+  );
+  if (validSentRows.length === 0) return;
+  const { numCols, numRows } = getNumRowsAndColsFromArray(validSentRows);
+  addRowsToTopOfSheet(numRows, pendingEmailsSheet);
+  setValuesInRangeAndSortSheet(
+    numRows,
+    numCols,
+    validSentRows,
+    pendingEmailsSheet,
+    { asc: false, sortByCol: 5 },
+    { startCol: 2, startRow: 2 }
+  );
+  setCheckedValueForEachRow(
+    emailObjects.map(({ send }) => [send]),
+    pendingEmailsSheet,
+    1
+  );
+}
+
+function setCheckedValueForEachRow(
+  arrayRows: [isChecked: boolean][],
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  columnNumber: number
+) {
+  arrayRows.forEach(([isChecked], index) => {
+    const dataRange = sheet.getRange(2 + index, columnNumber);
+    dataRange.insertCheckboxes();
+    isChecked && dataRange.check();
+  });
 }
 
 export function writeDomainsListToDoNotRespondSheet() {
@@ -330,6 +427,5 @@ export function initSpreadsheet() {
 
   setActiveSpreadSheet(SpreadsheetApp);
 
-  setGlobalDoNotSendEmailAutoArrayList();
   getAndSetActiveSheetByName(AUTOMATED_SHEET_NAME);
 }
