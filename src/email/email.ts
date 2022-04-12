@@ -1,51 +1,65 @@
-import { getSingleUserPropValue, getUserProps, setUserProps } from '../properties-service/properties-service';
-import { addToRepliesArray, doNotSendMailAutoMap, doNotTrackMap, getSheetByName } from '../sheets/sheets';
+import {
+  doNotSendMailAutoMap,
+  doNotTrackMap,
+  EmailDataToSend,
+  emailmessagesIdMap,
+  emailsToSendMap,
+  pendingEmailsToSendMap,
+} from '../global/maps';
+import { getSingleUserPropValue, getUserProps } from '../properties-service/properties-service';
+import {
+  addRowsToTopOfSheet,
+  addToRepliesArray,
+  getNumRowsAndColsFromArray,
+  getSheetByName,
+  setValuesInRangeAndSortSheet,
+} from '../sheets/sheets';
 import { calcAverage, getDomainFromEmailAddress, getEmailFromString, regexEmail, regexSalary } from '../utils/utils';
-import { LABEL_NAME } from '../variables/publicvariables';
 
-type EmailDataToSend = 'replyToEmail' | { emailSubject: string; personName: string };
 type EmailReplySendArray = [emailAddress: string, replyOrNew: EmailDataToSend][];
 
-const sendToEmailsMap = new Map<string, EmailDataToSend>();
-export const emailmessagesIdMap = new Map<string, number>();
+// export function setTemplateMsg({ subject, email }: { subject: string; email: string }) {
+//   const drafts = GmailApp.getDrafts();
+//   drafts.forEach((draft) => {
+//     const { getFrom, getSubject, getId } = draft.getMessage();
+//     if (subject === getSubject() && getFrom().match(email)) {
+//       setUserProps({ messageId: getId(), draftId: draft.getId() });
+//     }
+//   });
+// }
 
-export function setTemplateMsg({ subject, email }: { subject: string; email: string }) {
-  const drafts = GmailApp.getDrafts();
-  drafts.forEach((draft) => {
-    const { getFrom, getSubject, getId } = draft.getMessage();
-    if (subject === getSubject() && getFrom().match(email)) {
-      setUserProps({ messageId: getId(), draftId: draft.getId() });
-    }
-  });
-}
+// type SetDraftTemplate = {
+//   subject?: string;
+//   email?: string;
+// };
 
-type SetDraftTemplate = {
-  subject?: string;
-  email?: string;
-};
+// function setInitialEmailProps({ subject = '', email = '' }: SetDraftTemplate) {
+//   if (subject && email) {
+//     setUserProps({ subject, email });
+//     return;
+//   }
+//   // const userProps = PropertiesService.getUserProperties();
+//   // if (!userProps.getProperty('subject') || !userProps.getProperty('email')) {
+//   //   setUserProps({ subject: subject || CANNED_MSG_NAME, email: email || EMAIL_ACCOUNT });
+//   // }
+// }
 
-function setInitialEmailProps({ subject = '', email = '' }: SetDraftTemplate) {
-  if (subject && email) {
-    setUserProps({ subject, email });
-    return;
-  }
-  // const userProps = PropertiesService.getUserProperties();
-  // if (!userProps.getProperty('subject') || !userProps.getProperty('email')) {
-  //   setUserProps({ subject: subject || CANNED_MSG_NAME, email: email || EMAIL_ACCOUNT });
-  // }
-}
-
-export function setDraftTemplateAutoResponder(obj: SetDraftTemplate = { email: '', subject: '' }) {
-  setInitialEmailProps(obj);
-  const props = getUserProps(['subject', 'email', 'draftId', 'messageId']);
-  let { subject, email, draftId, messageId } = props;
-  if (!draftId || !messageId) {
-    setTemplateMsg({ subject, email });
-  }
-}
+// export function setDraftTemplateAutoResponder(obj: SetDraftTemplate = { email: '', subject: '' }) {
+//   setInitialEmailProps(obj);
+//   const props = getUserProps(['subject', 'email', 'draftId', 'messageId']);
+//   let { subject, email, draftId, messageId } = props;
+//   if (!draftId || !messageId) {
+//     setTemplateMsg({ subject, email });
+//   }
+// }
 
 function getDraftTemplateAutoResponder() {
   const { draftId } = getUserProps(['draftId']);
+  if (!draftId) {
+    const ui = SpreadsheetApp.getUi();
+    ui.alert(`Error!`, `Could not find the canned messaged need for the draft id`, ui.ButtonSet.OK);
+    return;
+  }
   const draft = GmailApp.getDraft(draftId);
   return draft;
 }
@@ -56,8 +70,9 @@ export function sendTemplateEmail(recipient: string, subject: string, htmlBodyMe
     const email = getSingleUserPropValue('email');
     if (!name) throw Error('You need to set a name to appear in the email');
     if (!email) throw Error('You need to set the email to send from');
-
-    const body = htmlBodyMessage || getDraftTemplateAutoResponder().getMessage().getBody();
+    const draft = getDraftTemplateAutoResponder();
+    const draftBody = draft && draft.getMessage().getBody();
+    const body = htmlBodyMessage || draftBody ? draftBody : undefined;
     if (!body) throw Error('Could not find draft and send Email');
     GmailApp.sendEmail(recipient, subject, '', {
       from: email,
@@ -73,25 +88,40 @@ function checkAndAddToEmailMap(emails: EmailReplySendArray) {
   emails.forEach(([email, data]) => {
     const domain = getDomainFromEmailAddress(email);
 
-    if (!doNotSendMailAutoMap.has(email) && !doNotSendMailAutoMap.has(domain) && !sendToEmailsMap.has(email)) {
-      sendToEmailsMap.set(email, data);
+    if (!doNotSendMailAutoMap.has(email) && !doNotSendMailAutoMap.has(domain) && !emailsToSendMap.has(email)) {
+      emailsToSendMap.set(email, data);
     }
   });
 }
 
 function buildEmailsObject(
-  replyToEmail: string,
+  emailObj: Omit<EmailDataToSend, 'sendReplyEmail' | 'send' | 'isReplyorNewEmail' | 'emailSendTo'>,
   bodyEmails: string[],
-  emailSubject: string,
-  personFrom: string
+  emailReplyTo: string
 ): EmailReplySendArray {
-  const emailObject: { [key: string]: EmailDataToSend } = {};
+  const emailObject: Record<string, EmailDataToSend> = {};
+  const isAutoResOn = getSingleUserPropValue('isAutoResOn');
+  const onOrOff = isAutoResOn === 'On' ? true : false;
   bodyEmails.forEach((email) => {
-    if (email !== replyToEmail) {
-      emailObject.email = { personName: personFrom, emailSubject };
+    if (email !== emailObj.emailFrom && email !== emailReplyTo && !pendingEmailsToSendMap.has(email)) {
+      const isReplyorNewEmail = 'new' as const;
+      emailObject[email] = Object.assign({}, emailObj, {
+        isReplyorNewEmail,
+        sendReplyEmail: false,
+        send: onOrOff,
+        emailSendTo: email,
+      });
     }
   });
-  emailObject[replyToEmail] = 'replyToEmail';
+  const isReplyorNewEmail = 'reply' as const;
+  if (!pendingEmailsToSendMap.has(emailReplyTo)) {
+    emailObject[emailReplyTo] = Object.assign({}, emailObj, {
+      isReplyorNewEmail,
+      sendReplyEmail: true,
+      send: onOrOff,
+      emailSendTo: emailReplyTo,
+    });
+  }
   return Object.entries(emailObject);
 }
 
@@ -169,31 +199,23 @@ type EmailListItem = [
   HasEmailResponse: string | false
 ];
 
-export function extractDataFromEmailSearch(event?: GoogleAppsScript.Events.TimeDriven) {
+export function extractDataFromEmailSearch(
+  email: string,
+  labelToSearch: string,
+  _event?: GoogleAppsScript.Events.TimeDriven
+) {
   try {
-    const autoResultsListSheet = getSheetByName('Automated Results List');
-    if (!autoResultsListSheet) throw Error('Cannot find Automated Results List Sheet');
     const emailsForList: EmailListItem[] = [];
-    console.log({ event });
-    // Search for subject:
-    // const subject       = "this is a test";
 
     // Exclude this label:
     // (And creates it if it doesn't exist)
     // return;
-    let label = GmailApp.getUserLabelByName(LABEL_NAME);
-    // Create label if it doesn't exist
-    if (label == null) {
-      label = GmailApp.createLabel(LABEL_NAME);
-    }
 
     // Send our response email and label it responded to
     // const threads = GmailApp.search(
     //   "-subject:'re:' -is:chats -is:draft has:nouserlabels -label:" + LABEL_NAME + ' to:(' + EMAIL_ACCOUNT + ')'
     // );
-    const labelToFilter = getSingleUserPropValue('labelToSearch');
-    if (!labelToFilter) throw Error('No Label To Filter By Found');
-    const threads = GmailApp.search('label:' + labelToFilter);
+    const threads = GmailApp.search(`label:${labelToSearch} to:(${email})`);
     // 'recruiters-linkedin-recruiters');
     // + ' to:(' + EMAIL_ACCOUNT + ')');
 
@@ -213,80 +235,81 @@ export function extractDataFromEmailSearch(event?: GoogleAppsScript.Events.TimeD
       const emailThreadPermaLink = thread.getPermalink();
       const emailSubject = thread.getFirstMessageSubject();
 
-      const body = firstMsg.getPlainBody();
+      const emailBody = firstMsg.getPlainBody();
       const replyTo = firstMsg.getReplyTo();
 
       /** Use as a backup in case other split methods fail */
       // const emailFrom = [...new Set(from.match(regexEmail))];
       // const emailReplyTo = [...new Set(replyTo.match(regexEmail))];
-
       const emailFrom = getEmailFromString(from);
       const personFrom = from.split('<', 1)[0].trim();
-      const emailReplyTo = getEmailFromString(replyTo);
+      const emailReplyTo = replyTo ? getEmailFromString(replyTo) : emailFrom;
 
-      const bodyEmails = [...new Set(body.match(regexEmail))];
-      const salaryAmount = body.match(regexSalary);
+      const bodyEmails = [...new Set(emailBody.match(regexEmail))];
+      const salaryAmount = emailBody.match(regexSalary);
+      const emailMessageId = firstMsg.getId();
+      const date = firstMsg.getDate();
 
       if (isDomainEmailInDoNotTrackSheet(emailFrom)) return;
 
       // const isNoReplyLinkedIn = from.match(/noreply@linkedin\.com/gi);
       // if (isNoReplyLinkedIn) return;
 
-      checkAndAddToEmailMap(buildEmailsObject(replyTo, bodyEmails, emailSubject, personFrom));
+      checkAndAddToEmailMap(
+        buildEmailsObject(
+          {
+            date,
+            emailThreadId,
+            emailBody,
+            emailSubject,
+            emailFrom,
+            inResponseToEmailMessageId: emailThreadId,
+            personFrom,
+            emailThreadPermaLink,
+          },
+          bodyEmails,
+          emailReplyTo
+        )
+      );
 
-      /**
-       * [
-  'Email Thread Id',
-  'Email Message Id',
-  'Date',
-  'From',
-  'ReplyTo',
-  'Person / Company Name',
-  'Subject',
-  'Body Emails',
-  'Body',
-  'Salary',
-  'Thread Permalink',
-  'Has Email Response',
-];
-       */
+      salaryAmount && salaryAmount.length > 0 && salaries.push(calcAverage(salaryAmount));
 
       if (emailmessagesIdMap.has(emailThreadId)) return;
 
       emailsForList.push([
         emailThreadId,
-        firstMsg.getId(),
-        firstMsg.getDate(),
+        emailMessageId,
+        date,
         emailFrom,
         emailReplyTo.toString(),
         personFrom,
         emailSubject,
         bodyEmails.length > 0 ? bodyEmails.toString() : undefined,
-        body,
+        emailBody,
         salaryAmount ? salaryAmount.toString() : undefined,
         emailThreadPermaLink,
         autoResponseMsg.length > 0 ? getToEmailArray(autoResponseMsg) : false,
       ]);
 
-      salaryAmount && salaryAmount.length > 0 && salaries.push(calcAverage(salaryAmount));
-
       // Add label to email for exclusion
       // thread.addLabel(label);
     });
 
-    if (emailsForList.length > 0) {
-      const numRows = emailsForList.length;
-      const numColumns = emailsForList[0].length;
-      autoResultsListSheet.insertRowsBefore(2, numRows);
-      const range = autoResultsListSheet.getRange(2, 1, numRows, numColumns);
-      range.setValues(emailsForList);
-      autoResultsListSheet.sort(3, false);
-    }
-
-    addSentEmailsToDoNotReplyMap(Array.from(sendToEmailsMap.keys()));
+    writeEmailsListToAutomationSheet(emailsForList);
+    addSentEmailsToDoNotReplyMap(Array.from(emailsToSendMap.keys()));
 
     console.log({ salaries: calcAverage(salaries) });
   } catch (error) {
     console.error(error as any);
+  }
+}
+
+function writeEmailsListToAutomationSheet(emailsForList: EmailListItem[]) {
+  const autoResultsListSheet = getSheetByName('Automated Results List');
+  if (!autoResultsListSheet) throw Error('Cannot find Automated Results List Sheet');
+  if (emailsForList.length > 0) {
+    const { numCols, numRows } = getNumRowsAndColsFromArray(emailsForList);
+    addRowsToTopOfSheet(numRows, autoResultsListSheet);
+    setValuesInRangeAndSortSheet(numRows, numCols, emailsForList, autoResultsListSheet, { sortByCol: 3, asc: false });
   }
 }
