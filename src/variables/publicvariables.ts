@@ -32,11 +32,11 @@ export const PENDING_EMAILS_TO_SEND_SHEET_NAME = 'Pending Emails To Send';
 export const PENDING_EMAILS_TO_SEND_HEADERS = [
   'Send',
   'Email Thread Id',
-  'Sent Email Message Id',
   'In Response To Email Message Id',
+  'Is Reply Or New Email',
   'Date',
   'From',
-  'ReplyTo',
+  'Send Email To',
   'Person / Company Name',
   'Subject',
   'Body',
