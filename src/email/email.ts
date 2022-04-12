@@ -1,4 +1,5 @@
 import {
+  alwaysAllowMap,
   doNotSendMailAutoMap,
   doNotTrackMap,
   EmailDataToSend,
@@ -132,7 +133,7 @@ function addSentEmailsToDoNotReplyMap(sentEmails: string[]) {
     if (typeof count === 'number') {
       return doNotSendMailAutoMap.set(domain, count + 1);
     }
-    if (count == null) {
+    if (count == null && !alwaysAllowMap.has(domain)) {
       doNotSendMailAutoMap.set(domain, 0);
     }
     return;
@@ -140,7 +141,7 @@ function addSentEmailsToDoNotReplyMap(sentEmails: string[]) {
 }
 
 export function getToEmailArray(emailMessages: GoogleAppsScript.Gmail.GmailMessage[]) {
-  return emailMessages.map((row) => row.getTo()).toString();
+  return emailMessages.map((emailMsg) => emailMsg.getTo()).toString();
 }
 
 function getAutoResponseMsgsFromThread(restMsgs: GoogleAppsScript.Gmail.GmailMessage[]) {
