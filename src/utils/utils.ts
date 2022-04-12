@@ -1,6 +1,6 @@
-import { emailmessagesIdMap } from '../email/email';
+import { doNotTrackMap, doNotSendMailAutoMap, emailmessagesIdMap, pendingEmailsToSendMap } from '../global/maps';
 import { getUserProps } from '../properties-service/properties-service';
-import { doNotTrackMap, getAllDataFromSheet, SheetNames } from '../sheets/sheets';
+import { getAllDataFromSheet, SheetNames } from '../sheets/sheets';
 
 export function calcAverage(numbersArray: any[]): number {
   return numbersArray.reduce((acc, curVal, index, array) => {
@@ -31,7 +31,7 @@ export const regexSalary =
 
 export const getEmailFromString = (str: string) => str.split('<')[1].replace('>', '').trim();
 
-type MapNames = 'emailmessagesIdMap' | 'doNotTrackMap';
+type MapNames = 'emailmessagesIdMap' | 'doNotTrackMap' | 'doNotSendMailAutoMap' | 'pendingEmailsToSendMap';
 
 export function initialGlobalMap(mapName: MapNames) {
   try {
@@ -48,6 +48,17 @@ export function initialGlobalMap(mapName: MapNames) {
         break;
       case 'doNotTrackMap':
         getSheetData('Do Not Track List').forEach(([domainOrEmail]) => doNotTrackMap.set(domainOrEmail, true));
+        break;
+      case 'doNotSendMailAutoMap':
+        getSheetData('Do Not Autorespond List').forEach(([domain, _, count]) =>
+          doNotSendMailAutoMap.set(domain, count)
+        );
+        break;
+      case 'pendingEmailsToSendMap':
+        getSheetData('Pending Emails To Send').forEach(
+          ([_send, _emailThreadId, _inResponseToEmailMessageId, _isReplyOrNewEmail, _date, _emailFrom, sendToEmail]) =>
+            pendingEmailsToSendMap.set(sendToEmail, true)
+        );
         break;
       default:
         break;
