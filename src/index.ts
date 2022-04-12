@@ -47,6 +47,7 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
 
     initialGlobalMap('doNotTrackMap');
     initialGlobalMap('emailmessagesIdMap');
+    initialGlobalMap('alwaysAllowMap');
     initialGlobalMap('doNotSendMailAutoMap');
     initialGlobalMap('pendingEmailsToSendMap');
 
