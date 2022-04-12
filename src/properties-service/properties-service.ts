@@ -11,7 +11,8 @@ export type UserRecords =
   | 'nameForEmail'
   | 'labelToSearch'
   | 'labelId'
-  | 'filterId';
+  | 'filterId'
+  | 'isAutoResOn';
 
 export type UserPropsKeys = UserRecords | Sheets;
 
