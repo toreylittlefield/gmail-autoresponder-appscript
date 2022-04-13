@@ -1,4 +1,4 @@
-import { createOrSentTemplateEmail, DraftAttributeArray, getToEmailArray } from '../email/email';
+import { createOrSentTemplateEmail, DraftAttributeArray, EmailListItem, getToEmailArray } from '../email/email';
 import { doNotSendMailAutoMap, emailsToSendMap } from '../global/maps';
 import { getUserProps, setUserProps } from '../properties-service/properties-service';
 import {
@@ -562,6 +562,16 @@ export function writeDomainsListToDoNotRespondSheet() {
     createNewDomainsToAppend.forEach((row) => doNotRespondSheet.appendRow(row));
   } catch (error) {
     console.error(error as any);
+  }
+}
+
+export function writeEmailsListToAutomationSheet(emailsForList: EmailListItem[]) {
+  const autoResultsListSheet = getSheetByName('Automated Results List');
+  if (!autoResultsListSheet) throw Error('Cannot find Automated Results List Sheet');
+  if (emailsForList.length > 0) {
+    const { numCols, numRows } = getNumRowsAndColsFromArray(emailsForList);
+    addRowsToTopOfSheet(numRows, autoResultsListSheet);
+    setValuesInRangeAndSortSheet(numRows, numCols, emailsForList, autoResultsListSheet, { sortByCol: 3, asc: false });
   }
 }
 

@@ -8,13 +8,7 @@ import {
   pendingEmailsToSendMap,
 } from '../global/maps';
 import { getSingleUserPropValue, getUserProps } from '../properties-service/properties-service';
-import {
-  addRowsToTopOfSheet,
-  addToRepliesArray,
-  getNumRowsAndColsFromArray,
-  getSheetByName,
-  setValuesInRangeAndSortSheet,
-} from '../sheets/sheets';
+import { addToRepliesArray, writeEmailsListToAutomationSheet } from '../sheets/sheets';
 import { calcAverage, getDomainFromEmailAddress, getEmailFromString, regexEmail, regexSalary } from '../utils/utils';
 import { LABEL_NAME } from '../variables/publicvariables';
 
@@ -229,14 +223,6 @@ function updateRepliesColumnIfMessageHasReplies(firstMsgId: string, restMsgs: Go
   return autoResponseMsg;
 }
 
-/**
- * 1. get unread mail sent to email_account
- * 2. search for unread mail that does not have the label for our email_account and email was sent less time < 30 minutes
- * 3. for each found message from 2., search for that "@domain.xyz" to check if we've already been messaged by that domain
- * 4. if the search results from 3. is of length 1, it is the first message and therefore we send the autoresponse
- * 5. otherwise we don't send an autoresponse to avoid sending the autoresponse to the same domain more than once
- */
-
 function isDomainEmailInDoNotTrackSheet(fromEmail: string) {
   const domain = getDomainFromEmailAddress(fromEmail);
 
@@ -247,7 +233,7 @@ function isDomainEmailInDoNotTrackSheet(fromEmail: string) {
   return false;
 }
 
-type EmailListItem = [
+export type EmailListItem = [
   EmailThreadId: string,
   EmailMessageId: string,
   Date: GoogleAppsScript.Base.Date,
@@ -364,16 +350,6 @@ export function extractDataFromEmailSearch(
     console.log({ salaries: calcAverage(salaries) });
   } catch (error) {
     console.error(error as any);
-  }
-}
-
-function writeEmailsListToAutomationSheet(emailsForList: EmailListItem[]) {
-  const autoResultsListSheet = getSheetByName('Automated Results List');
-  if (!autoResultsListSheet) throw Error('Cannot find Automated Results List Sheet');
-  if (emailsForList.length > 0) {
-    const { numCols, numRows } = getNumRowsAndColsFromArray(emailsForList);
-    addRowsToTopOfSheet(numRows, autoResultsListSheet);
-    setValuesInRangeAndSortSheet(numRows, numCols, emailsForList, autoResultsListSheet, { sortByCol: 3, asc: false });
   }
 }
 
