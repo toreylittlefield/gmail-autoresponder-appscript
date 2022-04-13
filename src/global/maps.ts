@@ -20,7 +20,7 @@ export const doNotSendMailAutoMap = new Map<string, number>();
 export const doNotTrackMap = new Map<string, boolean>();
 
 /** allow list of domains or emails */
-export const alwaysAllow = new Map<string, boolean>();
+export const alwaysAllowMap = new Map<string, boolean>();
 
 /** list of all emailId (threadId) and row number in automation sheet */
 export const emailmessagesIdMap = new Map<string, number>();
