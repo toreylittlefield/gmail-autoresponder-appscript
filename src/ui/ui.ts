@@ -4,7 +4,11 @@ import {
   setUserProps,
   UserRecords,
 } from '../properties-service/properties-service';
-import { checkExistsOrCreateSpreadsheet, WarningResetSheetsAndSpreadsheet } from '../sheets/sheets';
+import {
+  checkExistsOrCreateSpreadsheet,
+  deleteDraftsInPendingSheet,
+  WarningResetSheetsAndSpreadsheet,
+} from '../sheets/sheets';
 import { LABEL_NAME } from '../variables/publicvariables';
 
 const menuName = `Autoresponder Email Settings Menu`;
@@ -16,9 +20,10 @@ function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScri
 
   optionsMenu.addItem('Reset Entire Sheet', 'menuItemResetEntireSheet');
 
-  menu.addItem('User Configuration', 'userConfigurationModal');
   menu.addItem(`Sync Emails`, 'uiGetEmailsFromGmail');
-  menu.addItem(`Send Selected Pending Emails`, 'sendSelectedEmailsInPendingEmailsSheet');
+  menu.addItem(`Send Selected Pending Draft Emails`, 'sendSelectedEmailsInPendingEmailsSheet');
+  menu.addItem(`Delete Selected Pending Draft Emails`, 'deleteSelectedEmailsInPendingEmailsSheet');
+  menu.addItem('User Configuration', 'userConfigurationModal');
   menu.addSeparator().addSubMenu(optionsMenu).addToUi();
 }
 
@@ -65,6 +70,17 @@ function getUserLabels() {
 }
 
 export function sendSelectedEmailsInPendingEmailsSheet() {}
+export function deleteSelectedEmailsInPendingEmailsSheet() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    `Delete Selected Drafts`,
+    `You are about to delete any selected draft emails. The rows for the draft emails will be delete and you will have to run an email sync again to recreate them`,
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (response === ui.Button.OK) {
+    deleteDraftsInPendingSheet();
+  }
+}
 
 export function toggleAutoResponseOnOff() {
   const ui = SpreadsheetApp.getUi();
