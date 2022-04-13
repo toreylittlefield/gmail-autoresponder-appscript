@@ -16,6 +16,7 @@ import {
   setValuesInRangeAndSortSheet,
 } from '../sheets/sheets';
 import { calcAverage, getDomainFromEmailAddress, getEmailFromString, regexEmail, regexSalary } from '../utils/utils';
+import { LABEL_NAME } from '../variables/publicvariables';
 
 type EmailReplySendArray = [emailAddress: string, replyOrNew: EmailDataToSend][];
 
@@ -374,4 +375,81 @@ function writeEmailsListToAutomationSheet(emailsForList: EmailListItem[]) {
     addRowsToTopOfSheet(numRows, autoResultsListSheet);
     setValuesInRangeAndSortSheet(numRows, numCols, emailsForList, autoResultsListSheet, { sortByCol: 3, asc: false });
   }
+}
+
+export function getUserLabels() {
+  const currentLabel = getSingleUserPropValue('labelToSearch');
+  const labels = GmailApp.getUserLabels();
+
+  return { currentLabel, userLabels: labels.length > 0 ? labels.map(({ getName }) => getName()) : [] };
+}
+
+export function createFilterAndLabel(currentEmail: string) {
+  const me = Session.getActiveUser().getEmail();
+
+  const gmailUser = Gmail.Users as GoogleAppsScript.Gmail.Collection.UsersCollection;
+
+  const labelsCollection = gmailUser.Labels as GoogleAppsScript.Gmail.Collection.Users.LabelsCollection;
+  const newLabel = labelsCollection.create(
+    {
+      color: {
+        backgroundColor: '#42d692',
+        textColor: '#ffffff',
+      },
+      name: LABEL_NAME,
+      labelListVisibility: 'labelShow',
+      messageListVisibility: 'show',
+      type: 'user',
+    },
+    me
+  ) as GoogleAppsScript.Gmail.Schema.Label;
+
+  const userSettings = gmailUser.Settings as GoogleAppsScript.Gmail.Collection.Users.SettingsCollection;
+  const filters = userSettings.Filters as GoogleAppsScript.Gmail.Collection.Users.Settings.FiltersCollection;
+  const newFilter = filters.create(
+    {
+      action: {
+        addLabelIds: [newLabel.id as string],
+      },
+      criteria: {
+        to: currentEmail,
+      },
+    },
+    me
+  );
+
+  const resFilter = filters.get(me, newFilter.id as string);
+  const resLabel = labelsCollection.get(me, newLabel.id as string);
+  return { resFilter, resLabel };
+}
+
+export function getUserEmails() {
+  const emailAliases = GmailApp.getAliases();
+  const mainEmail = Session.getActiveUser().getEmail();
+  const currentEmailUserStore = getSingleUserPropValue('email') || 'none set';
+  return { emailAliases, mainEmail, currentEmailUserStore };
+}
+
+export function getUserNameForEmail() {
+  const nameForEmail = getSingleUserPropValue('nameForEmail');
+  return { nameForEmail };
+}
+
+type DraftsToPick = { subject: string; draftId: string; subjectBody: string };
+
+export function getUserCannedMessage(): { draftsList: DraftsToPick[]; subject: string } {
+  const drafts = GmailApp.getDrafts();
+  const draftsFilteredByEmail = drafts.filter((draft) => {
+    const { getTo, getSubject } = draft.getMessage();
+    return getTo() === '' && getSubject();
+  });
+  const draftsList = draftsFilteredByEmail.map(({ getId, getMessage }) => ({
+    draftId: getId(),
+    subject: getMessage().getSubject().trim(),
+    subjectBody: getMessage().getPlainBody(),
+  }));
+
+  const subject = getSingleUserPropValue('subject');
+
+  return { draftsList, subject: subject || '' };
 }
