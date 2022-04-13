@@ -1,4 +1,4 @@
-import { extractDataFromEmailSearch, sendTemplateEmail } from './email/email';
+import { createOrSentTemplateEmail, extractDataFromEmailSearch } from './email/email';
 import { getUserProps } from './properties-service/properties-service';
 import {
   activeSheet,
@@ -10,6 +10,7 @@ import {
   writeLinkInCellsFromSheetComparison,
 } from './sheets/sheets';
 import {
+  deleteSelectedEmailsInPendingEmailsSheet,
   getUserPropertiesForPageModal,
   initializeSpreadsheets,
   menuItemResetEntireSheet,
@@ -66,7 +67,11 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
     formatRowHeight('Always Autorespond List');
     formatRowHeight('Pending Emails To Send');
     if (false) {
-      sendTemplateEmail('toreylittlefield@gmail.com', 'Responding To Your Message For: Software Engineer');
+      createOrSentTemplateEmail({
+        type: 'sendNewEmail',
+        recipient: 'toreylittlefield@gmail.com',
+        subject: 'Responding To Your Message For: Software Engineer',
+      });
     }
   } catch (error) {
     console.error(error as any);
@@ -98,6 +103,7 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
 (global as any).menuItemResetEntireSheet = menuItemResetEntireSheet;
 (global as any).initializeSpreadsheets = initializeSpreadsheets;
 (global as any).sendSelectedEmailsInPendingEmailsSheet = sendSelectedEmailsInPendingEmailsSheet;
+(global as any).deleteSelectedEmailsInPendingEmailsSheet = deleteSelectedEmailsInPendingEmailsSheet;
 (global as any).userConfigurationModal = userConfigurationModal;
 (global as any).getUserPropertiesForPageModal = getUserPropertiesForPageModal;
 (global as any).processFormEventsFromPage = processFormEventsFromPage;
