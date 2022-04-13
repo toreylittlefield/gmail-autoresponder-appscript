@@ -407,6 +407,44 @@ function setCheckedValueForEachRow(
   });
 }
 
+export function writeLinkInCellsFromSheetComparison(
+  sheetOne: { sheetToWriteToName: SheetNames; colNumToWriteTo: number },
+  sheetTwo: { sheetToLinkFromName: SheetNames; colNumToLinkFrom: number }
+) {
+  const sheetToWriteTo = getSheetByName(sheetOne.sheetToWriteToName);
+  if (!sheetToWriteTo)
+    throw Error(`Cannot find ${sheetOne.sheetToWriteToName} in ${writeLinkInCellsFromSheetComparison.name}`);
+
+  const sheetToLinkFrom = getSheetByName(sheetTwo.sheetToLinkFromName);
+  if (!sheetToLinkFrom)
+    throw Error(`Cannot find ${sheetTwo.sheetToLinkFromName} in ${writeLinkInCellsFromSheetComparison.name}`);
+
+  const sheetToLinkFromMap = new Map();
+
+  const { colNumToWriteTo } = sheetOne;
+  const { colNumToLinkFrom } = sheetTwo;
+
+  const sheetToWriteRange = sheetToWriteTo.getRange(2, colNumToWriteTo, sheetToWriteTo.getLastRow() - 1);
+  const sheetToLinkFromRange = sheetToLinkFrom.getRange(2, colNumToLinkFrom, sheetToLinkFrom.getLastRow() - 1);
+
+  sheetToLinkFromRange.getValues().forEach(([cellValue], index) => {
+    sheetToLinkFromMap.set(cellValue, index + 2);
+  });
+
+  sheetToWriteRange.getValues().forEach(([cellValue], index) => {
+    const rowNumberFromLinkFromMap = sheetToLinkFromMap.get(cellValue);
+    if (rowNumberFromLinkFromMap) {
+      const rangeToBeLinked = sheetToLinkFrom.getRange(rowNumberFromLinkFromMap, colNumToLinkFrom).getA1Notation();
+      const rangeToAddLink = sheetToWriteTo.getRange(index + 2, colNumToWriteTo);
+      const richText = SpreadsheetApp.newRichTextValue()
+        .setText(cellValue)
+        .setLinkUrl('#gid=' + sheetToLinkFrom.getSheetId() + '&range=' + rangeToBeLinked)
+        .build();
+      rangeToAddLink.setRichTextValue(richText);
+    }
+  });
+}
+
 export function writeDomainsListToDoNotRespondSheet() {
   try {
     const doNotRespondSheet = getSheetByName('Do Not Autorespond List');

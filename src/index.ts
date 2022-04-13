@@ -7,6 +7,7 @@ import {
   initSpreadsheet,
   writeDomainsListToDoNotRespondSheet,
   writeEmailsToPendingSheet,
+  writeLinkInCellsFromSheetComparison,
 } from './sheets/sheets';
 import {
   getUserPropertiesForPageModal,
@@ -55,6 +56,10 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
 
     writeDomainsListToDoNotRespondSheet();
     writeEmailsToPendingSheet();
+    writeLinkInCellsFromSheetComparison(
+      { colNumToWriteTo: 2, sheetToWriteToName: 'Pending Emails To Send' },
+      { colNumToLinkFrom: 1, sheetToLinkFromName: 'Automated Results List' }
+    );
 
     /** send emails and replies */
     //addSentEmailsToDoNotReplyMap
