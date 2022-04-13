@@ -65,23 +65,84 @@ function getDraftTemplateAutoResponder() {
   return draft;
 }
 
-export function sendTemplateEmail(recipient: string, subject: string, htmlBodyMessage?: string) {
+function getParamsForSendingEmails(htmlBodyMessage?: string) {
+  const name = getSingleUserPropValue('nameForEmail');
+  const email = getSingleUserPropValue('email');
+  if (!name) throw Error('You need to set a name to appear in the email');
+  if (!email) throw Error('You need to set the email to send from');
+  const draft = getDraftTemplateAutoResponder();
+  const draftBody = draft && draft.getMessage().getBody();
+  const body = htmlBodyMessage || draftBody ? draftBody : undefined;
+  if (!body) throw Error('Could not find draft and send Email');
+  const gmailAdvancedOptions: GoogleAppsScript.Gmail.GmailAdvancedOptions = {
+    from: email,
+    htmlBody: body,
+    name: name,
+  };
+  return gmailAdvancedOptions;
+}
+
+export type DraftAttributeArray = [
+  draftId: string,
+  draftSentMessageId: string,
+  draftMessageDate: GoogleAppsScript.Base.Date,
+  draftMessageSubject: string,
+  draftMessageFrom: string,
+  draftMessageTo: string,
+  draftMessageBody: string
+];
+function getDraftAttrArrayToWriteToSheet(draft: GoogleAppsScript.Gmail.GmailDraft): DraftAttributeArray {
+  const { getSubject, getDate, getFrom, getTo, getPlainBody, getId } = draft.getMessage();
+  return [draft.getId(), getId(), getDate(), getSubject(), getFrom(), getTo(), getPlainBody()];
+}
+
+export function createNewDraftMessage(
+  recipient: string,
+  subject: string,
+  gmailAdvancedOptions: GoogleAppsScript.Gmail.GmailAdvancedOptions
+): DraftAttributeArray {
+  const newDraft = GmailApp.createDraft(recipient, subject, '', gmailAdvancedOptions);
+  return getDraftAttrArrayToWriteToSheet(newDraft);
+}
+
+function draftReplyToMessage(gmailMessageId: string, htmlBodyMessage?: string): DraftAttributeArray {
+  const gmailAdvancedOptions = getParamsForSendingEmails(htmlBodyMessage);
+
+  const gmailMessage = GmailApp.getMessageById(gmailMessageId);
+  if (!gmailMessage) throw Error(`Cant find Gmail message: ${gmailMessageId} to create a draft reply`);
+
+  const draftReply = gmailMessage.createDraftReply('', gmailAdvancedOptions);
+  return getDraftAttrArrayToWriteToSheet(draftReply);
+}
+
+type SendTemplateOptions =
+  | { type: 'replyDraft'; gmailMessageId: string; htmlBodyMessage?: string; recipient?: string; subject?: string }
+  | { type: 'newDraftEmail'; gmailMessageId?: string; htmlBodyMessage?: string; recipient: string; subject: string }
+  | { type: 'sendNewEmail'; gmailMessageId?: string; htmlBodyMessage?: string; recipient: string; subject: string };
+
+export function createOrSentTemplateEmail({
+  type,
+  htmlBodyMessage,
+  gmailMessageId = '',
+  recipient = '',
+  subject = '',
+}: SendTemplateOptions): DraftAttributeArray | undefined {
   try {
-    const name = getSingleUserPropValue('nameForEmail');
-    const email = getSingleUserPropValue('email');
-    if (!name) throw Error('You need to set a name to appear in the email');
-    if (!email) throw Error('You need to set the email to send from');
-    const draft = getDraftTemplateAutoResponder();
-    const draftBody = draft && draft.getMessage().getBody();
-    const body = htmlBodyMessage || draftBody ? draftBody : undefined;
-    if (!body) throw Error('Could not find draft and send Email');
-    GmailApp.sendEmail(recipient, subject, '', {
-      from: email,
-      htmlBody: body,
-      name: name,
-    });
+    const gmailAdvancedOptions = getParamsForSendingEmails(htmlBodyMessage);
+    switch (type) {
+      case 'newDraftEmail':
+        return createNewDraftMessage(recipient, subject, gmailAdvancedOptions);
+
+      case 'replyDraft':
+        return draftReplyToMessage(gmailMessageId, htmlBodyMessage);
+      case 'sendNewEmail':
+        GmailApp.sendEmail(recipient, subject, '', gmailAdvancedOptions);
+        break;
+    }
+    return undefined;
   } catch (error) {
     console.error(error as any);
+    return undefined;
   }
 }
 
@@ -264,7 +325,7 @@ export function extractDataFromEmailSearch(
             emailBody,
             emailSubject,
             emailFrom,
-            inResponseToEmailMessageId: emailThreadId,
+            inResponseToEmailMessageId: emailMessageId,
             personFrom,
             emailThreadPermaLink,
           },
