@@ -87,10 +87,14 @@ export async function checkExistsOrCreateSpreadsheet(): Promise<'done'> {
       setUserProps({
         spreadsheetId: spreadsheet.getId(),
       });
-      createSheet(spreadsheet, AUTOMATED_SHEET_NAME, AUTOMATED_SHEET_HEADERS, { tabColor: 'blue' });
+      createSheet(spreadsheet, AUTOMATED_SHEET_NAME, AUTOMATED_SHEET_HEADERS, {
+        tabColor: 'blue',
+        unprotectColumnLetter: 'A',
+      });
       // spreadsheet.deleteSheet(firstSheet);
       createSheet(spreadsheet, PENDING_EMAILS_TO_SEND_SHEET_NAME, PENDING_EMAILS_TO_SEND_HEADERS, {
         tabColor: 'gold',
+        unprotectColumnLetter: 'A',
       });
       createSheet(spreadsheet, SENT_SHEET_NAME, SENT_SHEET_NAME_HEADERS, { tabColor: 'green' });
       createSheet(spreadsheet, FOLLOW_UP_EMAILS_SHEET_NAME, FOLLOW_UP_EMAILS_HEADERS, { tabColor: 'black' });
@@ -112,18 +116,18 @@ export async function checkExistsOrCreateSpreadsheet(): Promise<'done'> {
   });
 }
 
-type Options = { tabColor: typeof tabColors[number]; initData: any[][] };
+type Options = { tabColor: typeof tabColors[number]; initData: any[][]; unprotectColumnLetter?: string };
 
 function createSheet(
   activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet,
   sheetName: SheetNames,
   headersValues: string[],
-  options: Partial<Options> = { initData: [], tabColor: 'green' }
+  options: Partial<Options>
 ) {
-  const { initData = [], tabColor = '' } = options;
+  const { initData = [], tabColor = 'green', unprotectColumnLetter = undefined } = options;
   const sheet = activeSS.insertSheet();
   sheet.setName(sheetName);
-  sheet.setTabColor(tabColor || 'green');
+  sheet.setTabColor(tabColor);
   writeHeaders(sheet, headersValues);
   initData.length > 0 && setInitialSheetData(sheet, headersValues, initData);
   sheet.deleteColumns(headersValues.length + 1, sheet.getMaxColumns() - headersValues.length);
@@ -132,7 +136,7 @@ function createSheet(
   sheet.deleteRows(startRowIndex, sheet.getMaxRows() - startRowIndex);
 
   sheet.autoResizeColumns(1, headersValues.length);
-  setSheetProtection(sheet, `${sheetName} Protected Range`);
+  setSheetProtection(sheet, `${sheetName} Protected Range`, unprotectColumnLetter);
   setSheetInProps(sheetName, sheet);
 }
 
@@ -232,10 +236,14 @@ function writeHeaders(sheet: GoogleAppsScript.Spreadsheet.Sheet, headerValues: s
   sheet.getRange(1, headerValues.length).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
 }
 
-function setSheetProtection(sheet: GoogleAppsScript.Spreadsheet.Sheet, description: string) {
+function setSheetProtection(sheet: GoogleAppsScript.Spreadsheet.Sheet, description: string, columnLetter?: string) {
   const [protection] = sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET);
   if (!protection) {
-    sheet.protect().setWarningOnly(true).setDescription(description);
+    const protectedSheet = sheet.protect().setWarningOnly(true).setDescription(description);
+    if (columnLetter) {
+      const unprotectedColumn = sheet.getRange(`${columnLetter}2:${columnLetter}`);
+      protectedSheet.setUnprotectedRanges([unprotectedColumn]);
+    }
   }
 }
 
