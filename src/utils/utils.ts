@@ -1,4 +1,10 @@
-import { doNotTrackMap, doNotSendMailAutoMap, emailmessagesIdMap, pendingEmailsToSendMap } from '../global/maps';
+import {
+  doNotTrackMap,
+  doNotSendMailAutoMap,
+  emailmessagesIdMap,
+  pendingEmailsToSendMap,
+  alwaysAllowMap,
+} from '../global/maps';
 import { getUserProps } from '../properties-service/properties-service';
 import { getAllDataFromSheet, SheetNames } from '../sheets/sheets';
 
@@ -31,7 +37,12 @@ export const regexSalary =
 
 export const getEmailFromString = (str: string) => str.split('<')[1].replace('>', '').trim();
 
-type MapNames = 'emailmessagesIdMap' | 'doNotTrackMap' | 'doNotSendMailAutoMap' | 'pendingEmailsToSendMap';
+type MapNames =
+  | 'emailmessagesIdMap'
+  | 'doNotTrackMap'
+  | 'doNotSendMailAutoMap'
+  | 'pendingEmailsToSendMap'
+  | 'alwaysAllowMap';
 
 export function initialGlobalMap(mapName: MapNames) {
   try {
@@ -48,6 +59,9 @@ export function initialGlobalMap(mapName: MapNames) {
         break;
       case 'doNotTrackMap':
         getSheetData('Do Not Track List').forEach(([domainOrEmail]) => doNotTrackMap.set(domainOrEmail, true));
+        break;
+      case 'alwaysAllowMap':
+        getSheetData('Always Autorespond List').forEach(([domainOrEmail]) => alwaysAllowMap.set(domainOrEmail, true));
         break;
       case 'doNotSendMailAutoMap':
         getSheetData('Do Not Autorespond List').forEach(([domain, _, count]) =>
