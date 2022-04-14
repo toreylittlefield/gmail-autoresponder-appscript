@@ -46,6 +46,7 @@ export const repliesToUpdateArray: ReplyToUpdateType = [];
 export function WarningResetSheetsAndSpreadsheet() {
   try {
     const activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    deleteDraftsInPendingSheet({ deleteAll: true });
     const sheetsToDelete: GoogleAppsScript.Spreadsheet.Sheet[] = [];
     allSheets.forEach((sheetName) => {
       const sheet = activeSpreadsheet.getSheetByName(sheetName);
@@ -89,12 +90,11 @@ export async function checkExistsOrCreateSpreadsheet(): Promise<'done'> {
       });
       createSheet(spreadsheet, AUTOMATED_SHEET_NAME, AUTOMATED_SHEET_HEADERS, {
         tabColor: 'blue',
-        unprotectColumnLetter: 'A',
       });
       // spreadsheet.deleteSheet(firstSheet);
       createSheet(spreadsheet, PENDING_EMAILS_TO_SEND_SHEET_NAME, PENDING_EMAILS_TO_SEND_HEADERS, {
         tabColor: 'gold',
-        unprotectColumnLetter: 'A',
+        unprotectColumnLetters: ['A', 'L'],
       });
       createSheet(spreadsheet, SENT_SHEET_NAME, SENT_SHEET_NAME_HEADERS, { tabColor: 'green' });
       createSheet(spreadsheet, FOLLOW_UP_EMAILS_SHEET_NAME, FOLLOW_UP_EMAILS_HEADERS, { tabColor: 'black' });
@@ -116,7 +116,7 @@ export async function checkExistsOrCreateSpreadsheet(): Promise<'done'> {
   });
 }
 
-type Options = { tabColor: typeof tabColors[number]; initData: any[][]; unprotectColumnLetter?: string };
+type Options = { tabColor: typeof tabColors[number]; initData: any[][]; unprotectColumnLetters?: string | string[] };
 
 function createSheet(
   activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet,
@@ -124,7 +124,7 @@ function createSheet(
   headersValues: string[],
   options: Partial<Options>
 ) {
-  const { initData = [], tabColor = 'green', unprotectColumnLetter = undefined } = options;
+  const { initData = [], tabColor = 'green', unprotectColumnLetters = undefined } = options;
   const sheet = activeSS.insertSheet();
   sheet.setName(sheetName);
   sheet.setTabColor(tabColor);
@@ -136,7 +136,7 @@ function createSheet(
   sheet.deleteRows(startRowIndex, sheet.getMaxRows() - startRowIndex);
 
   sheet.autoResizeColumns(1, headersValues.length);
-  setSheetProtection(sheet, `${sheetName} Protected Range`, unprotectColumnLetter);
+  setSheetProtection(sheet, `${sheetName} Protected Range`, unprotectColumnLetters);
   setSheetInProps(sheetName, sheet);
 }
 
@@ -246,15 +246,41 @@ function writeHeaders(sheet: GoogleAppsScript.Spreadsheet.Sheet, headerValues: s
   sheet.getRange(1, headerValues.length).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
 }
 
-function setSheetProtection(sheet: GoogleAppsScript.Spreadsheet.Sheet, description: string, columnLetter?: string) {
-  const [protection] = sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET);
-  if (!protection) {
-    const protectedSheet = sheet.protect().setWarningOnly(true).setDescription(description);
-    if (columnLetter) {
-      const unprotectedColumn = sheet.getRange(`${columnLetter}2:${columnLetter}`);
-      protectedSheet.setUnprotectedRanges([unprotectedColumn]);
-    }
+function unprotectedRangesException(
+  columnLetters: string | string[],
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  protectedSheet: GoogleAppsScript.Spreadsheet.Protection
+) {
+  let unprotectedColumns: GoogleAppsScript.Spreadsheet.Range[] | GoogleAppsScript.Spreadsheet.Range;
+  if (typeof columnLetters === 'string') {
+    unprotectedColumns = sheet.getRange(`${columnLetters}2:${columnLetters}`);
+    protectedSheet.setUnprotectedRanges([unprotectedColumns]);
   }
+  if (Array.isArray(columnLetters)) {
+    unprotectedColumns = columnLetters.map((columnLetter) => sheet.getRange(`${columnLetter}2:${columnLetter}`));
+    protectedSheet.setUnprotectedRanges(unprotectedColumns);
+  }
+}
+
+function setSheetProtection(
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  description: string,
+  columnLetters?: string | string[]
+) {
+  const protections = sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET);
+
+  let protectedSheet: GoogleAppsScript.Spreadsheet.Protection;
+
+  if (protections.length === 0) {
+    protectedSheet = sheet.protect().setWarningOnly(true).setDescription(description);
+    protections.push(protectedSheet);
+  }
+
+  if (!columnLetters) return;
+
+  protections.forEach((protection) => {
+    unprotectedRangesException(columnLetters, sheet, protection);
+  });
 }
 
 function setInitialSheetData(sheet: GoogleAppsScript.Spreadsheet.Sheet, headers: string[], initialData: any[][]) {
@@ -360,7 +386,9 @@ type ValidSentRowInSheet = [
   draftMessageSubject: string,
   draftMessageFrom: string,
   draftMessageTo: string,
-  draftMessageBody: string
+  draftMessageBody: string,
+  viewDraftInGmail: string,
+  manuallyMoveDraftToSent: boolean
 ];
 export function writeEmailsToPendingSheet() {
   const pendingEmailsSheet = getSheetByName('Pending Emails To Send');
@@ -419,6 +447,8 @@ export function writeEmailsToPendingSheet() {
         draftMessageFrom,
         draftMessageTo,
         draftMessageBody,
+        `https://mail.google.com/mail/u/0/#drafts/${draftSentMessageId}`,
+        false,
       ];
     }
   );
@@ -443,6 +473,11 @@ export function writeEmailsToPendingSheet() {
     pendingEmailsSheet,
     12
   );
+  setCheckedValueForEachRow(
+    emailObjects.map((_row) => [false]),
+    pendingEmailsSheet,
+    21
+  );
 }
 
 function setCheckedValueForEachRow(
@@ -456,8 +491,11 @@ function setCheckedValueForEachRow(
     isChecked && dataRange.check();
   });
 }
+type DeleteDraftOptions = {
+  deleteAll?: boolean;
+};
 
-export function deleteDraftsInPendingSheet() {
+export function deleteDraftsInPendingSheet({ deleteAll = false }: DeleteDraftOptions) {
   try {
     const pendingSheetEmailData = getAllDataFromSheet('Pending Emails To Send');
     const pendingSheet = getSheetByName('Pending Emails To Send');
@@ -486,7 +524,7 @@ export function deleteDraftsInPendingSheet() {
         _draftMessageTo,
         _draftMessageBody,
       ]) => {
-        if (deleteDraft === true) {
+        if (deleteDraft === true || deleteAll === true) {
           try {
             GmailApp.getDraft(draftId).deleteDraft();
           } catch (error) {
@@ -499,6 +537,7 @@ export function deleteDraftsInPendingSheet() {
         row++;
       }
     );
+    setSheetProtection(pendingSheet, 'Pending Emails To Send Protected Range', ['A', 'L']);
   } catch (error) {
     console.error(error as any);
   }
