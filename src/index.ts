@@ -3,8 +3,10 @@ import { getUserProps } from './properties-service/properties-service';
 import {
   activeSheet,
   activeSpreadsheet,
+  deleteDraftsInPendingSheet,
   formatRowHeight,
   initSpreadsheet,
+  sendDraftsInPendingSheet,
   writeDomainsListToDoNotRespondSheet,
   writeEmailsToPendingSheet,
   writeLinkInCellsFromSheetComparison,
@@ -55,7 +57,7 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
 
     extractDataFromEmailSearch(email, labelToSearch, e);
 
-    writeDomainsListToDoNotRespondSheet();
+    writeDomainsListToDoNotRespondSheet;
     writeEmailsToPendingSheet();
     writeLinkInCellsFromSheetComparison(
       { colNumToWriteTo: 2, sheetToWriteToName: 'Pending Emails To Send' },
@@ -107,3 +109,5 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
 (global as any).userConfigurationModal = userConfigurationModal;
 (global as any).getUserPropertiesForPageModal = getUserPropertiesForPageModal;
 (global as any).processFormEventsFromPage = processFormEventsFromPage;
+(global as any).sendDraftsInPendingSheet = sendDraftsInPendingSheet;
+(global as any).deleteDraftsInPendingSheet = deleteDraftsInPendingSheet;
