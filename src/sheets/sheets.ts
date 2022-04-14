@@ -81,17 +81,14 @@ export async function checkExistsOrCreateSpreadsheet(): Promise<'done'> {
     }
 
     if (!spreadsheetId) {
-      // const spreadsheet = SpreadsheetApp.create(SPREADSHEET_NAME, 2, AUTOMATED_SHEET_HEADERS.length);
       const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 
-      // const [firstSheet] = spreadsheet.getSheets();
       setUserProps({
         spreadsheetId: spreadsheet.getId(),
       });
       createSheet(spreadsheet, AUTOMATED_SHEET_NAME, AUTOMATED_SHEET_HEADERS, {
         tabColor: 'blue',
       });
-      // spreadsheet.deleteSheet(firstSheet);
       createSheet(spreadsheet, PENDING_EMAILS_TO_SEND_SHEET_NAME, PENDING_EMAILS_TO_SEND_HEADERS, {
         tabColor: 'gold',
         unprotectColumnLetters: ['A', 'L'],
