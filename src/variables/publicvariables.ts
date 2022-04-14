@@ -49,6 +49,8 @@ export const PENDING_EMAILS_TO_SEND_HEADERS = [
   'draftMessageFrom',
   'draftMessageTo',
   'draftMessageBody',
+  'viewDraftInGmail',
+  'manuallyMoveDraftToSent',
 ];
 
 /** Name of the sheet for the sent auto response email data */
