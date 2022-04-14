@@ -14,6 +14,7 @@ import {
 import {
   checkExistsOrCreateSpreadsheet,
   deleteDraftsInPendingSheet,
+  sendDraftsInPendingSheet,
   WarningResetSheetsAndSpreadsheet,
 } from '../sheets/sheets';
 
@@ -68,12 +69,22 @@ export async function initializeSpreadsheets() {
   }
 }
 
-export function sendSelectedEmailsInPendingEmailsSheet() {}
+export function sendSelectedEmailsInPendingEmailsSheet() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    `Send Selected Drafts`,
+    `You are about to SEND any selected / checked draft emails in the "Pending Emails To Send" sheet. The rows for the draft emails will be moved to the "Sent Automated Responses" Sheet`,
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (response === ui.Button.OK) {
+    sendDraftsInPendingSheet();
+  }
+}
 export function deleteSelectedEmailsInPendingEmailsSheet() {
   const ui = SpreadsheetApp.getUi();
   const response = ui.alert(
     `Delete Selected Drafts`,
-    `You are about to delete any selected draft emails. The rows for the draft emails will be delete and you will have to run an email sync again to recreate them`,
+    `You are about to delete any selected / checked draft emails in the "Pending Emails To Send" sheet. The rows for the draft emails will be delete and you will have to run an email sync again to recreate them`,
     ui.ButtonSet.OK_CANCEL
   );
   if (response === ui.Button.OK) {
