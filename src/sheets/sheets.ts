@@ -331,16 +331,6 @@ export function addRowsToTopOfSheet(numRows: number, sheet: GoogleAppsScript.Spr
   sheet.insertRowsBefore(2, numRows);
 }
 
-// export function setGlobalDoNotSendEmailAutoArrayList() {
-//   try {
-//     const doNotReplyList = getAllDataFromSheet('Do Not Autorespond List');
-//     if (!doNotReplyList) throw Error('Could Not Set The Global Do Not Reply Array');
-//     doNotReplyList.forEach(([domain, _, count]) => doNotSendMailAutoMap.set(domain, count));
-//   } catch (error) {
-//     console.error(error as any);
-//   }
-// }
-
 export function formatRowHeight(sheetName: SheetNames) {
   const sheet = getSheetByName(sheetName);
   //@ts-expect-error
