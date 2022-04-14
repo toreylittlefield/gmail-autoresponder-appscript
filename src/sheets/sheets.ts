@@ -368,7 +368,8 @@ export function updateRepliesColumn(rowsToUpdate: ReplyToUpdateType) {
   }
 }
 
-type ValidSentRowInSheet = [
+type ValidRowToWriteInPendingSheet = [
+  send: boolean,
   emailThreadId: string,
   inResponseToEmailMessageId: string,
   isReplyorNewEmail: 'new' | 'reply',
@@ -396,8 +397,9 @@ export function writeEmailsToPendingSheet() {
     throw Error(`Could Not Find Pending Emails To Send Sheet`);
   }
   const emailObjects = Array.from(emailsToSendMap.values());
-  const validSentRows: ValidSentRowInSheet[] = emailObjects.map(
+  const validSentRows: ValidRowToWriteInPendingSheet[] = emailObjects.map(
     ({
+      send,
       date,
       emailBody,
       emailFrom,
@@ -408,7 +410,7 @@ export function writeEmailsToPendingSheet() {
       personFrom,
       emailSendTo,
       isReplyorNewEmail,
-    }): ValidSentRowInSheet => {
+    }): ValidRowToWriteInPendingSheet => {
       const [
         draftId,
         draftSentMessageId,
@@ -429,6 +431,7 @@ export function writeEmailsToPendingSheet() {
               gmailMessageId: inResponseToEmailMessageId,
             }) as DraftAttributeArray);
       return [
+        send,
         emailThreadId,
         inResponseToEmailMessageId,
         isReplyorNewEmail,
@@ -461,7 +464,7 @@ export function writeEmailsToPendingSheet() {
     validSentRows,
     pendingEmailsSheet,
     { asc: false, sortByCol: 5 },
-    { startCol: 2, startRow: 2 }
+    { startCol: 1, startRow: 2 }
   );
   setCheckedValueForEachRow(
     emailObjects.map(({ send }) => [send]),
@@ -497,10 +500,12 @@ type DeleteDraftOptions = {
 
 export function deleteDraftsInPendingSheet({ deleteAll = false }: DeleteDraftOptions) {
   try {
-    const pendingSheetEmailData = getAllDataFromSheet('Pending Emails To Send');
+    const pendingSheetEmailData = getAllDataFromSheet('Pending Emails To Send') as ValidRowToWriteInPendingSheet[];
     const pendingSheet = getSheetByName('Pending Emails To Send');
+
     if (!pendingSheetEmailData) throw Error(`Cannot delete emails, no pending emails sheet data found`);
     if (!pendingSheet) throw Error(`Cannot delete emails, no pending email sheet found`);
+
     let row: number = 2;
     pendingSheetEmailData.forEach(
       ([
@@ -523,6 +528,8 @@ export function deleteDraftsInPendingSheet({ deleteAll = false }: DeleteDraftOpt
         _draftMessageFrom,
         _draftMessageTo,
         _draftMessageBody,
+        _viewDraftInGmail,
+        _manuallyMoveDraftToSent,
       ]) => {
         if (deleteDraft === true || deleteAll === true) {
           try {
@@ -542,14 +549,48 @@ export function deleteDraftsInPendingSheet({ deleteAll = false }: DeleteDraftOpt
     console.error(error as any);
   }
 }
+
+type ValidRowToWriteInSentSheet = [
+  emailThreadId: string,
+  inResponseToEmailMessageId: string,
+  isReplyorNewEmail: 'new' | 'reply',
+  date: GoogleAppsScript.Base.Date,
+  emailFrom: string,
+  emailSendTo: string,
+  personFrom: string,
+  emailSubject: string,
+  emailBody: string,
+  emailThreadPermaLink: string,
+  deleteDraft: boolean,
+  draftId: string,
+  draftSentMessageId: string,
+  draftMessageDate: GoogleAppsScript.Base.Date,
+  draftMessageSubject: string,
+  draftMessageFrom: string,
+  draftMessageTo: string,
+  draftMessageBody: string,
+  viewDraftInGmail: string,
+  manuallyMoveDraftToSent: boolean,
+  sentThreadId: string,
+  sentEmailMessageId: string,
+  sentEmailMessageDate: GoogleAppsScript.Base.Date,
+  sentThreadPermaLink: string
+];
+
 export function sendDraftsInPendingSheet() {
   try {
-    const pendingSheetEmailData = getAllDataFromSheet('Pending Emails To Send');
+    const pendingSheetEmailData = getAllDataFromSheet('Pending Emails To Send') as ValidRowToWriteInPendingSheet[];
     const pendingSheet = getSheetByName('Pending Emails To Send');
-    if (!pendingSheetEmailData) throw Error(`Cannot delete emails, no pending emails sheet data found`);
-    if (!pendingSheet) throw Error(`Cannot delete emails, no pending email sheet found`);
-    pendingSheetEmailData.forEach(
+    const sentEmailsSheet = getSheetByName('Sent Automated Responses');
+
+    if (!sentEmailsSheet) throw Error(`Cannot send emails, no sent sheet found`);
+    if (!pendingSheetEmailData) throw Error(`Cannot send emails, no pending emails sheet data found`);
+    if (!pendingSheet) throw Error(`Cannot send emails, no pending email sheet found`);
+    let rowNumber: number = 2;
+
+    const rowsForSentSheet = pendingSheetEmailData.reduce(
       (
+        acc: ValidRowToWriteInSentSheet[],
         [
           send,
           _emailThreadId,
@@ -570,22 +611,56 @@ export function sendDraftsInPendingSheet() {
           _draftMessageFrom,
           _draftMessageTo,
           _draftMessageBody,
-        ],
-        index
+          _viewDraftInGmail,
+          _manuallyMoveDraftToSent,
+        ]
       ) => {
         if (send === true) {
           try {
             const { getThread, getId: emailMessageId, getDate } = GmailApp.getDraft(draftId).send();
-            const { getId, getPermalink } = getThread();
-            console.log([getId(), emailMessageId(), isReplyorNewEmail, getDate(), getPermalink()]);
+            const { getPermalink, getId } = getThread();
+            var rowData = [
+              _emailThreadId,
+              _inResponseToEmailMessageId,
+              isReplyorNewEmail,
+              _date,
+              _emailFrom,
+              _emailSendTo,
+              _personFrom,
+              _emailSubject,
+              _emailBody,
+              _emailThreadPermaLink,
+              _deleteDraft,
+              draftId,
+              _draftSentMessageId,
+              _draftMessageDate,
+              _draftMessageSubject,
+              _draftMessageFrom,
+              _draftMessageTo,
+              _draftMessageBody,
+              _viewDraftInGmail,
+              _manuallyMoveDraftToSent,
+              getId().toString(),
+              emailMessageId().toString(),
+              getDate(),
+              getPermalink(),
+            ] as ValidRowToWriteInSentSheet;
+            acc.push(rowData);
           } catch (error) {
             console.error(error as any);
           } finally {
-            pendingSheet.deleteRow(index + 2);
+            pendingSheet.deleteRow(rowNumber);
+            rowNumber--;
           }
         }
-      }
+        rowNumber++;
+        return acc;
+      },
+      []
     );
+    const { numCols, numRows } = getNumRowsAndColsFromArray(rowsForSentSheet);
+    addRowsToTopOfSheet(numRows, sentEmailsSheet);
+    setValuesInRangeAndSortSheet(numRows, numCols, rowsForSentSheet, sentEmailsSheet, { asc: false, sortByCol: 21 });
   } catch (error) {
     console.error(error as any);
   }
