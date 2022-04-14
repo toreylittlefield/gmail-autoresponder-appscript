@@ -14,41 +14,6 @@ import { LABEL_NAME } from '../variables/publicvariables';
 
 type EmailReplySendArray = [emailAddress: string, replyOrNew: EmailDataToSend][];
 
-// export function setTemplateMsg({ subject, email }: { subject: string; email: string }) {
-//   const drafts = GmailApp.getDrafts();
-//   drafts.forEach((draft) => {
-//     const { getFrom, getSubject, getId } = draft.getMessage();
-//     if (subject === getSubject() && getFrom().match(email)) {
-//       setUserProps({ messageId: getId(), draftId: draft.getId() });
-//     }
-//   });
-// }
-
-// type SetDraftTemplate = {
-//   subject?: string;
-//   email?: string;
-// };
-
-// function setInitialEmailProps({ subject = '', email = '' }: SetDraftTemplate) {
-//   if (subject && email) {
-//     setUserProps({ subject, email });
-//     return;
-//   }
-//   // const userProps = PropertiesService.getUserProperties();
-//   // if (!userProps.getProperty('subject') || !userProps.getProperty('email')) {
-//   //   setUserProps({ subject: subject || CANNED_MSG_NAME, email: email || EMAIL_ACCOUNT });
-//   // }
-// }
-
-// export function setDraftTemplateAutoResponder(obj: SetDraftTemplate = { email: '', subject: '' }) {
-//   setInitialEmailProps(obj);
-//   const props = getUserProps(['subject', 'email', 'draftId', 'messageId']);
-//   let { subject, email, draftId, messageId } = props;
-//   if (!draftId || !messageId) {
-//     setTemplateMsg({ subject, email });
-//   }
-// }
-
 function getDraftTemplateAutoResponder() {
   const { draftId } = getUserProps(['draftId']);
   if (!draftId) {
