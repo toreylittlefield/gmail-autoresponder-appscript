@@ -88,7 +88,7 @@ export function deleteSelectedEmailsInPendingEmailsSheet() {
     ui.ButtonSet.OK_CANCEL
   );
   if (response === ui.Button.OK) {
-    deleteDraftsInPendingSheet();
+    deleteDraftsInPendingSheet({});
   }
 }
 
