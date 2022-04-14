@@ -463,13 +463,59 @@ export function deleteDraftsInPendingSheet() {
     const pendingSheet = getSheetByName('Pending Emails To Send');
     if (!pendingSheetEmailData) throw Error(`Cannot delete emails, no pending emails sheet data found`);
     if (!pendingSheet) throw Error(`Cannot delete emails, no pending email sheet found`);
+    let row: number = 2;
+    pendingSheetEmailData.forEach(
+      ([
+        _send,
+        _emailThreadId,
+        _inResponseToEmailMessageId,
+        _isReplyorNewEmail,
+        _date,
+        _emailFrom,
+        _emailSendTo,
+        _personFrom,
+        _emailSubject,
+        _emailBody,
+        _emailThreadPermaLink,
+        deleteDraft,
+        draftId,
+        _draftSentMessageId,
+        _draftMessageDate,
+        _draftMessageSubject,
+        _draftMessageFrom,
+        _draftMessageTo,
+        _draftMessageBody,
+      ]) => {
+        if (deleteDraft === true) {
+          try {
+            GmailApp.getDraft(draftId).deleteDraft();
+          } catch (error) {
+            console.error(error as any);
+          } finally {
+            pendingSheet.deleteRow(row);
+            row--;
+          }
+        }
+        row++;
+      }
+    );
+  } catch (error) {
+    console.error(error as any);
+  }
+}
+export function sendDraftsInPendingSheet() {
+  try {
+    const pendingSheetEmailData = getAllDataFromSheet('Pending Emails To Send');
+    const pendingSheet = getSheetByName('Pending Emails To Send');
+    if (!pendingSheetEmailData) throw Error(`Cannot delete emails, no pending emails sheet data found`);
+    if (!pendingSheet) throw Error(`Cannot delete emails, no pending email sheet found`);
     pendingSheetEmailData.forEach(
       (
         [
-          _send,
+          send,
           _emailThreadId,
           _inResponseToEmailMessageId,
-          _isReplyorNewEmail,
+          isReplyorNewEmail,
           _date,
           _emailFrom,
           _emailSendTo,
@@ -477,7 +523,7 @@ export function deleteDraftsInPendingSheet() {
           _emailSubject,
           _emailBody,
           _emailThreadPermaLink,
-          deleteDraft,
+          _deleteDraft,
           draftId,
           _draftSentMessageId,
           _draftMessageDate,
@@ -488,9 +534,11 @@ export function deleteDraftsInPendingSheet() {
         ],
         index
       ) => {
-        if (deleteDraft === true) {
+        if (send === true) {
           try {
-            GmailApp.getDraft(draftId).deleteDraft();
+            const { getThread, getId: emailMessageId, getDate } = GmailApp.getDraft(draftId).send();
+            const { getId, getPermalink } = getThread();
+            console.log([getId(), emailMessageId(), isReplyorNewEmail, getDate(), getPermalink()]);
           } catch (error) {
             console.error(error as any);
           } finally {
