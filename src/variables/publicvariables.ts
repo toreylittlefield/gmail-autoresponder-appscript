@@ -56,6 +56,7 @@ export const PENDING_EMAILS_TO_SEND_HEADERS = [
 /** Name of the sheet for the sent auto response email data */
 export const SENT_SHEET_NAME = 'Sent Automated Responses';
 export const SENT_SHEET_NAME_HEADERS = [
+  'Send',
   'Email Thread Id',
   'In Response To Email Message Id',
   'Is Reply Or New Email',
@@ -66,8 +67,20 @@ export const SENT_SHEET_NAME_HEADERS = [
   'Subject',
   'Body',
   'Thread Permalink',
-  'Date Sent',
-  'Sent Message Id',
+  'deleteDraft',
+  'draftId',
+  'draftSentMessageId',
+  'draftMessageDate',
+  'draftMessageSubject',
+  'draftMessageFrom',
+  'draftMessageTo',
+  'draftMessageBody',
+  'viewDraftInGmail',
+  'manuallyMoveDraftToSent',
+  'sentThreadId',
+  'sentEmailMessageId',
+  'sentEmailMessageDate',
+  'sentThreadPermaLink',
 ];
 
 /** Name of the sheet for the emails found results */
