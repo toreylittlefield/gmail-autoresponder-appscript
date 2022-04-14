@@ -88,7 +88,7 @@ export type DraftAttributeArray = [
 ];
 function getDraftAttrArrayToWriteToSheet(draft: GoogleAppsScript.Gmail.GmailDraft): DraftAttributeArray {
   const { getSubject, getDate, getFrom, getTo, getPlainBody, getId } = draft.getMessage();
-  return [draft.getId(), getId(), getDate(), getSubject(), getFrom(), getTo(), getPlainBody()];
+  return [draft.getId().toString(), getId().toString(), getDate(), getSubject(), getFrom(), getTo(), getPlainBody()];
 }
 
 export function createNewDraftMessage(
