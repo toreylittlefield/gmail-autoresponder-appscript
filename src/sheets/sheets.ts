@@ -1,14 +1,17 @@
 import { createOrSentTemplateEmail, DraftAttributeArray, EmailListItem, getToEmailArray } from '../email/email';
-import { alwaysAllowMap, doNotSendMailAutoMap, emailsToAddToPendingSheet } from '../global/maps';
-import { getUserProps, setUserProps } from '../properties-service/properties-service';
+import { alwaysAllowMap, doNotSendMailAutoMap, emailsToAddToPendingSheet, emailThreadIdsMap } from '../global/maps';
+import { getSingleUserPropValue, getUserProps, setUserProps } from '../properties-service/properties-service';
 import { getDomainFromEmailAddress, initialGlobalMap } from '../utils/utils';
 import {
   allSheets,
   ALWAYS_RESPOND_DOMAIN_LIST_HEADERS,
   ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME,
   ALWAYS_RESPOND_LIST_INITIAL_DATA,
-  AUTOMATED_SHEET_HEADERS,
-  AUTOMATED_SHEET_NAME,
+  ARCHIVED_THREADS_SHEET_HEADERS,
+  ARCHIVED_THREADS_SHEET_NAME,
+  ARCHIVE_LABEL_NAME,
+  AUTOMATED_RECEIVED_SHEET_HEADERS,
+  AUTOMATED_RECEIVED_SHEET_NAME,
   BOUNCED_SHEET_NAME,
   BOUNCED_SHEET_NAME_HEADERS,
   DO_NOT_EMAIL_AUTO_INITIAL_DATA,
@@ -26,16 +29,17 @@ import {
 } from '../variables/publicvariables';
 
 export type SheetNames =
-  | typeof AUTOMATED_SHEET_NAME
+  | typeof AUTOMATED_RECEIVED_SHEET_NAME
   | typeof SENT_SHEET_NAME
   | typeof FOLLOW_UP_EMAILS_SHEET_NAME
   | typeof BOUNCED_SHEET_NAME
   | typeof ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME
   | typeof DO_NOT_EMAIL_AUTO_SHEET_NAME
   | typeof DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME
-  | typeof PENDING_EMAILS_TO_SEND_SHEET_NAME;
+  | typeof PENDING_EMAILS_TO_SEND_SHEET_NAME
+  | typeof ARCHIVED_THREADS_SHEET_NAME;
 
-const tabColors = ['blue', 'green', 'red', 'purple', 'orange', 'yellow', 'black', 'teal', 'gold'] as const;
+const tabColors = ['blue', 'green', 'red', 'purple', 'orange', 'yellow', 'black', 'teal', 'gold', 'grey'] as const;
 
 export let activeSpreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet;
 export let activeSheet: GoogleAppsScript.Spreadsheet.Sheet;
@@ -86,7 +90,7 @@ export async function checkExistsOrCreateSpreadsheet(): Promise<'done'> {
       setUserProps({
         spreadsheetId: spreadsheet.getId(),
       });
-      createSheet(spreadsheet, AUTOMATED_SHEET_NAME, AUTOMATED_SHEET_HEADERS, {
+      createSheet(spreadsheet, AUTOMATED_RECEIVED_SHEET_NAME, AUTOMATED_RECEIVED_SHEET_HEADERS, {
         tabColor: 'blue',
       });
       createSheet(spreadsheet, PENDING_EMAILS_TO_SEND_SHEET_NAME, PENDING_EMAILS_TO_SEND_HEADERS, {
@@ -107,6 +111,9 @@ export async function checkExistsOrCreateSpreadsheet(): Promise<'done'> {
       createSheet(spreadsheet, DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME, DO_NOT_TRACK_DOMAIN_LIST_HEADERS, {
         tabColor: 'orange',
         initData: DO_NOT_TRACK_DOMAIN_LIST_INITIAL_DATA,
+      });
+      createSheet(spreadsheet, ARCHIVED_THREADS_SHEET_NAME, ARCHIVED_THREADS_SHEET_HEADERS, {
+        tabColor: 'grey',
       });
     }
     resolve('done');
@@ -343,7 +350,7 @@ export function addToRepliesArray(index: number, emailMessages: GoogleAppsScript
 
 export function updateRepliesColumn(rowsToUpdate: ReplyToUpdateType) {
   try {
-    const automatedSheet = getSheetByName('Automated Results List');
+    const automatedSheet = getSheetByName(`${AUTOMATED_RECEIVED_SHEET_NAME}`);
     if (!automatedSheet) throw Error('Cannot find automated sheet to updated the replies column');
     const dataValues = automatedSheet.getDataRange().getValues();
     rowsToUpdate.forEach(([row, emailMessage]) => {
@@ -635,6 +642,10 @@ export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
     if (rowsForSentSheet.length > 0) {
       writeSentDraftsToSentEmailsSheet(sentEmailsSheet, rowsForSentSheet);
       writeDomainsListToDoNotRespondSheet();
+      writeLinkInCellsFromSheetComparison(
+        { sheetToWriteToName: 'Sent Automated Responses', colNumToWriteTo: 1 },
+        { sheetToLinkFromName: `${AUTOMATED_RECEIVED_SHEET_NAME}`, colNumToLinkFrom: 1 }
+      );
     }
   } catch (error) {
     console.error(error as any);
@@ -757,13 +768,95 @@ export function writeDomainsListToDoNotRespondSheet() {
   }
 }
 
+export function archiveOrDeleteSelectEmailThreadIds({ type }: { type: 'archive' | 'delete' | 'remove gmail label' }) {
+  const automatedReceivedSheet = getSheetByName(`${AUTOMATED_RECEIVED_SHEET_NAME}`);
+  const pendingEmailsSheet = getSheetByName('Pending Emails To Send');
+  const sentEmailsSheet = getSheetByName('Sent Automated Responses');
+  const archivedEmailsSheet = type === 'archive' && getSheetByName('Archived Email Threads');
+  if (!automatedReceivedSheet) throw Error(`Could Not Find ${AUTOMATED_RECEIVED_SHEET_NAME} Sheet`);
+  if (!pendingEmailsSheet) throw Error(`Could Not Find Pending Emails To Send Sheet`);
+  if (!sentEmailsSheet) throw Error(`Could Not Find Sent Automated Responses Sheet`);
+  if (type === 'archive' && !archivedEmailsSheet) throw Error(`Could Not Find Archived Emails Sheet`);
+  const automatedReceivedSheetData = automatedReceivedSheet.getDataRange().getValues().slice(1);
+
+  let rowNumber: number = 2;
+  automatedReceivedSheetData.forEach((row) => {
+    const numCols = row.length;
+    if (row.length < 4) return;
+    const emailThreadId = row[0];
+    const archiveCheckBox = row[numCols - 3];
+    const deleteCheckBox = row[numCols - 2];
+    const removeLabelCheckbox = row[numCols - 1];
+    console.log({ archiveCheckBox, deleteCheckBox });
+    if (
+      (type === 'archive' && archiveCheckBox === true) ||
+      (type === 'delete' && deleteCheckBox === true) ||
+      (type === 'remove gmail label' && removeLabelCheckbox === true)
+    ) {
+      emailThreadIdsMap.set(emailThreadId, rowNumber);
+      if (type === 'archive') {
+        let archiveGmailLabel = GmailApp.getUserLabelByName(ARCHIVE_LABEL_NAME);
+        if (!archiveGmailLabel) {
+          archiveGmailLabel = GmailApp.createLabel(ARCHIVE_LABEL_NAME);
+        }
+        GmailApp.getThreadById(emailThreadId).addLabel(archiveGmailLabel);
+        addRowsToTopOfSheet(1, archivedEmailsSheet as GoogleAppsScript.Spreadsheet.Sheet);
+        setValuesInRangeAndSortSheet(1, row.length, [row], archivedEmailsSheet as GoogleAppsScript.Spreadsheet.Sheet);
+      }
+      if (type === 'delete') {
+        try {
+          GmailApp.getThreadById(emailThreadId).moveToTrash();
+        } catch (error) {
+          console.error(error as any, 'Could Not Find That Email By Thread Id or Move It To Trash');
+        }
+      }
+      if (type === 'remove gmail label') {
+        const userLabel = getSingleUserPropValue('labelToSearch');
+        if (!userLabel) throw Error('No User Label To Search Found. Not Set In User Configuration');
+        try {
+          const gmailLabel = GmailApp.getUserLabelByName(userLabel);
+          GmailApp.getThreadById(emailThreadId).removeLabel(gmailLabel);
+        } catch (error) {
+          console.error(
+            error as any,
+            'Could Not Find That Email By Thread Id or Could Not Find That Gmail Label or Remove The Label'
+          );
+        }
+      }
+      rowNumber--;
+    }
+    rowNumber++;
+  });
+
+  emailThreadIdsMap.forEach((rowNumber, _emailThreadIdToDelete) => {
+    automatedReceivedSheet.deleteRow(rowNumber);
+  });
+}
+
 export function writeEmailsListToAutomationSheet(emailsForList: EmailListItem[]) {
-  const autoResultsListSheet = getSheetByName('Automated Results List');
-  if (!autoResultsListSheet) throw Error('Cannot find Automated Results List Sheet');
+  const autoResultsListSheet = getSheetByName(`${AUTOMATED_RECEIVED_SHEET_NAME}`);
+  if (!autoResultsListSheet) throw Error(`Cannot find ${AUTOMATED_RECEIVED_SHEET_NAME} Sheet`);
+
   if (emailsForList.length > 0) {
     const { numCols, numRows } = getNumRowsAndColsFromArray(emailsForList);
     addRowsToTopOfSheet(numRows, autoResultsListSheet);
     setValuesInRangeAndSortSheet(numRows, numCols, emailsForList, autoResultsListSheet, { sortByCol: 3, asc: false });
+    setCheckedValueForEachRow(
+      emailsForList.map((_) => [false]),
+      autoResultsListSheet,
+      13
+    );
+    setCheckedValueForEachRow(
+      emailsForList.map((_) => [false]),
+      autoResultsListSheet,
+      14
+    );
+    setCheckedValueForEachRow(
+      emailsForList.map((_) => [false]),
+      autoResultsListSheet,
+      15
+    );
+    setSheetProtection(autoResultsListSheet, 'Automated Results List Protection', ['M', 'N']);
   }
 }
 
@@ -772,5 +865,5 @@ export function initSpreadsheet() {
 
   setActiveSpreadSheet(SpreadsheetApp);
 
-  getAndSetActiveSheetByName(AUTOMATED_SHEET_NAME);
+  getAndSetActiveSheetByName(AUTOMATED_RECEIVED_SHEET_NAME);
 }
