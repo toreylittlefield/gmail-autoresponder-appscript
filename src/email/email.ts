@@ -1,9 +1,8 @@
 import {
-  alwaysAllowMap,
   doNotSendMailAutoMap,
   doNotTrackMap,
   EmailDataToSend,
-  emailmessagesIdMap,
+  emailThreadIdsMap,
   emailsToAddToPendingSheet,
   pendingEmailsToSendMap,
 } from '../global/maps';
@@ -106,7 +105,7 @@ export function createOrSentTemplateEmail({
   }
 }
 
-function checkAndAddToEmailMap(emails: EmailReplySendArray) {
+function isDoNotSendOrPendingSheet(emails: EmailReplySendArray) {
   emails.forEach(([email, data]) => {
     const domain = getDomainFromEmailAddress(email);
 
@@ -149,20 +148,6 @@ function buildEmailsObject(
   return Object.entries(emailObject);
 }
 
-function addSentEmailsToDoNotReplyMap(sentEmails: string[]) {
-  sentEmails.forEach((email) => {
-    const domain = getDomainFromEmailAddress(email);
-    const count = doNotSendMailAutoMap.get(domain);
-    if (typeof count === 'number') {
-      return doNotSendMailAutoMap.set(domain, count + 1);
-    }
-    if (count == null && !alwaysAllowMap.has(domain)) {
-      doNotSendMailAutoMap.set(domain, 0);
-    }
-    return;
-  });
-}
-
 export function getToEmailArray(emailMessages: GoogleAppsScript.Gmail.GmailMessage[]) {
   return emailMessages.map((emailMsg) => emailMsg.getTo()).toString();
 }
@@ -178,12 +163,12 @@ function getAutoResponseMsgsFromThread(restMsgs: GoogleAppsScript.Gmail.GmailMes
 }
 
 function updateRepliesColumnIfMessageHasReplies(firstMsgId: string, restMsgs: GoogleAppsScript.Gmail.GmailMessage[]) {
-  const messageAlreadyExists = emailmessagesIdMap.has(firstMsgId);
+  const messageAlreadyExists = emailThreadIdsMap.has(firstMsgId);
 
   const autoResponseMsg = getAutoResponseMsgsFromThread(restMsgs);
 
   if (autoResponseMsg.length > 0 && messageAlreadyExists) {
-    const rowNumber = emailmessagesIdMap.get(firstMsgId) as number;
+    const rowNumber = emailThreadIdsMap.get(firstMsgId) as number;
     addToRepliesArray(rowNumber, autoResponseMsg);
   }
 
@@ -269,7 +254,7 @@ export function extractDataFromEmailSearch(
       // const isNoReplyLinkedIn = from.match(/noreply@linkedin\.com/gi);
       // if (isNoReplyLinkedIn) return;
 
-      checkAndAddToEmailMap(
+      isDoNotSendOrPendingSheet(
         buildEmailsObject(
           {
             date,
@@ -288,7 +273,8 @@ export function extractDataFromEmailSearch(
 
       salaryAmount && salaryAmount.length > 0 && salaries.push(calcAverage(salaryAmount));
 
-      if (emailmessagesIdMap.has(emailThreadId)) return;
+      // TODO: Check For Replies / Follow Up Messages?
+      if (emailThreadIdsMap.has(emailThreadId)) return;
 
       emailsForList.push([
         emailThreadId,
@@ -310,7 +296,6 @@ export function extractDataFromEmailSearch(
     });
 
     writeEmailsListToAutomationSheet(emailsForList);
-    addSentEmailsToDoNotReplyMap(Array.from(emailsToAddToPendingSheet.keys()));
 
     console.log({ salaries: calcAverage(salaries) });
   } catch (error) {
