@@ -482,62 +482,6 @@ function setCheckedValueForEachRow(
     isChecked && dataRange.check();
   });
 }
-type DeleteDraftOptions = {
-  deleteAll?: boolean;
-};
-
-//@ts-expect-error
-function deleteDraftsInPendingSheet({ deleteAll = false }: DeleteDraftOptions) {
-  try {
-    const pendingSheetEmailData = getAllDataFromSheet('Pending Emails To Send') as ValidRowToWriteInPendingSheet[];
-    const pendingSheet = getSheetByName('Pending Emails To Send');
-
-    if (!pendingSheetEmailData) throw Error(`Cannot delete emails, no pending emails sheet data found`);
-    if (!pendingSheet) throw Error(`Cannot delete emails, no pending email sheet found`);
-
-    let row: number = 2;
-    pendingSheetEmailData.forEach(
-      ([
-        _send,
-        _emailThreadId,
-        _inResponseToEmailMessageId,
-        _isReplyorNewEmail,
-        _date,
-        _emailFrom,
-        _emailSendTo,
-        _personFrom,
-        _emailSubject,
-        _emailBody,
-        _emailThreadPermaLink,
-        deleteDraft,
-        draftId,
-        _draftSentMessageId,
-        _draftMessageDate,
-        _draftMessageSubject,
-        _draftMessageFrom,
-        _draftMessageTo,
-        _draftMessageBody,
-        _viewDraftInGmail,
-        _manuallyMoveDraftToSent,
-      ]) => {
-        if (deleteDraft === true || deleteAll === true) {
-          try {
-            GmailApp.getDraft(draftId).deleteDraft();
-          } catch (error) {
-            console.error(error as any);
-          } finally {
-            pendingSheet.deleteRow(row);
-            row--;
-          }
-        }
-        row++;
-      }
-    );
-    setSheetProtection(pendingSheet, 'Pending Emails To Send Protected Range', ['A', 'L', 'U']);
-  } catch (error) {
-    console.error(error as any);
-  }
-}
 
 type ValidRowToWriteInSentSheet = [
   emailThreadId: string,
@@ -567,6 +511,10 @@ type ValidRowToWriteInSentSheet = [
 ];
 
 type SendDraftsOptions = { type: 'send' | 'manuallyMove' | 'delete' };
+
+type DeleteDraftOptions = {
+  deleteAll?: boolean;
+};
 
 export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
   { type }: SendDraftsOptions,
