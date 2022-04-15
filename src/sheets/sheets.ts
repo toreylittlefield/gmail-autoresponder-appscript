@@ -1,6 +1,7 @@
 import { createOrSentTemplateEmail, DraftAttributeArray, EmailListItem, getToEmailArray } from '../email/email';
-import { doNotSendMailAutoMap, emailsToAddToPendingSheet } from '../global/maps';
+import { alwaysAllowMap, doNotSendMailAutoMap, emailsToAddToPendingSheet } from '../global/maps';
 import { getUserProps, setUserProps } from '../properties-service/properties-service';
+import { getDomainFromEmailAddress, initialGlobalMap } from '../utils/utils';
 import {
   allSheets,
   ALWAYS_RESPOND_DOMAIN_LIST_HEADERS,
@@ -22,7 +23,6 @@ import {
   PENDING_EMAILS_TO_SEND_SHEET_NAME,
   SENT_SHEET_NAME,
   SENT_SHEET_NAME_HEADERS,
-  // SPREADSHEET_NAME,
 } from '../variables/publicvariables';
 
 export type SheetNames =
@@ -528,6 +528,12 @@ export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
     if (!sentEmailsSheet) throw Error(`Cannot send emails, no sent sheet found`);
     if (!pendingSheetEmailData) throw Error(`Cannot send emails, no pending emails sheet data found`);
     if (!pendingSheet) throw Error(`Cannot send emails, no pending email sheet found`);
+
+    if (type === 'manuallyMove' || type === 'send') {
+      initialGlobalMap('doNotSendMailAutoMap');
+      initialGlobalMap('alwaysAllowMap');
+    }
+
     let rowNumber: number = 2;
 
     const rowsForSentSheet = pendingSheetEmailData.reduce(
@@ -540,7 +546,7 @@ export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
           isReplyorNewEmail,
           _date,
           _emailFrom,
-          _emailSendTo,
+          emailSendTo,
           _personFrom,
           _emailSubject,
           _emailBody,
@@ -598,7 +604,7 @@ export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
                 isReplyorNewEmail,
                 _date,
                 _emailFrom,
-                _emailSendTo,
+                emailSendTo,
                 _personFrom,
                 _emailSubject,
                 _emailBody,
@@ -614,6 +620,7 @@ export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
                 _viewDraftInGmail,
                 manuallyMoveDraftToSent,
               ];
+              addSentEmailsToDoNotReplyMap(emailSendTo);
               acc.push([...rowData, ...draftData] as ValidRowToWriteInSentSheet);
             }
           }
@@ -627,9 +634,44 @@ export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
     setSheetProtection(pendingSheet, 'Pending Emails To Send Protected Range', ['A', 'L', 'U']);
     if (rowsForSentSheet.length > 0) {
       writeSentDraftsToSentEmailsSheet(sentEmailsSheet, rowsForSentSheet);
+      writeDomainsListToDoNotRespondSheet();
     }
   } catch (error) {
     console.error(error as any);
+  }
+}
+
+function addToDoNotSendMailAutoMap(domainOrEmail: string) {
+  const count = doNotSendMailAutoMap.get(domainOrEmail);
+  if (count == null) {
+    doNotSendMailAutoMap.set(domainOrEmail, 0);
+  }
+  if (typeof count === 'number') {
+    doNotSendMailAutoMap.set(domainOrEmail, count + 1);
+  }
+}
+
+function addEmailAndDomainIfNotAlwaysAllow(emailAddress: string) {
+  const domain = getDomainFromEmailAddress(emailAddress);
+
+  if (!alwaysAllowMap.has(domain)) {
+    addToDoNotSendMailAutoMap(domain);
+  }
+
+  if (!alwaysAllowMap.has(emailAddress)) {
+    addToDoNotSendMailAutoMap(emailAddress);
+  }
+}
+
+function addSentEmailsToDoNotReplyMap(sentEmails: string | string[]) {
+  if (typeof sentEmails === 'string') {
+    addEmailAndDomainIfNotAlwaysAllow(sentEmails);
+  }
+
+  if (Array.isArray(sentEmails)) {
+    sentEmails.forEach((email) => {
+      addEmailAndDomainIfNotAlwaysAllow(email);
+    });
   }
 }
 
@@ -666,13 +708,13 @@ export function writeLinkInCellsFromSheetComparison(
   if (!sheetToLinkFrom)
     throw Error(`Cannot find ${sheetTwo.sheetToLinkFromName} in ${writeLinkInCellsFromSheetComparison.name}`);
 
-  const sheetToLinkFromMap = new Map();
-
   const { colNumToWriteTo } = sheetOne;
   const { colNumToLinkFrom } = sheetTwo;
 
   const sheetToWriteRange = sheetToWriteTo.getRange(2, colNumToWriteTo, sheetToWriteTo.getLastRow() - 1);
   const sheetToLinkFromRange = sheetToLinkFrom.getRange(2, colNumToLinkFrom, sheetToLinkFrom.getLastRow() - 1);
+
+  const sheetToLinkFromMap = new Map();
 
   sheetToLinkFromRange.getValues().forEach(([cellValue], index) => {
     sheetToLinkFromMap.set(cellValue, index + 2);
