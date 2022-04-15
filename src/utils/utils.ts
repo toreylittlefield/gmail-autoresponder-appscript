@@ -7,6 +7,7 @@ import {
 } from '../global/maps';
 import { getUserProps } from '../properties-service/properties-service';
 import { getAllDataFromSheet, SheetNames } from '../sheets/sheets';
+import { AUTOMATED_RECEIVED_SHEET_NAME } from '../variables/publicvariables';
 
 export function calcAverage(numbersArray: any[]): number {
   return numbersArray.reduce((acc, curVal, index, array) => {
@@ -53,7 +54,7 @@ export function initialGlobalMap(mapName: MapNames) {
     };
     switch (mapName) {
       case 'emailThreadIdsMap':
-        getSheetData('Automated Results List').forEach(([emailThreadId], index) =>
+        getSheetData(`${AUTOMATED_RECEIVED_SHEET_NAME}`).forEach(([emailThreadId], index) =>
           emailThreadIdsMap.set(emailThreadId, index + 2)
         );
         break;

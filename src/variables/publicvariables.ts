@@ -4,6 +4,9 @@ export const FUNCTION_NAME = 'AutoResponder';
 /** Label to create for and attach to email messages */
 export const LABEL_NAME = 'auto-responder-label';
 
+/** Label for archived email threads */
+export const ARCHIVE_LABEL_NAME = 'archived-auto-response';
+
 /** Regex For Bounced Messages */
 export const BOUNCED_MESSAGES_REGEX = new RegExp('mailer-daemon@googlemail.com|@bounce|@bounced', 'gi');
 
@@ -11,8 +14,8 @@ export const BOUNCED_MESSAGES_REGEX = new RegExp('mailer-daemon@googlemail.com|@
 export const SPREADSHEET_NAME = 'Email Autoresponder - Job Tracker';
 
 /** Name of the sheet for the emails found results */
-export const AUTOMATED_SHEET_NAME = 'Automated Results List';
-export const AUTOMATED_SHEET_HEADERS = [
+export const AUTOMATED_RECEIVED_SHEET_NAME = 'Automated Received Emails';
+export const AUTOMATED_RECEIVED_SHEET_HEADERS = [
   'Email Thread Id',
   'Email Message Id',
   'Date',
@@ -25,6 +28,9 @@ export const AUTOMATED_SHEET_HEADERS = [
   'Salary',
   'Thread Permalink',
   'Has Email Response',
+  'Archive Thread Id',
+  'Warning: Delete Thread Id',
+  'Remove Gmail Label',
 ];
 
 /** Name of the sheet for the sent auto response email data */
@@ -56,7 +62,6 @@ export const PENDING_EMAILS_TO_SEND_HEADERS = [
 /** Name of the sheet for the sent auto response email data */
 export const SENT_SHEET_NAME = 'Sent Automated Responses';
 export const SENT_SHEET_NAME_HEADERS = [
-  'Send',
   'Email Thread Id',
   'In Response To Email Message Id',
   'Is Reply Or New Email',
@@ -137,8 +142,28 @@ export const DO_NOT_EMAIL_AUTO_INITIAL_DATA = [
   ['@bounced', new Date(), 0],
 ];
 
+/** Name of the sheet for the archived found results */
+export const ARCHIVED_THREADS_SHEET_NAME = 'Archived Email Threads';
+export const ARCHIVED_THREADS_SHEET_HEADERS = [
+  'Email Thread Id',
+  'Email Message Id',
+  'Date',
+  'From',
+  'ReplyTo',
+  'Person / Company Name',
+  'Subject',
+  'Body Emails',
+  'Body',
+  'Salary',
+  'Thread Permalink',
+  'Has Email Response',
+  'Archive Thread Id',
+  'Warning: Delete Thread Id',
+  'Remove Gmail Label',
+];
+
 export const allSheets = [
-  AUTOMATED_SHEET_NAME,
+  AUTOMATED_RECEIVED_SHEET_NAME,
   PENDING_EMAILS_TO_SEND_SHEET_NAME,
   SENT_SHEET_NAME,
   FOLLOW_UP_EMAILS_SHEET_NAME,
@@ -146,4 +171,5 @@ export const allSheets = [
   ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME,
   DO_NOT_EMAIL_AUTO_SHEET_NAME,
   DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME,
+  ARCHIVED_THREADS_SHEET_NAME,
 ] as const;

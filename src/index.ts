@@ -11,6 +11,7 @@ import {
   writeLinkInCellsFromSheetComparison,
 } from './sheets/sheets';
 import {
+  archiveSelectRowsInAutoReceivedSheet,
   deleteSelectedEmailsInPendingEmailsSheet,
   getUserPropertiesForPageModal,
   initializeSpreadsheets,
@@ -23,6 +24,7 @@ import {
   userConfigurationModal,
 } from './ui/ui';
 import { hasAllRequiredUserProps, initialGlobalMap } from './utils/utils';
+import { AUTOMATED_RECEIVED_SHEET_NAME } from './variables/publicvariables';
 
 // (?:for\W)(.*)(?= at)(?: at\W)(.*) match linkedin email "you applied at..."
 
@@ -61,7 +63,7 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
     writeEmailsToPendingSheet();
     writeLinkInCellsFromSheetComparison(
       { colNumToWriteTo: 2, sheetToWriteToName: 'Pending Emails To Send' },
-      { colNumToLinkFrom: 1, sheetToLinkFromName: 'Automated Results List' }
+      { colNumToLinkFrom: 1, sheetToLinkFromName: `${AUTOMATED_RECEIVED_SHEET_NAME}` }
     );
 
     /** send emails and replies */
@@ -111,3 +113,4 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
 (global as any).getUserPropertiesForPageModal = getUserPropertiesForPageModal;
 (global as any).processFormEventsFromPage = processFormEventsFromPage;
 (global as any).sendOrMoveManuallyOrDeleteDraftsInPendingSheet = sendOrMoveManuallyOrDeleteDraftsInPendingSheet;
+(global as any).archiveSelectRowsInAutoReceivedSheet = archiveSelectRowsInAutoReceivedSheet;
