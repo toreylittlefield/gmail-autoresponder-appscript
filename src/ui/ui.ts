@@ -20,16 +20,21 @@ import {
 const menuName = `Autoresponder Email Settings Menu`;
 
 function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScript.Base.Menu) {
-  const optionsMenu = ui.createMenu('Options');
+  const optionsMenu = ui.createMenu('Global Options');
   optionsMenu.addItem(`Toggle Automatic Email Sending`, 'toggleAutoResponseOnOff');
   optionsMenu.addSeparator();
+  optionsMenu.addItem('Warning: Reset Entire Spreadsheet & Delete Pending Drafts', 'menuItemResetEntireSheet');
 
-  optionsMenu.addItem('Reset Entire Sheet', 'menuItemResetEntireSheet');
+  const pendingSheetActions = ui.createMenu('Pending Sheet Actions');
+  pendingSheetActions.addItem(`Send Selected Pending Draft Emails`, 'sendSelectedEmailsInPendingEmailsSheet');
+  pendingSheetActions.addItem(`Delete Selected Pending Draft Emails`, 'deleteSelectedEmailsInPendingEmailsSheet');
+  pendingSheetActions.addItem(
+    `Move Selected Pending Draft Emails To Sent Sheet`,
+    'moveManuallySelectedEmailsInPendingEmailsSheet'
+  );
 
-  menu.addItem(`Sync Emails`, 'uiGetEmailsFromGmail');
-  menu.addItem(`Send Selected Pending Draft Emails`, 'sendSelectedEmailsInPendingEmailsSheet');
-  menu.addItem(`Delete Selected Pending Draft Emails`, 'deleteSelectedEmailsInPendingEmailsSheet');
-  menu.addItem(`Move Selected Pending Draft Emails To Sent Sheet`, 'moveManuallySelectedEmailsInPendingEmailsSheet');
+  menu.addItem(`Get Emails & Create Drafts`, 'uiGetEmailsFromGmail');
+  menu.addSubMenu(pendingSheetActions).addToUi();
   menu.addItem('User Configuration', 'userConfigurationModal');
   menu.addSeparator().addSubMenu(optionsMenu).addToUi();
 }
