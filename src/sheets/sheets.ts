@@ -1,5 +1,5 @@
 import { createOrSentTemplateEmail, DraftAttributeArray, EmailListItem, getToEmailArray } from '../email/email';
-import { doNotSendMailAutoMap, emailsToSendMap } from '../global/maps';
+import { doNotSendMailAutoMap, emailsToAddToPendingSheet } from '../global/maps';
 import { getUserProps, setUserProps } from '../properties-service/properties-service';
 import {
   allSheets,
@@ -383,7 +383,7 @@ export function writeEmailsToPendingSheet() {
   if (!pendingEmailsSheet) {
     throw Error(`Could Not Find Pending Emails To Send Sheet`);
   }
-  const emailObjects = Array.from(emailsToSendMap.values());
+  const emailObjects = Array.from(emailsToAddToPendingSheet.values());
   const validSentRows: ValidRowToWriteInPendingSheet[] = emailObjects.map(
     ({
       send,

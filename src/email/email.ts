@@ -4,7 +4,7 @@ import {
   doNotTrackMap,
   EmailDataToSend,
   emailmessagesIdMap,
-  emailsToSendMap,
+  emailsToAddToPendingSheet,
   pendingEmailsToSendMap,
 } from '../global/maps';
 import { getSingleUserPropValue, getUserProps } from '../properties-service/properties-service';
@@ -110,8 +110,12 @@ function checkAndAddToEmailMap(emails: EmailReplySendArray) {
   emails.forEach(([email, data]) => {
     const domain = getDomainFromEmailAddress(email);
 
-    if (!doNotSendMailAutoMap.has(email) && !doNotSendMailAutoMap.has(domain) && !emailsToSendMap.has(email)) {
-      emailsToSendMap.set(email, data);
+    if (
+      !doNotSendMailAutoMap.has(email) &&
+      !doNotSendMailAutoMap.has(domain) &&
+      !emailsToAddToPendingSheet.has(email)
+    ) {
+      emailsToAddToPendingSheet.set(email, data);
     }
   });
 }
@@ -235,8 +239,6 @@ export function extractDataFromEmailSearch(
 
     let salaries: number[] = [];
     threads.forEach((thread, _threadIndex) => {
-      // if (threadIndex > 200) return;
-
       const emailMessageCount = thread.getMessageCount();
       const [firstMsg, ...restMsgs] = thread.getMessages();
 
@@ -310,7 +312,7 @@ export function extractDataFromEmailSearch(
     });
 
     writeEmailsListToAutomationSheet(emailsForList);
-    addSentEmailsToDoNotReplyMap(Array.from(emailsToSendMap.keys()));
+    addSentEmailsToDoNotReplyMap(Array.from(emailsToAddToPendingSheet.keys()));
 
     console.log({ salaries: calcAverage(salaries) });
   } catch (error) {
