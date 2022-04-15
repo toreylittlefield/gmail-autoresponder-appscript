@@ -46,15 +46,15 @@ export const repliesToUpdateArray: ReplyToUpdateType = [];
 export function WarningResetSheetsAndSpreadsheet() {
   try {
     const activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    deleteDraftsInPendingSheet({ deleteAll: true });
+    sendOrMoveManuallyOrDeleteDraftsInPendingSheet({ type: 'delete' }, { deleteAll: true });
     const sheetsToDelete: GoogleAppsScript.Spreadsheet.Sheet[] = [];
     allSheets.forEach((sheetName) => {
       const sheet = activeSpreadsheet.getSheetByName(sheetName);
       if (sheet) sheetsToDelete.push(sheet);
     });
 
-    if (sheetsToDelete.length === 0)
-      throw Error('Could Not Reset This Spreadsheet Because We Could Not Find The Sheets To Delete');
+    // if (sheetsToDelete.length === 0)
+    //   throw Error('Could Not Reset This Spreadsheet Because We Could Not Find The Sheets To Delete');
     const tempSheet = activeSpreadsheet.insertSheet();
     PropertiesService.getUserProperties().deleteAllProperties();
     sheetsToDelete.forEach((sheet) => activeSpreadsheet.deleteSheet(sheet));
@@ -91,7 +91,7 @@ export async function checkExistsOrCreateSpreadsheet(): Promise<'done'> {
       });
       createSheet(spreadsheet, PENDING_EMAILS_TO_SEND_SHEET_NAME, PENDING_EMAILS_TO_SEND_HEADERS, {
         tabColor: 'gold',
-        unprotectColumnLetters: ['A', 'L'],
+        unprotectColumnLetters: ['A', 'L', 'U'],
       });
       createSheet(spreadsheet, SENT_SHEET_NAME, SENT_SHEET_NAME_HEADERS, { tabColor: 'green' });
       createSheet(spreadsheet, FOLLOW_UP_EMAILS_SHEET_NAME, FOLLOW_UP_EMAILS_HEADERS, { tabColor: 'black' });
@@ -468,6 +468,7 @@ export function writeEmailsToPendingSheet() {
     pendingEmailsSheet,
     21
   );
+  setSheetProtection(pendingEmailsSheet, 'Pending Emails To Send Protected Range', ['A', 'L', 'U']);
 }
 
 function setCheckedValueForEachRow(
@@ -485,7 +486,8 @@ type DeleteDraftOptions = {
   deleteAll?: boolean;
 };
 
-export function deleteDraftsInPendingSheet({ deleteAll = false }: DeleteDraftOptions) {
+//@ts-expect-error
+function deleteDraftsInPendingSheet({ deleteAll = false }: DeleteDraftOptions) {
   try {
     const pendingSheetEmailData = getAllDataFromSheet('Pending Emails To Send') as ValidRowToWriteInPendingSheet[];
     const pendingSheet = getSheetByName('Pending Emails To Send');
@@ -531,7 +533,7 @@ export function deleteDraftsInPendingSheet({ deleteAll = false }: DeleteDraftOpt
         row++;
       }
     );
-    setSheetProtection(pendingSheet, 'Pending Emails To Send Protected Range', ['A', 'L']);
+    setSheetProtection(pendingSheet, 'Pending Emails To Send Protected Range', ['A', 'L', 'U']);
   } catch (error) {
     console.error(error as any);
   }
@@ -564,7 +566,12 @@ type ValidRowToWriteInSentSheet = [
   sentThreadPermaLink: string
 ];
 
-export function sendDraftsInPendingSheet() {
+type SendDraftsOptions = { type: 'send' | 'manuallyMove' | 'delete' };
+
+export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
+  { type }: SendDraftsOptions,
+  { deleteAll = false }: DeleteDraftOptions
+) {
   try {
     const pendingSheetEmailData = getAllDataFromSheet('Pending Emails To Send') as ValidRowToWriteInPendingSheet[];
     const pendingSheet = getSheetByName('Pending Emails To Send');
@@ -590,7 +597,7 @@ export function sendDraftsInPendingSheet() {
           _emailSubject,
           _emailBody,
           _emailThreadPermaLink,
-          _deleteDraft,
+          deleteDraft,
           draftId,
           _draftSentMessageId,
           _draftMessageDate,
@@ -599,58 +606,104 @@ export function sendDraftsInPendingSheet() {
           _draftMessageTo,
           _draftMessageBody,
           _viewDraftInGmail,
-          _manuallyMoveDraftToSent,
+          manuallyMoveDraftToSent,
         ]
       ) => {
-        if (send === true) {
-          try {
-            const { getThread, getId: emailMessageId, getDate } = GmailApp.getDraft(draftId).send();
-            const { getPermalink, getId } = getThread();
-            var rowData = [
-              _emailThreadId,
-              _inResponseToEmailMessageId,
-              isReplyorNewEmail,
-              _date,
-              _emailFrom,
-              _emailSendTo,
-              _personFrom,
-              _emailSubject,
-              _emailBody,
-              _emailThreadPermaLink,
-              _deleteDraft,
-              draftId,
-              _draftSentMessageId,
-              _draftMessageDate,
-              _draftMessageSubject,
-              _draftMessageFrom,
-              _draftMessageTo,
-              _draftMessageBody,
-              _viewDraftInGmail,
-              _manuallyMoveDraftToSent,
-              getId().toString(),
-              emailMessageId().toString(),
-              getDate(),
-              getPermalink(),
-            ] as ValidRowToWriteInSentSheet;
-            acc.push(rowData);
-          } catch (error) {
-            console.error(error as any);
-          } finally {
+        let draftData:
+          | [
+              sentThreadId: string,
+              sentDraftMessageId: string,
+              sendDraftDate: GoogleAppsScript.Base.Date,
+              sentThreadPermaLink: string
+            ]
+          | undefined;
+        try {
+          if (type === 'send' && send === true) {
+            const { getDate, getEmailMessageId, getId, getPermalink } = sendDraftOrGetMessageFromDraft(
+              { type },
+              draftId
+            );
+            draftData = [getId().toString(), getEmailMessageId().toString(), getDate(), getPermalink()];
+          } else if (type === 'manuallyMove' && manuallyMoveDraftToSent === true) {
+            const { getDate, getEmailMessageId, getId, getPermalink } = sendDraftOrGetMessageFromDraft(
+              { type },
+              draftId
+            );
+            draftData = [getId().toString(), getEmailMessageId().toString(), getDate(), getPermalink()];
+          } else if (type === 'delete' && (deleteDraft === true || deleteAll === true)) {
+            GmailApp.getDraft(draftId).deleteDraft();
+          }
+        } catch (error) {
+          console.error(error as any);
+        } finally {
+          if (
+            (type === 'send' && send === true) ||
+            (type === 'manuallyMove' && manuallyMoveDraftToSent === true) ||
+            (type === 'delete' && (deleteDraft === true || deleteAll === true))
+          ) {
             pendingSheet.deleteRow(rowNumber);
             rowNumber--;
+            if (draftData) {
+              const rowData = [
+                _emailThreadId,
+                _inResponseToEmailMessageId,
+                isReplyorNewEmail,
+                _date,
+                _emailFrom,
+                _emailSendTo,
+                _personFrom,
+                _emailSubject,
+                _emailBody,
+                _emailThreadPermaLink,
+                deleteDraft,
+                draftId,
+                _draftSentMessageId,
+                _draftMessageDate,
+                _draftMessageSubject,
+                _draftMessageFrom,
+                _draftMessageTo,
+                _draftMessageBody,
+                _viewDraftInGmail,
+                manuallyMoveDraftToSent,
+              ];
+              acc.push([...rowData, ...draftData] as ValidRowToWriteInSentSheet);
+            }
           }
         }
+
         rowNumber++;
         return acc;
       },
       []
     );
-    const { numCols, numRows } = getNumRowsAndColsFromArray(rowsForSentSheet);
-    addRowsToTopOfSheet(numRows, sentEmailsSheet);
-    setValuesInRangeAndSortSheet(numRows, numCols, rowsForSentSheet, sentEmailsSheet, { asc: false, sortByCol: 21 });
+    setSheetProtection(pendingSheet, 'Pending Emails To Send Protected Range', ['A', 'L', 'U']);
+    if (rowsForSentSheet.length > 0) {
+      writeSentDraftsToSentEmailsSheet(sentEmailsSheet, rowsForSentSheet);
+    }
   } catch (error) {
     console.error(error as any);
   }
+}
+
+function sendDraftOrGetMessageFromDraft({ type }: SendDraftsOptions, draftId: string) {
+  const {
+    getThread,
+    getId: getEmailMessageId,
+    getDate,
+  } = type === 'send' ? GmailApp.getDraft(draftId).send() : GmailApp.getDraft(draftId).getMessage();
+  const { getPermalink, getId } = getThread();
+  return { getDate, getId, getEmailMessageId, getPermalink };
+}
+
+function writeSentDraftsToSentEmailsSheet(
+  sentEmailsSheet: GoogleAppsScript.Spreadsheet.Sheet,
+  rowsForSentSheet: ValidRowToWriteInSentSheet[]
+) {
+  if (sentEmailsSheet.getName() !== 'Sent Automated Responses')
+    throw Error('Sheet Must Be The Sent Automated Responses');
+  const { numCols, numRows } = getNumRowsAndColsFromArray(rowsForSentSheet);
+  addRowsToTopOfSheet(numRows, sentEmailsSheet);
+  setValuesInRangeAndSortSheet(numRows, numCols, rowsForSentSheet, sentEmailsSheet, { asc: false, sortByCol: 21 });
 }
 
 export function writeLinkInCellsFromSheetComparison(
