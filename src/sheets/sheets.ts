@@ -414,7 +414,7 @@ export function writeEmailsToPendingSheet() {
               subject: emailSubject,
             }) as DraftAttributeArray)
           : (createOrSentTemplateEmail({
-              type: 'replyDraft',
+              type: 'replyDraftEmail',
               gmailMessageId: inResponseToEmailMessageId,
             }) as DraftAttributeArray);
       return [

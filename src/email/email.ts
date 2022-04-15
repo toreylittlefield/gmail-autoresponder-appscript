@@ -76,7 +76,7 @@ function draftReplyToMessage(gmailMessageId: string, htmlBodyMessage?: string): 
 }
 
 type SendTemplateOptions =
-  | { type: 'replyDraft'; gmailMessageId: string; htmlBodyMessage?: string; recipient?: string; subject?: string }
+  | { type: 'replyDraftEmail'; gmailMessageId: string; htmlBodyMessage?: string; recipient?: string; subject?: string }
   | { type: 'newDraftEmail'; gmailMessageId?: string; htmlBodyMessage?: string; recipient: string; subject: string }
   | { type: 'sendNewEmail'; gmailMessageId?: string; htmlBodyMessage?: string; recipient: string; subject: string };
 
@@ -93,7 +93,7 @@ export function createOrSentTemplateEmail({
       case 'newDraftEmail':
         return createNewDraftMessage(recipient, subject, gmailAdvancedOptions);
 
-      case 'replyDraft':
+      case 'replyDraftEmail':
         return draftReplyToMessage(gmailMessageId, htmlBodyMessage);
       case 'sendNewEmail':
         GmailApp.sendEmail(recipient, subject, '', gmailAdvancedOptions);
@@ -121,7 +121,7 @@ function checkAndAddToEmailMap(emails: EmailReplySendArray) {
 }
 
 function buildEmailsObject(
-  emailObj: Omit<EmailDataToSend, 'sendReplyEmail' | 'send' | 'isReplyorNewEmail' | 'emailSendTo'>,
+  emailObj: Omit<EmailDataToSend, 'send' | 'isReplyorNewEmail' | 'emailSendTo'>,
   bodyEmails: string[],
   emailReplyTo: string
 ): EmailReplySendArray {
@@ -133,7 +133,6 @@ function buildEmailsObject(
       const isReplyorNewEmail = 'new' as const;
       emailObject[email] = Object.assign({}, emailObj, {
         isReplyorNewEmail,
-        sendReplyEmail: false,
         send: onOrOff,
         emailSendTo: email,
       });
@@ -143,7 +142,6 @@ function buildEmailsObject(
   if (!pendingEmailsToSendMap.has(emailReplyTo)) {
     emailObject[emailReplyTo] = Object.assign({}, emailObj, {
       isReplyorNewEmail,
-      sendReplyEmail: true,
       send: onOrOff,
       emailSendTo: emailReplyTo,
     });

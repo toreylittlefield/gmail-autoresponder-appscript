@@ -1,5 +1,4 @@
 export type EmailDataToSend = {
-  sendReplyEmail: boolean;
   send: boolean;
   emailThreadId: string;
   isReplyorNewEmail: 'new' | 'reply';
