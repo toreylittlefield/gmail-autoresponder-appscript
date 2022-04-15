@@ -50,7 +50,7 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
     if (!activeSheet) throw Error('No Active Sheet');
 
     initialGlobalMap('doNotTrackMap');
-    initialGlobalMap('emailmessagesIdMap');
+    initialGlobalMap('emailThreadIdsMap');
     initialGlobalMap('alwaysAllowMap');
     initialGlobalMap('doNotSendMailAutoMap');
     initialGlobalMap('pendingEmailsToSendMap');

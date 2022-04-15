@@ -1,7 +1,7 @@
 import {
   doNotTrackMap,
   doNotSendMailAutoMap,
-  emailmessagesIdMap,
+  emailThreadIdsMap,
   pendingEmailsToSendMap,
   alwaysAllowMap,
 } from '../global/maps';
@@ -38,7 +38,7 @@ export const regexSalary =
 export const getEmailFromString = (str: string) => str.split('<')[1].replace('>', '').trim();
 
 type MapNames =
-  | 'emailmessagesIdMap'
+  | 'emailThreadIdsMap'
   | 'doNotTrackMap'
   | 'doNotSendMailAutoMap'
   | 'pendingEmailsToSendMap'
@@ -52,9 +52,9 @@ export function initialGlobalMap(mapName: MapNames) {
       return sheetData;
     };
     switch (mapName) {
-      case 'emailmessagesIdMap':
-        getSheetData('Automated Results List').forEach(([emailId], index) =>
-          emailmessagesIdMap.set(emailId, index + 2)
+      case 'emailThreadIdsMap':
+        getSheetData('Automated Results List').forEach(([emailThreadId], index) =>
+          emailThreadIdsMap.set(emailThreadId, index + 2)
         );
         break;
       case 'doNotTrackMap':
