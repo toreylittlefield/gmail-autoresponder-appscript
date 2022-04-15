@@ -13,8 +13,7 @@ import {
 } from '../properties-service/properties-service';
 import {
   checkExistsOrCreateSpreadsheet,
-  deleteDraftsInPendingSheet,
-  sendDraftsInPendingSheet,
+  sendOrMoveManuallyOrDeleteDraftsInPendingSheet,
   WarningResetSheetsAndSpreadsheet,
 } from '../sheets/sheets';
 
@@ -30,6 +29,7 @@ function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScri
   menu.addItem(`Sync Emails`, 'uiGetEmailsFromGmail');
   menu.addItem(`Send Selected Pending Draft Emails`, 'sendSelectedEmailsInPendingEmailsSheet');
   menu.addItem(`Delete Selected Pending Draft Emails`, 'deleteSelectedEmailsInPendingEmailsSheet');
+  menu.addItem(`Move Selected Pending Draft Emails To Sent Sheet`, 'moveManuallySelectedEmailsInPendingEmailsSheet');
   menu.addItem('User Configuration', 'userConfigurationModal');
   menu.addSeparator().addSubMenu(optionsMenu).addToUi();
 }
@@ -77,7 +77,22 @@ export function sendSelectedEmailsInPendingEmailsSheet() {
     ui.ButtonSet.OK_CANCEL
   );
   if (response === ui.Button.OK) {
-    sendDraftsInPendingSheet();
+    sendOrMoveManuallyOrDeleteDraftsInPendingSheet({ type: 'send' }, {});
+  }
+}
+
+export function moveManuallySelectedEmailsInPendingEmailsSheet() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    `Move Selected Drafts`,
+    `You are about to MOVE any selected / checked draft emails in the "Pending Emails To Send" sheet. 
+    This WILL NOT send the selected draft emails to the recipient. You can still manually send the draft email inside of Gmail.
+    This action will just simply manually move the selected row(s) in the spreadsheet.
+    The rows for the draft emails will be moved to the "Sent Automated Responses" Sheet`,
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (response === ui.Button.OK) {
+    sendOrMoveManuallyOrDeleteDraftsInPendingSheet({ type: 'manuallyMove' }, {});
   }
 }
 export function deleteSelectedEmailsInPendingEmailsSheet() {
@@ -88,7 +103,7 @@ export function deleteSelectedEmailsInPendingEmailsSheet() {
     ui.ButtonSet.OK_CANCEL
   );
   if (response === ui.Button.OK) {
-    deleteDraftsInPendingSheet({});
+    sendOrMoveManuallyOrDeleteDraftsInPendingSheet({ type: 'delete' }, {});
   }
 }
 
