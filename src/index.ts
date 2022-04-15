@@ -3,10 +3,9 @@ import { getUserProps } from './properties-service/properties-service';
 import {
   activeSheet,
   activeSpreadsheet,
-  deleteDraftsInPendingSheet,
   formatRowHeight,
   initSpreadsheet,
-  sendDraftsInPendingSheet,
+  sendOrMoveManuallyOrDeleteDraftsInPendingSheet,
   writeDomainsListToDoNotRespondSheet,
   writeEmailsToPendingSheet,
   writeLinkInCellsFromSheetComparison,
@@ -16,6 +15,7 @@ import {
   getUserPropertiesForPageModal,
   initializeSpreadsheets,
   menuItemResetEntireSheet,
+  moveManuallySelectedEmailsInPendingEmailsSheet,
   onOpen,
   processFormEventsFromPage,
   sendSelectedEmailsInPendingEmailsSheet,
@@ -105,9 +105,9 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
 (global as any).menuItemResetEntireSheet = menuItemResetEntireSheet;
 (global as any).initializeSpreadsheets = initializeSpreadsheets;
 (global as any).sendSelectedEmailsInPendingEmailsSheet = sendSelectedEmailsInPendingEmailsSheet;
+(global as any).moveManuallySelectedEmailsInPendingEmailsSheet = moveManuallySelectedEmailsInPendingEmailsSheet;
 (global as any).deleteSelectedEmailsInPendingEmailsSheet = deleteSelectedEmailsInPendingEmailsSheet;
 (global as any).userConfigurationModal = userConfigurationModal;
 (global as any).getUserPropertiesForPageModal = getUserPropertiesForPageModal;
 (global as any).processFormEventsFromPage = processFormEventsFromPage;
-(global as any).sendDraftsInPendingSheet = sendDraftsInPendingSheet;
-(global as any).deleteDraftsInPendingSheet = deleteDraftsInPendingSheet;
+(global as any).sendOrMoveManuallyOrDeleteDraftsInPendingSheet = sendOrMoveManuallyOrDeleteDraftsInPendingSheet;
