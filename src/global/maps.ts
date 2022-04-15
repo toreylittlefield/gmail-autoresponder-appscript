@@ -21,8 +21,8 @@ export const doNotTrackMap = new Map<string, boolean>();
 /** allow list of domains or emails */
 export const alwaysAllowMap = new Map<string, boolean>();
 
-/** list of all emailId (threadId) and row number in automation sheet */
-export const emailmessagesIdMap = new Map<string, number>();
+/** list of all email thread ids (threadId) and row number in automation sheet */
+export const emailThreadIdsMap = new Map<string, number>();
 
 /** list of all emails by email address as key, and replyToEmail as boolean with emailSubject and body */
 export const emailsToAddToPendingSheet = new Map<string, EmailDataToSend>();
