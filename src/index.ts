@@ -5,6 +5,7 @@ import {
   activeSpreadsheet,
   formatRowHeight,
   initSpreadsheet,
+  sendDraftsIfAutoResponseUserOptionIsOn,
   sendOrMoveManuallyOrDeleteDraftsInPendingSheet,
   writeDomainsListToDoNotRespondSheet,
   writeEmailsToPendingSheet,
@@ -112,3 +113,4 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
 (global as any).archiveSelectRowsInAutoReceivedSheet = archiveSelectRowsInAutoReceivedSheet;
 (global as any).deleteSelectRowsInAutoReceivedSheet = deleteSelectRowsInAutoReceivedSheet;
 (global as any).removeLabelSelectRowsInAutoReceivedSheet = removeLabelSelectRowsInAutoReceivedSheet;
+(global as any).sendDraftsIfAutoResponseUserOptionIsOn = sendDraftsIfAutoResponseUserOptionIsOn;
