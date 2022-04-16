@@ -1,12 +1,18 @@
-import { FUNCTION_NAME } from '../variables/publicvariables';
+import { getEmailsFromGmail } from '../index';
 
 /**
- * Creates two time-driven triggers.
+ *
+ * Check if trigger already exists for a function
+ */
+function hasTriggerByName(functionName: Function['name']) {
+  return ScriptApp.getProjectTriggers().some((trigger) => trigger.getHandlerFunction() === functionName);
+}
+
+/**
+ * Creates time-driven trigger for {@link getEmailsFromGmail} that runs every 1 hour
  * @see https://developers.google.com/apps-script/guides/triggers/installable#time-driven_triggers
  */
-export function createTimeDrivenTriggers() {
-  // Trigger every 6 hours.
-  ScriptApp.newTrigger(FUNCTION_NAME).timeBased().everyMinutes(1).create();
-  // Trigger every Monday at 09:00.
-  // ScriptApp.newTrigger('AutoResponder').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(9).create();
+export function createTriggerForEmailsSync() {
+  if (!hasTriggerByName(getEmailsFromGmail.name))
+    ScriptApp.newTrigger(getEmailsFromGmail.name).timeBased().everyHours(1);
 }
