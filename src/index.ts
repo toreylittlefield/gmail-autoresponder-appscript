@@ -10,6 +10,7 @@ import {
   writeEmailsToPendingSheet,
   writeLinkInCellsFromSheetComparison,
 } from './sheets/sheets';
+import { createTriggerForEmailsSync } from './trigger/trigger';
 import {
   archiveSelectRowsInAutoReceivedSheet,
   deleteSelectedEmailsInPendingEmailsSheet,
@@ -30,13 +31,15 @@ import { AUTOMATED_RECEIVED_SHEET_NAME } from './variables/publicvariables';
 
 // (?:for\W)(.*)(?= at)(?: at\W)(.*) match linkedin email "you applied at..."
 
-/**
- * 1. search for emails with the label that have been received in the last 90 days
- *
- */
 export function uiGetEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
   const hasReqProps = hasAllRequiredUserProps();
   if (!hasReqProps) return;
+  if (createTriggerForEmailsSync() === true) {
+    const ui = SpreadsheetApp.getUi();
+    ui.alert(
+      `"Email Sync" will now run every 1 Hour in the background as a time based event trigger. There's nothing you need to do.`
+    );
+  }
   getEmailsFromGmail(e);
 }
 
