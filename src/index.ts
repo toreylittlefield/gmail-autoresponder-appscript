@@ -13,12 +13,14 @@ import {
 import {
   archiveSelectRowsInAutoReceivedSheet,
   deleteSelectedEmailsInPendingEmailsSheet,
+  deleteSelectRowsInAutoReceivedSheet,
   getUserPropertiesForPageModal,
   initializeSpreadsheets,
   menuItemResetEntireSheet,
   moveManuallySelectedEmailsInPendingEmailsSheet,
   onOpen,
   processFormEventsFromPage,
+  removeLabelSelectRowsInAutoReceivedSheet,
   sendSelectedEmailsInPendingEmailsSheet,
   toggleAutoResponseOnOff,
   userConfigurationModal,
@@ -114,3 +116,5 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
 (global as any).processFormEventsFromPage = processFormEventsFromPage;
 (global as any).sendOrMoveManuallyOrDeleteDraftsInPendingSheet = sendOrMoveManuallyOrDeleteDraftsInPendingSheet;
 (global as any).archiveSelectRowsInAutoReceivedSheet = archiveSelectRowsInAutoReceivedSheet;
+(global as any).deleteSelectRowsInAutoReceivedSheet = deleteSelectRowsInAutoReceivedSheet;
+(global as any).removeLabelSelectRowsInAutoReceivedSheet = removeLabelSelectRowsInAutoReceivedSheet;
