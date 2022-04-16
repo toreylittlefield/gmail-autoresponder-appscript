@@ -1,6 +1,7 @@
 import { createOrSentTemplateEmail, DraftAttributeArray, EmailListItem, getToEmailArray } from '../email/email';
 import { alwaysAllowMap, doNotSendMailAutoMap, emailsToAddToPendingSheet, emailThreadIdsMap } from '../global/maps';
 import { getSingleUserPropValue, getUserProps, setUserProps } from '../properties-service/properties-service';
+import { deleteAllExistingProjectTriggers } from '../trigger/trigger';
 import { getDomainFromEmailAddress, initialGlobalMap } from '../utils/utils';
 import {
   allSheets,
@@ -52,6 +53,7 @@ export function WarningResetSheetsAndSpreadsheet() {
   try {
     const activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     sendOrMoveManuallyOrDeleteDraftsInPendingSheet({ type: 'delete' }, { deleteAll: true });
+    deleteAllExistingProjectTriggers();
     const sheetsToDelete: GoogleAppsScript.Spreadsheet.Sheet[] = [];
     allSheets.forEach((sheetName) => {
       const sheet = activeSpreadsheet.getSheetByName(sheetName);
