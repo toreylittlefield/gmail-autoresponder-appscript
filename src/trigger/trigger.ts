@@ -13,11 +13,9 @@ function hasTriggerByName(nameOfFunction: Function['name']) {
  * @see https://developers.google.com/apps-script/guides/triggers/installable#time-driven_triggers
  */
 export function createTriggerForEmailsSync() {
-  if (!hasTriggerByName(getEmailsFromGmail.name)) {
-    ScriptApp.newTrigger(getEmailsFromGmail.name).timeBased().everyHours(1);
-    return true;
-  }
-  return false;
+  if (hasTriggerByName(getEmailsFromGmail.name)) return false;
+  ScriptApp.newTrigger(getEmailsFromGmail.name).timeBased().everyHours(1).create();
+  return true;
 }
 
 export function deleteAllExistingProjectTriggers() {
