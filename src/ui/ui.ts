@@ -23,27 +23,27 @@ const menuName = `Autoresponder Email Settings Menu`;
 
 function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScript.Base.Menu) {
   const optionsMenu = ui.createMenu('Global Options');
-  optionsMenu.addItem(`Toggle Automatic Email Sending`, 'toggleAutoResponseOnOff');
+  optionsMenu.addItem(`Toggle Automatic Email Sending`, toggleAutoResponseOnOff.name);
   optionsMenu.addSeparator();
-  optionsMenu.addItem('Warning: Reset Entire Spreadsheet & Delete Pending Drafts', 'menuItemResetEntireSheet');
+  optionsMenu.addItem('Warning: Reset Entire Spreadsheet & Delete Pending Drafts', menuItemResetEntireSheet.name);
 
   const pendingSheetActions = ui.createMenu('Pending Sheet Actions');
-  pendingSheetActions.addItem(`Send Selected Pending Draft Emails`, 'sendSelectedEmailsInPendingEmailsSheet');
-  pendingSheetActions.addItem(`Delete Selected Pending Draft Emails`, 'deleteSelectedEmailsInPendingEmailsSheet');
+  pendingSheetActions.addItem(`Send Selected Pending Draft Emails`, sendSelectedEmailsInPendingEmailsSheet.name);
+  pendingSheetActions.addItem(`Delete Selected Pending Draft Emails`, deleteSelectedEmailsInPendingEmailsSheet.name);
   pendingSheetActions.addItem(
     `Move Selected Pending Draft Emails To Sent Sheet`,
-    'moveManuallySelectedEmailsInPendingEmailsSheet'
+    moveManuallySelectedEmailsInPendingEmailsSheet.name
   );
 
   const receivedEmailsSheetActions = ui.createMenu('Received Sheet Actions');
-  receivedEmailsSheetActions.addItem(`Archive Selected Rows`, `archiveSelectRowsInAutoReceivedSheet`);
-  receivedEmailsSheetActions.addItem(`Warning: Delete Selected Rows`, `archiveSelectRowsInAutoReceivedSheet`);
-  receivedEmailsSheetActions.addItem(`Warning: Remove Label Selected Rows`, `archiveSelectRowsInAutoReceivedSheet`);
+  receivedEmailsSheetActions.addItem(`Archive Selected Rows`, archiveSelectRowsInAutoReceivedSheet.name);
+  receivedEmailsSheetActions.addItem(`Warning: Delete Selected Rows`, archiveSelectRowsInAutoReceivedSheet.name);
+  receivedEmailsSheetActions.addItem(`Warning: Remove Label Selected Rows`, archiveSelectRowsInAutoReceivedSheet.name);
 
   menu.addItem(`Get Emails & Create Drafts - Sync Emails`, 'uiGetEmailsFromGmail');
   menu.addSubMenu(receivedEmailsSheetActions).addToUi();
   menu.addSubMenu(pendingSheetActions).addToUi();
-  menu.addItem('User Configuration', 'userConfigurationModal');
+  menu.addItem('User Configuration', userConfigurationModal.name);
   menu.addSeparator().addSubMenu(optionsMenu).addToUi();
 }
 
@@ -55,12 +55,12 @@ export function onOpen() {
   if (hasSpreadsheetId) {
     createMenuAfterStart(ui, menu);
   } else {
-    menu.addItem(`Setup and Create Sheets`, `initializeSpreadsheets`).addToUi();
+    menu.addItem(`Setup and Create Sheets`, initializeSpreadsheets.name).addToUi();
   }
 }
 
 export async function initializeSpreadsheets() {
-  const ui = SpreadsheetApp.getUi(); // Or DocumentApp or FormApp.
+  const ui = SpreadsheetApp.getUi();
   const response = ui.alert(
     `Create Sheets!`,
     `This will create the sheets you need to run automations.`,
@@ -221,8 +221,7 @@ function newFilterAndLabel(currentEmail: string, ui: GoogleAppsScript.Base.Ui) {
 
 export function userConfigurationModal() {
   var html = HtmlService.createHtmlOutputFromFile('dist/Page').setWidth(400).setHeight(500);
-  SpreadsheetApp.getUi() // Or DocumentApp or SlidesApp or FormApp.
-    .showModalDialog(html, 'User Options');
+  SpreadsheetApp.getUi().showModalDialog(html, 'User Options');
 }
 
 export function getUserPropertiesForPageModal() {
