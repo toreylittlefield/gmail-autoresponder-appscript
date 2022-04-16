@@ -1,4 +1,4 @@
-import { createOrSentTemplateEmail, extractDataFromEmailSearch } from './email/email';
+import { extractDataFromEmailSearch } from './email/email';
 import { getUserProps } from './properties-service/properties-service';
 import {
   activeSheet,
@@ -68,17 +68,8 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
       { colNumToLinkFrom: 1, sheetToLinkFromName: `${AUTOMATED_RECEIVED_SHEET_NAME}` }
     );
 
-    /** send emails and replies */
-    //addSentEmailsToDoNotReplyMap
     formatRowHeight('Always Autorespond List');
     formatRowHeight('Pending Emails To Send');
-    if (false) {
-      createOrSentTemplateEmail({
-        type: 'sendNewEmail',
-        recipient: 'toreylittlefield@gmail.com',
-        subject: 'Responding To Your Message For: Software Engineer',
-      });
-    }
   } catch (error) {
     console.error(error as any);
   }
