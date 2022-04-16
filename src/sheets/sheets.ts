@@ -1,7 +1,11 @@
 import { createOrSentTemplateEmail, DraftAttributeArray, EmailListItem, getToEmailArray } from '../email/email';
 import { alwaysAllowMap, doNotSendMailAutoMap, emailsToAddToPendingSheet, emailThreadIdsMap } from '../global/maps';
 import { getSingleUserPropValue, getUserProps, setUserProps } from '../properties-service/properties-service';
-import { deleteAllExistingProjectTriggers } from '../trigger/trigger';
+import {
+  createTriggerForAutoResponsingToEmails,
+  deleteAllExistingProjectTriggers,
+  deleteAllTriggersWithMatchingFunctionName,
+} from '../trigger/trigger';
 import { getDomainFromEmailAddress, initialGlobalMap } from '../utils/utils';
 import {
   allSheets,
@@ -525,6 +529,32 @@ type SendDraftsOptions = { type: 'send' | 'manuallyMove' | 'delete' };
 type DeleteDraftOptions = {
   deleteAll?: boolean;
 };
+
+export function setAllPendingDraftsSendCheckBox(truthy: boolean = true) {
+  const pendingEmailsSheet = getSheetByName('Pending Emails To Send');
+  if (!pendingEmailsSheet) throw Error('No Pending Emails Found, Cannot run ' + setAllPendingDraftsSendCheckBox.name);
+  const lastRow = pendingEmailsSheet.getLastRow() - 1;
+  const trueRows = Array.from({ length: lastRow }, (_row) => [truthy]);
+  if (lastRow <= 0) return;
+  pendingEmailsSheet.getRange(2, 1, lastRow).setValues(trueRows);
+}
+
+export function sendDraftsIfAutoResponseUserOptionIsOn() {
+  const isAutoResOn = getSingleUserPropValue('isAutoResOn');
+  const onOrOff = isAutoResOn === 'On' ? true : false;
+  if (onOrOff) {
+    if (createTriggerForAutoResponsingToEmails() === true) {
+      setAllPendingDraftsSendCheckBox(true);
+      return;
+    }
+    sendOrMoveManuallyOrDeleteDraftsInPendingSheet({ type: 'send' }, {});
+    return;
+  }
+  if (onOrOff === false) {
+    deleteAllTriggersWithMatchingFunctionName(sendDraftsIfAutoResponseUserOptionIsOn.name);
+    setAllPendingDraftsSendCheckBox(false);
+  }
+}
 
 export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
   { type }: SendDraftsOptions,
