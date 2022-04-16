@@ -22,6 +22,7 @@ import {
   DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME,
   FOLLOW_UP_EMAILS_HEADERS,
   FOLLOW_UP_EMAILS_SHEET_NAME,
+  FOLLOW_UP_LABEL_NAME,
   PENDING_EMAILS_TO_SEND_HEADERS,
   PENDING_EMAILS_TO_SEND_SHEET_NAME,
   SENT_SHEET_NAME,
@@ -341,7 +342,7 @@ export function addRowsToTopOfSheet(numRows: number, sheet: GoogleAppsScript.Spr
 export function formatRowHeight(sheetName: SheetNames) {
   const sheet = getSheetByName(sheetName);
   //@ts-expect-error
-  sheet && sheet.setRowHeightsForced(2, sheet.getDataRange().getNumRows(), 21);
+  sheet && sheet.setRowHeightsForced(2, sheet.getDataRange().getNumRows() - 1, 21);
 }
 
 export function addToRepliesArray(index: number, emailMessages: GoogleAppsScript.Gmail.GmailMessage[]) {
@@ -692,7 +693,14 @@ function sendDraftOrGetMessageFromDraft({ type }: SendDraftsOptions, draftId: st
     getId: getEmailMessageId,
     getDate,
   } = type === 'send' ? GmailApp.getDraft(draftId).send() : GmailApp.getDraft(draftId).getMessage();
-  const { getPermalink, getId } = getThread();
+  const { getPermalink, getId, addLabel } = getThread();
+  if (type === 'send' || type === 'manuallyMove') {
+    let followUpLabelForSentEmails = GmailApp.getUserLabelByName(FOLLOW_UP_LABEL_NAME);
+    if (!followUpLabelForSentEmails) {
+      followUpLabelForSentEmails = GmailApp.createLabel(FOLLOW_UP_LABEL_NAME);
+    }
+    addLabel(followUpLabelForSentEmails);
+  }
   return { getDate, getId, getEmailMessageId, getPermalink };
 }
 
