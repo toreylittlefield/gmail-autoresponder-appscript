@@ -5,7 +5,7 @@ export const FUNCTION_NAME = 'AutoResponder';
 export const LABEL_NAME = 'auto-responder-label';
 
 /** Label for archived email threads */
-export const ARCHIVE_LABEL_NAME = 'archived-auto-response';
+export const ARCHIVE_LABEL_NAME = 'archived-auto-responder-label';
 
 /** Regex For Bounced Messages */
 export const BOUNCED_MESSAGES_REGEX = new RegExp('mailer-daemon@googlemail.com|@bounce|@bounced', 'gi');
