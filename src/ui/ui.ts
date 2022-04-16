@@ -12,10 +12,12 @@ import {
   UserRecords,
 } from '../properties-service/properties-service';
 import {
+  archiveOrDeleteSelectEmailThreadIds,
   checkExistsOrCreateSpreadsheet,
   sendOrMoveManuallyOrDeleteDraftsInPendingSheet,
   WarningResetSheetsAndSpreadsheet,
 } from '../sheets/sheets';
+import { ARCHIVE_LABEL_NAME } from '../variables/publicvariables';
 
 const menuName = `Autoresponder Email Settings Menu`;
 
@@ -33,7 +35,13 @@ function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScri
     'moveManuallySelectedEmailsInPendingEmailsSheet'
   );
 
-  menu.addItem(`Get Emails & Create Drafts`, 'uiGetEmailsFromGmail');
+  const receivedEmailsSheetActions = ui.createMenu('Received Sheet Actions');
+  receivedEmailsSheetActions.addItem(`Archive Selected Rows`, `archiveSelectRowsInAutoReceivedSheet`);
+  receivedEmailsSheetActions.addItem(`Warning: Delete Selected Rows`, `archiveSelectRowsInAutoReceivedSheet`);
+  receivedEmailsSheetActions.addItem(`Warning: Remove Label Selected Rows`, `archiveSelectRowsInAutoReceivedSheet`);
+
+  menu.addItem(`Get Emails & Create Drafts - Sync Emails`, 'uiGetEmailsFromGmail');
+  menu.addSubMenu(receivedEmailsSheetActions).addToUi();
   menu.addSubMenu(pendingSheetActions).addToUi();
   menu.addItem('User Configuration', 'userConfigurationModal');
   menu.addSeparator().addSubMenu(optionsMenu).addToUi();
@@ -83,6 +91,52 @@ export function sendSelectedEmailsInPendingEmailsSheet() {
   );
   if (response === ui.Button.OK) {
     sendOrMoveManuallyOrDeleteDraftsInPendingSheet({ type: 'send' }, {});
+  }
+}
+
+export function archiveSelectRowsInAutoReceivedSheet() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    `Archive Selected Rows`,
+    `All rows with the "Archive" checkbox will be moved to the "Archive" sheet. Use this to clean up rows you don't want to see any more.
+    
+    Archiving applies a GMAIL label ${ARCHIVE_LABEL_NAME} to the email thread in Gmail. This action means it will not appear again in the recieved emails sheet. 
+    To undo this you'll have to manually remove the label in GMAIL and run "Get Emails" again`,
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (response === ui.Button.OK) {
+    archiveOrDeleteSelectEmailThreadIds({ type: 'archive' });
+  }
+}
+export function deleteSelectRowsInAutoReceivedSheet() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    `Warning: Delete Selected Rows`,
+    `All rows with the "Delete" checkbox will be deleted from the sheet. Use this to clean up rows you don't need.
+    
+    Deleting will ALSO DELETE that email / thread in GMAIL by moving it to the trash in GMAIL. So be careful with this option.`,
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (response === ui.Button.OK) {
+    archiveOrDeleteSelectEmailThreadIds({ type: 'delete' });
+  }
+}
+export function removeLabelSelectRowsInAutoReceivedSheet() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    `Remove GMAIL Label Selected Rows`,
+    `All rows with the "Remove Gmail Label" will have the ${getSingleUserPropValue(
+      'labelToSearch'
+    )} removed from them in GMAIL and it will delete the row in the sheet. 
+    
+    Use this so that you keep the email from appearing in this spreadsheet when a "Get Emails" sync is run.
+    
+    This action means it will not appear again in the spreadsheet even if there is a follow up email or a reply to a email you've already sent. 
+    To undo this you'll have to apply the label again in GMAIL and run "Get Emails" again`,
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (response === ui.Button.OK) {
+    archiveOrDeleteSelectEmailThreadIds({ type: 'remove gmail label' });
   }
 }
 
