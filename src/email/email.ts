@@ -9,7 +9,7 @@ import {
 import { getSingleUserPropValue, getUserProps } from '../properties-service/properties-service';
 import { addToRepliesArray, writeEmailsListToAutomationSheet } from '../sheets/sheets';
 import { calcAverage, getDomainFromEmailAddress, getEmailFromString, regexEmail, regexSalary } from '../utils/utils';
-import { LABEL_NAME } from '../variables/publicvariables';
+import { ARCHIVE_LABEL_NAME, LABEL_NAME } from '../variables/publicvariables';
 
 type EmailReplySendArray = [emailAddress: string, replyOrNew: EmailDataToSend][];
 
@@ -216,9 +216,7 @@ export function extractDataFromEmailSearch(
     // const threads = GmailApp.search(
     //   "-subject:'re:' -is:chats -is:draft has:nouserlabels -label:" + LABEL_NAME + ' to:(' + EMAIL_ACCOUNT + ')'
     // );
-    const threads = GmailApp.search(`label:${labelToSearch} to:(${email})`);
-    // 'recruiters-linkedin-recruiters');
-    // + ' to:(' + EMAIL_ACCOUNT + ')');
+    const threads = GmailApp.search(`label:${labelToSearch} -label:${ARCHIVE_LABEL_NAME} to:(${email})`);
 
     let salaries: number[] = [];
     threads.forEach((thread, _threadIndex) => {
