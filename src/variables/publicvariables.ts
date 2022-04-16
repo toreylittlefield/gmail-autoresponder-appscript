@@ -1,11 +1,11 @@
-/** function to trigger in apps script */
-export const FUNCTION_NAME = 'AutoResponder';
-
 /** Label to create for and attach to email messages */
 export const LABEL_NAME = 'auto-responder-label';
 
 /** Label for archived email threads */
 export const ARCHIVE_LABEL_NAME = 'archived-auto-responder-label';
+
+/** Label for send / moved emails drafts/messaged for follow up responses GMAIL search */
+export const FOLLOW_UP_LABEL_NAME = 'sent-email-auto-responder-label';
 
 /** Regex For Bounced Messages */
 export const BOUNCED_MESSAGES_REGEX = new RegExp('mailer-daemon@googlemail.com|@bounce|@bounced', 'gi');
