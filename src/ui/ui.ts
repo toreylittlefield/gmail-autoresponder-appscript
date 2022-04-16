@@ -15,6 +15,7 @@ import {
 import {
   archiveOrDeleteSelectEmailThreadIds,
   checkExistsOrCreateSpreadsheet,
+  sendDraftsIfAutoResponseUserOptionIsOn,
   sendOrMoveManuallyOrDeleteDraftsInPendingSheet,
   WarningResetSheetsAndSpreadsheet,
 } from '../sheets/sheets';
@@ -186,7 +187,14 @@ If automatic emailing is "OFF":
   if (response === ui.Button.YES) {
     const newValue = isAutoResOn === 'On' ? 'Off' : 'On';
     setUserProps({ isAutoResOn: newValue });
+    sendDraftsIfAutoResponseUserOptionIsOn();
     ui.alert(`${newValue}`, `Automatic Emailing Is Now ${newValue}`, ui.ButtonSet.OK);
+    newValue === 'On' &&
+      ui.alert(
+        `Trigger Created`,
+        `Any pending draft emails that are selected for "SEND" will be automatically sent every 1 hour`,
+        ui.ButtonSet.OK
+      );
   }
 }
 
