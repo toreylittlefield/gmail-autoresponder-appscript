@@ -5,6 +5,7 @@ import {
   getUserLabels,
   getUserNameForEmail,
 } from '../email/email';
+import { uiGetEmailsFromGmail } from '../index';
 import {
   getSingleUserPropValue,
   getUserProps,
@@ -40,7 +41,7 @@ function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScri
   receivedEmailsSheetActions.addItem(`Warning: Delete Selected Rows`, archiveSelectRowsInAutoReceivedSheet.name);
   receivedEmailsSheetActions.addItem(`Warning: Remove Label Selected Rows`, archiveSelectRowsInAutoReceivedSheet.name);
 
-  menu.addItem(`Get Emails & Create Drafts - Sync Emails`, 'uiGetEmailsFromGmail');
+  menu.addItem(`Get Emails & Create Drafts - Sync Emails`, uiGetEmailsFromGmail.name);
   menu.addSubMenu(receivedEmailsSheetActions).addToUi();
   menu.addSubMenu(pendingSheetActions).addToUi();
   menu.addItem('User Configuration', userConfigurationModal.name);
