@@ -36,9 +36,19 @@ export const regexEmail = /([a-zA-Z0-9+._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi
 export const regexSalary =
   /\$[1-2][0-9][0-9][-\s][1-2][0-9][0-9]|[1-2][0-9][0-9][-\s]\[1-2][0-9][0-9]|[1-2][0-9][0-9]k/gi;
 
-export const regexValidUSPhoneNumber = /^(?:\+?1[-.●]?)?\(?([0-9]{3})\)?[-.●\s]?([0-9]{3})[-.●\s]?([0-9]{4})$/gim;
+export const regexValidUSPhoneNumber = /^(?:\+?1[-.●]?)?\(?([0-9]{3})\)?[-.●\s]?([0-9]{3})[-.●\s]?([0-9]{4})/gim;
 
 export const getEmailFromString = (str: string) => str.split('<')[1].replace('>', '').trim();
+export const getPhoneNumbersFromString = (str: string) => {
+  const numbers = str.match(regexValidUSPhoneNumber);
+  if (!numbers) return 'null';
+  return numbers.reduce((acc, curVal, _index, arr) => {
+    if (arr.length === 1) {
+      return acc;
+    }
+    return (acc = `${acc}, ${curVal}`);
+  });
+};
 
 type MapNames =
   | 'emailThreadIdsMap'
