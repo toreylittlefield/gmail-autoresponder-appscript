@@ -22,6 +22,7 @@ export const AUTOMATED_RECEIVED_SHEET_HEADERS = [
   'From',
   'ReplyTo',
   'Person / Company Name',
+  'US Phone Number',
   'Subject',
   'Body Emails',
   'Body',
@@ -31,11 +32,11 @@ export const AUTOMATED_RECEIVED_SHEET_HEADERS = [
   'Archive Thread Id',
   'Warning: Delete Thread Id',
   'Remove Gmail Label',
-];
+] as const;
 
 /** Name of the sheet for the sent auto response email data */
 export const PENDING_EMAILS_TO_SEND_SHEET_NAME = 'Pending Emails To Send';
-export const PENDING_EMAILS_TO_SEND_HEADERS = [
+export const PENDING_EMAILS_TO_SEND_SHEET_HEADERS = [
   'Send',
   'Email Thread Id',
   'In Response To Email Message Id',
@@ -57,11 +58,11 @@ export const PENDING_EMAILS_TO_SEND_HEADERS = [
   'draftMessageBody',
   'viewDraftInGmail',
   'manuallyMoveDraftToSent',
-];
+] as const;
 
 /** Name of the sheet for the sent auto response email data */
 export const SENT_SHEET_NAME = 'Sent Automated Responses';
-export const SENT_SHEET_NAME_HEADERS = [
+export const SENT_SHEET_HEADERS = [
   'Email Thread Id',
   'In Response To Email Message Id',
   'Is Reply Or New Email',
@@ -86,11 +87,11 @@ export const SENT_SHEET_NAME_HEADERS = [
   'sentEmailMessageId',
   'sentEmailMessageDate',
   'sentThreadPermaLink',
-];
+] as const;
 
 /** Name of the sheet for the emails found results */
 export const FOLLOW_UP_EMAILS_SHEET_NAME = 'Follow Up Emails Received List';
-export const FOLLOW_UP_EMAILS_HEADERS = [
+export const FOLLOW_UP_EMAILS__SHEET_HEADERS = [
   'From Domain',
   'Email Thread Id',
   'Email Message Id',
@@ -104,11 +105,11 @@ export const FOLLOW_UP_EMAILS_HEADERS = [
   'Salary',
   'Thread Permalink',
   'Has Email Response',
-];
+] as const;
 
 /** Name of the sheet for the any bounced emails */
 export const BOUNCED_SHEET_NAME = 'Bounced Responses';
-export const BOUNCED_SHEET_NAME_HEADERS = [
+export const BOUNCED_SHEET_HEADERS = [
   'Email Thread Id',
   'Sent Email Message Id',
   'In Response Email Message Id',
@@ -119,21 +120,21 @@ export const BOUNCED_SHEET_NAME_HEADERS = [
   'Subject',
   'Body',
   'Thread Permalink',
-];
+] as const;
 
 /** Name of the sheet for the any bounced emails */
 export const ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME = 'Always Autorespond List';
-export const ALWAYS_RESPOND_DOMAIN_LIST_HEADERS = ['Email or Domain'];
+export const ALWAYS_RESPOND_DOMAIN_LIST_SHEET_HEADERS = ['Email or Domain'] as const;
 export const ALWAYS_RESPOND_LIST_INITIAL_DATA = [['inmail-hit-reply@linkedin.com']];
 
 /** Name of the sheet for the any bounced emails */
 export const DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME = 'Do Not Track List';
-export const DO_NOT_TRACK_DOMAIN_LIST_HEADERS = ['Email or Domain'];
+export const DO_NOT_TRACK_DOMAIN_LIST_SHEET_HEADERS = ['Email or Domain'] as const;
 export const DO_NOT_TRACK_DOMAIN_LIST_INITIAL_DATA = [['noreply@linkedin.com']];
 
 /** Name of email domains not to send autoreplies */
 export const DO_NOT_EMAIL_AUTO_SHEET_NAME = 'Do Not Autorespond List';
-export const DO_NOT_EMAIL_AUTO_SHEET_HEADERS = ['Email / Domain', 'Date', 'Sent Previous Emails Count'];
+export const DO_NOT_EMAIL_AUTO_SHEET_HEADERS = ['Email / Domain', 'Date', 'Sent Previous Emails Count'] as const;
 export const DO_NOT_EMAIL_AUTO_INITIAL_DATA = [
   ['noreply@', new Date(), 0],
   ['no-reply@', new Date(), 0],
@@ -160,7 +161,7 @@ export const ARCHIVED_THREADS_SHEET_HEADERS = [
   'Archive Thread Id',
   'Warning: Delete Thread Id',
   'Remove Gmail Label',
-];
+] as const;
 
 export const allSheets = [
   AUTOMATED_RECEIVED_SHEET_NAME,
