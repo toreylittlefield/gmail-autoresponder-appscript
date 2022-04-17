@@ -206,13 +206,43 @@ export function menuItemResetEntireSheet() {
     ui.ButtonSet.OK_CANCEL
   );
   if (response === ui.Button.OK) {
+    const { draftId, email, filterId, labelId, labelToSearch, messageId, nameForEmail, spreadsheetId, subject } =
+      getUserProps([
+        'draftId',
+        'email',
+        'filterId',
+        'labelId',
+        'labelToSearch',
+        'messageId',
+        'nameForEmail',
+        'spreadsheetId',
+        'subject',
+      ]);
     WarningResetSheetsAndSpreadsheet();
-
-    ui.alert(
-      `Next Steps`,
-      `Please reconfigure your "User Configuration" settings before syncing your emails`,
-      ui.ButtonSet.OK
+    const deleteRes = ui.alert(
+      `Delete Stored User Configuration`,
+      `Would you like to DELETE / RESET all saved "User Configurations"?`,
+      ui.ButtonSet.YES_NO
     );
+    if (deleteRes === ui.Button.YES) {
+      ui.alert(
+        `Next Steps`,
+        `Please reconfigure your "User Configuration" settings before syncing your emails`,
+        ui.ButtonSet.OK
+      );
+    } else {
+      setUserProps({
+        draftId,
+        email,
+        filterId,
+        labelId,
+        labelToSearch,
+        messageId,
+        nameForEmail,
+        spreadsheetId,
+        subject,
+      });
+    }
   }
 }
 
