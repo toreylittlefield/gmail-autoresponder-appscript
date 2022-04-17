@@ -908,7 +908,10 @@ type SheetsAndHeaders =
 export function findColumnNumbersOrLettersByHeaderNames<T extends SheetsAndHeaders['headerName']>({
   sheetName,
   headerName,
-}: SheetsAndHeaders): Partial<Record<T[number], { colNumber: number; colLetter: string }>> {
+}: {
+  sheetName: SheetNames;
+  headerName: T;
+}): Partial<Record<T[number], { colNumber: number; colLetter: string }>> {
   const sheet = getSheetByName(sheetName);
   if (!sheet) throw Error(`Could Not find ${sheetName} in ${findColumnNumbersOrLettersByHeaderNames.name} function`);
   const headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn());
@@ -934,25 +937,46 @@ export function writeEmailsListToAutomationSheet(emailsForList: EmailListItem[])
   if (!autoResultsListSheet) throw Error(`Cannot find ${AUTOMATED_RECEIVED_SHEET_NAME} Sheet`);
 
   if (emailsForList.length > 0) {
+    const columnsObject = findColumnNumbersOrLettersByHeaderNames({
+      sheetName: `${AUTOMATED_RECEIVED_SHEET_NAME}`,
+      headerName: ['Date', 'Archive Thread Id', 'Warning: Delete Thread Id', 'Remove Gmail Label'],
+    });
+
+    const dateCol = columnsObject.Date;
+    const archiveThreadIdCol = columnsObject['Archive Thread Id'];
+    const deleteThreadIdCol = columnsObject['Warning: Delete Thread Id'];
+    const removeGmalLabelCol = columnsObject['Remove Gmail Label'];
+    if (!dateCol || !archiveThreadIdCol || !deleteThreadIdCol || !removeGmalLabelCol)
+      throw Error(
+        `Missing header / column in ${findColumnNumbersOrLettersByHeaderNames.name}, function ${writeEmailsListToAutomationSheet.name}`
+      );
+
     const { numCols, numRows } = getNumRowsAndColsFromArray(emailsForList);
     addRowsToTopOfSheet(numRows, autoResultsListSheet);
-    setValuesInRangeAndSortSheet(numRows, numCols, emailsForList, autoResultsListSheet, { sortByCol: 3, asc: false });
+    setValuesInRangeAndSortSheet(numRows, numCols, emailsForList, autoResultsListSheet, {
+      sortByCol: dateCol.colNumber,
+      asc: false,
+    });
     setCheckedValueForEachRow(
       emailsForList.map((_) => [false]),
       autoResultsListSheet,
-      14
+      archiveThreadIdCol.colNumber
     );
     setCheckedValueForEachRow(
       emailsForList.map((_) => [false]),
       autoResultsListSheet,
-      15
+      deleteThreadIdCol.colNumber
     );
     setCheckedValueForEachRow(
       emailsForList.map((_) => [false]),
       autoResultsListSheet,
-      16
+      removeGmalLabelCol.colNumber
     );
-    setSheetProtection(autoResultsListSheet, 'Automated Results List Protection', ['M', 'N']);
+    setSheetProtection(autoResultsListSheet, 'Automated Results List Protection', [
+      archiveThreadIdCol.colLetter,
+      deleteThreadIdCol.colLetter,
+      removeGmalLabelCol.colLetter,
+    ]);
   }
 }
 
