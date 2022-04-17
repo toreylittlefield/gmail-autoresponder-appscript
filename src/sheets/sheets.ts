@@ -6,7 +6,7 @@ import {
   deleteAllExistingProjectTriggers,
   deleteAllTriggersWithMatchingFunctionName,
 } from '../trigger/trigger';
-import { getDomainFromEmailAddress, initialGlobalMap } from '../utils/utils';
+import { getAtDomainFromEmailAddress, initialGlobalMap } from '../utils/utils';
 import {
   allSheets,
   ALWAYS_RESPOND_DOMAIN_LIST_SHEET_HEADERS,
@@ -708,7 +708,7 @@ function addToDoNotSendMailAutoMap(domainOrEmail: string) {
 }
 
 function addEmailAndDomainIfNotAlwaysAllow(emailAddress: string) {
-  const domain = getDomainFromEmailAddress(emailAddress);
+  const domain = getAtDomainFromEmailAddress(emailAddress);
 
   if (!alwaysAllowMap.has(domain)) {
     addToDoNotSendMailAutoMap(domain);
