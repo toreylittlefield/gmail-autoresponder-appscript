@@ -8,7 +8,15 @@ import {
 } from '../global/maps';
 import { getSingleUserPropValue, getUserProps } from '../properties-service/properties-service';
 import { addToRepliesArray, writeEmailsListToAutomationSheet } from '../sheets/sheets';
-import { calcAverage, getDomainFromEmailAddress, getEmailFromString, regexEmail, regexSalary } from '../utils/utils';
+import {
+  calcAverage,
+  getAtDomainFromEmailAddress,
+  getDomainFromEmailAddress,
+  getEmailFromString,
+  getPhoneNumbersFromString,
+  regexEmail,
+  regexSalary,
+} from '../utils/utils';
 import { ARCHIVE_LABEL_NAME, LABEL_NAME } from '../variables/publicvariables';
 
 type EmailReplySendArray = [emailAddress: string, replyOrNew: EmailDataToSend][];
@@ -107,7 +115,7 @@ export function createOrSentTemplateEmail({
 
 function isDoNotSendOrPendingSheet(emails: EmailReplySendArray) {
   emails.forEach(([email, data]) => {
-    const domain = getDomainFromEmailAddress(email);
+    const domain = getAtDomainFromEmailAddress(email);
 
     if (
       !doNotSendMailAutoMap.has(email) &&
@@ -176,7 +184,7 @@ function updateRepliesColumnIfMessageHasReplies(firstMsgId: string, restMsgs: Go
 }
 
 function isDomainEmailInDoNotTrackSheet(fromEmail: string) {
-  const domain = getDomainFromEmailAddress(fromEmail);
+  const domain = getAtDomainFromEmailAddress(fromEmail);
 
   if (doNotTrackMap.has(domain) || doNotSendMailAutoMap.has(fromEmail)) return true;
   /**TODO: Can be optimized in future if slow perf */
@@ -190,6 +198,8 @@ export type EmailListItem = [
   EmailMessageId: string,
   Date: GoogleAppsScript.Base.Date,
   From: string,
+  PhoneNumbers: string,
+  Domain: string,
   ReplyTo: string,
   PersonCompanyName: string,
   Subject: string,
@@ -240,6 +250,8 @@ export function extractDataFromEmailSearch(
       // const emailReplyTo = [...new Set(replyTo.match(regexEmail))];
       const emailFrom = getEmailFromString(from);
       const personFrom = from.split('<', 1)[0].trim();
+      const phoneNumbers = getPhoneNumbersFromString(emailBody);
+      const domainFromEmail = getDomainFromEmailAddress(emailFrom);
       const emailReplyTo = replyTo ? getEmailFromString(replyTo) : emailFrom;
 
       const bodyEmails = [...new Set(emailBody.match(regexEmail))];
@@ -281,6 +293,8 @@ export function extractDataFromEmailSearch(
         emailFrom,
         emailReplyTo.toString(),
         personFrom,
+        phoneNumbers,
+        domainFromEmail,
         emailSubject,
         bodyEmails.length > 0 ? bodyEmails.toString() : undefined,
         emailBody,
