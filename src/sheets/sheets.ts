@@ -9,7 +9,7 @@ import {
 import { getDomainFromEmailAddress, initialGlobalMap } from '../utils/utils';
 import {
   allSheets,
-  ALWAYS_RESPOND_DOMAIN_LIST_HEADERS,
+  ALWAYS_RESPOND_DOMAIN_LIST_SHEET_HEADERS,
   ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME,
   ALWAYS_RESPOND_LIST_INITIAL_DATA,
   ARCHIVED_THREADS_SHEET_HEADERS,
@@ -18,20 +18,20 @@ import {
   AUTOMATED_RECEIVED_SHEET_HEADERS,
   AUTOMATED_RECEIVED_SHEET_NAME,
   BOUNCED_SHEET_NAME,
-  BOUNCED_SHEET_NAME_HEADERS,
+  BOUNCED_SHEET_HEADERS,
   DO_NOT_EMAIL_AUTO_INITIAL_DATA,
   DO_NOT_EMAIL_AUTO_SHEET_HEADERS,
   DO_NOT_EMAIL_AUTO_SHEET_NAME,
-  DO_NOT_TRACK_DOMAIN_LIST_HEADERS,
+  DO_NOT_TRACK_DOMAIN_LIST_SHEET_HEADERS,
   DO_NOT_TRACK_DOMAIN_LIST_INITIAL_DATA,
   DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME,
-  FOLLOW_UP_EMAILS_HEADERS,
+  FOLLOW_UP_EMAILS__SHEET_HEADERS,
   FOLLOW_UP_EMAILS_SHEET_NAME,
   FOLLOW_UP_LABEL_NAME,
-  PENDING_EMAILS_TO_SEND_HEADERS,
+  PENDING_EMAILS_TO_SEND_SHEET_HEADERS,
   PENDING_EMAILS_TO_SEND_SHEET_NAME,
   SENT_SHEET_NAME,
-  SENT_SHEET_NAME_HEADERS,
+  SENT_SHEET_HEADERS,
 } from '../variables/publicvariables';
 
 export type SheetNames =
@@ -44,6 +44,17 @@ export type SheetNames =
   | typeof DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME
   | typeof PENDING_EMAILS_TO_SEND_SHEET_NAME
   | typeof ARCHIVED_THREADS_SHEET_NAME;
+
+export type SheetHeaders =
+  | typeof AUTOMATED_RECEIVED_SHEET_HEADERS
+  | typeof SENT_SHEET_HEADERS
+  | typeof FOLLOW_UP_EMAILS__SHEET_HEADERS
+  | typeof BOUNCED_SHEET_HEADERS
+  | typeof ALWAYS_RESPOND_DOMAIN_LIST_SHEET_HEADERS
+  | typeof DO_NOT_EMAIL_AUTO_SHEET_HEADERS
+  | typeof DO_NOT_TRACK_DOMAIN_LIST_SHEET_HEADERS
+  | typeof PENDING_EMAILS_TO_SEND_SHEET_HEADERS
+  | typeof ARCHIVED_THREADS_SHEET_HEADERS;
 
 const tabColors = ['blue', 'green', 'red', 'purple', 'orange', 'yellow', 'black', 'teal', 'gold', 'grey'] as const;
 
@@ -100,14 +111,14 @@ export async function checkExistsOrCreateSpreadsheet(): Promise<'done'> {
       createSheet(spreadsheet, AUTOMATED_RECEIVED_SHEET_NAME, AUTOMATED_RECEIVED_SHEET_HEADERS, {
         tabColor: 'blue',
       });
-      createSheet(spreadsheet, PENDING_EMAILS_TO_SEND_SHEET_NAME, PENDING_EMAILS_TO_SEND_HEADERS, {
+      createSheet(spreadsheet, PENDING_EMAILS_TO_SEND_SHEET_NAME, PENDING_EMAILS_TO_SEND_SHEET_HEADERS, {
         tabColor: 'gold',
         unprotectColumnLetters: ['A', 'L', 'U'],
       });
-      createSheet(spreadsheet, SENT_SHEET_NAME, SENT_SHEET_NAME_HEADERS, { tabColor: 'green' });
-      createSheet(spreadsheet, FOLLOW_UP_EMAILS_SHEET_NAME, FOLLOW_UP_EMAILS_HEADERS, { tabColor: 'black' });
-      createSheet(spreadsheet, BOUNCED_SHEET_NAME, BOUNCED_SHEET_NAME_HEADERS, { tabColor: 'red' });
-      createSheet(spreadsheet, ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME, ALWAYS_RESPOND_DOMAIN_LIST_HEADERS, {
+      createSheet(spreadsheet, SENT_SHEET_NAME, SENT_SHEET_HEADERS, { tabColor: 'green' });
+      createSheet(spreadsheet, FOLLOW_UP_EMAILS_SHEET_NAME, FOLLOW_UP_EMAILS__SHEET_HEADERS, { tabColor: 'black' });
+      createSheet(spreadsheet, BOUNCED_SHEET_NAME, BOUNCED_SHEET_HEADERS, { tabColor: 'red' });
+      createSheet(spreadsheet, ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME, ALWAYS_RESPOND_DOMAIN_LIST_SHEET_HEADERS, {
         tabColor: 'teal',
         initData: ALWAYS_RESPOND_LIST_INITIAL_DATA,
       });
@@ -115,7 +126,7 @@ export async function checkExistsOrCreateSpreadsheet(): Promise<'done'> {
         tabColor: 'purple',
         initData: DO_NOT_EMAIL_AUTO_INITIAL_DATA,
       });
-      createSheet(spreadsheet, DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME, DO_NOT_TRACK_DOMAIN_LIST_HEADERS, {
+      createSheet(spreadsheet, DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME, DO_NOT_TRACK_DOMAIN_LIST_SHEET_HEADERS, {
         tabColor: 'orange',
         initData: DO_NOT_TRACK_DOMAIN_LIST_INITIAL_DATA,
       });
@@ -132,7 +143,7 @@ type Options = { tabColor: typeof tabColors[number]; initData: any[][]; unprotec
 function createSheet(
   activeSS: GoogleAppsScript.Spreadsheet.Spreadsheet,
   sheetName: SheetNames,
-  headersValues: string[],
+  headersValues: SheetHeaders,
   options: Partial<Options>
 ) {
   const { initData = [], tabColor = 'green', unprotectColumnLetters = undefined } = options;
@@ -249,9 +260,10 @@ export function getHeaders(sheet: GoogleAppsScript.Spreadsheet.Sheet, headersVal
   return headers.getValues();
 }
 
-function writeHeaders(sheet: GoogleAppsScript.Spreadsheet.Sheet, headerValues: string[]) {
+function writeHeaders(sheet: GoogleAppsScript.Spreadsheet.Sheet, headerValues: SheetHeaders) {
   const headers = sheet.getRange(1, 1, 1, headerValues.length);
-  headers.setValues([headerValues]);
+  const headerRow = [headerValues];
+  headers.setValues(headerRow as unknown as string[][]);
   sheet.setFrozenRows(1);
   headers.setFontWeight('bold');
   sheet.getRange(1, headerValues.length).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
@@ -294,7 +306,7 @@ function setSheetProtection(
   });
 }
 
-function setInitialSheetData(sheet: GoogleAppsScript.Spreadsheet.Sheet, headers: string[], initialData: any[][]) {
+function setInitialSheetData(sheet: GoogleAppsScript.Spreadsheet.Sheet, headers: SheetHeaders, initialData: any[][]) {
   try {
     const existingData = sheet.getRange(2, 1, headers.length, headers.length).getValues();
     const hasInitialData = existingData.every((row, index) => row[0] === initialData[index][0]);
@@ -873,6 +885,50 @@ export function archiveOrDeleteSelectEmailThreadIds({ type }: { type: 'archive' 
   });
 }
 
+type SheetsAndHeaders =
+  | { sheetName: typeof AUTOMATED_RECEIVED_SHEET_NAME; headerName: typeof AUTOMATED_RECEIVED_SHEET_HEADERS[number][] }
+  | { sheetName: typeof SENT_SHEET_NAME; headerName: typeof SENT_SHEET_HEADERS[number][] }
+  | { sheetName: typeof FOLLOW_UP_EMAILS_SHEET_NAME; headerName: typeof FOLLOW_UP_EMAILS__SHEET_HEADERS[number][] }
+  | { sheetName: typeof BOUNCED_SHEET_NAME; headerName: typeof BOUNCED_SHEET_HEADERS[number][] }
+  | {
+      sheetName: typeof ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME;
+      headerName: typeof ALWAYS_RESPOND_DOMAIN_LIST_SHEET_HEADERS[number][];
+    }
+  | { sheetName: typeof DO_NOT_EMAIL_AUTO_SHEET_NAME; headerName: typeof DO_NOT_EMAIL_AUTO_SHEET_HEADERS[number][] }
+  | {
+      sheetName: typeof DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME;
+      headerName: typeof DO_NOT_TRACK_DOMAIN_LIST_SHEET_HEADERS[number][];
+    }
+  | {
+      sheetName: typeof PENDING_EMAILS_TO_SEND_SHEET_NAME;
+      headerName: typeof PENDING_EMAILS_TO_SEND_SHEET_HEADERS[number][];
+    }
+  | { sheetName: typeof ARCHIVED_THREADS_SHEET_NAME; headerName: typeof ARCHIVED_THREADS_SHEET_HEADERS[number][] };
+
+export function findColumnNumbersOrLettersByHeaderNames<T extends SheetsAndHeaders['headerName']>({
+  sheetName,
+  headerName,
+}: SheetsAndHeaders): Partial<Record<T[number], { colNumber: number; colLetter: string }>> {
+  const sheet = getSheetByName(sheetName);
+  if (!sheet) throw Error(`Could Not find ${sheetName} in ${findColumnNumbersOrLettersByHeaderNames.name} function`);
+  const headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn());
+  const [headerValues] = headerRow.getValues() as T[number][][];
+  const headerColsMap = headerValues.reduce(
+    (acc: Partial<Record<T[number], { colNumber: number; colLetter: string }>>, curVal, index) => {
+      if (headerName.includes(curVal as unknown as never)) {
+        let colLetter = sheet.getRange(1, index + 1).getA1Notation();
+        if (colLetter) {
+          [colLetter] = colLetter.split('1');
+        }
+        acc[curVal] = { colNumber: index + 1, colLetter: colLetter };
+      }
+      return acc;
+    },
+    {}
+  );
+  return headerColsMap;
+}
+
 export function writeEmailsListToAutomationSheet(emailsForList: EmailListItem[]) {
   const autoResultsListSheet = getSheetByName(`${AUTOMATED_RECEIVED_SHEET_NAME}`);
   if (!autoResultsListSheet) throw Error(`Cannot find ${AUTOMATED_RECEIVED_SHEET_NAME} Sheet`);
@@ -884,17 +940,17 @@ export function writeEmailsListToAutomationSheet(emailsForList: EmailListItem[])
     setCheckedValueForEachRow(
       emailsForList.map((_) => [false]),
       autoResultsListSheet,
-      13
-    );
-    setCheckedValueForEachRow(
-      emailsForList.map((_) => [false]),
-      autoResultsListSheet,
       14
     );
     setCheckedValueForEachRow(
       emailsForList.map((_) => [false]),
       autoResultsListSheet,
       15
+    );
+    setCheckedValueForEachRow(
+      emailsForList.map((_) => [false]),
+      autoResultsListSheet,
+      16
     );
     setSheetProtection(autoResultsListSheet, 'Automated Results List Protection', ['M', 'N']);
   }
