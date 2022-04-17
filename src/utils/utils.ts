@@ -26,8 +26,13 @@ export function salariesToNumbers(salaryRegexMatch: RegExpMatchArray) {
   return calcAverage(getDigits);
 }
 
+export function getAtDomainFromEmailAddress(email: string) {
+  const atDomainAddress = `@${email.split('@')[1]}`;
+  return atDomainAddress;
+}
+
 export function getDomainFromEmailAddress(email: string) {
-  const domain = `@${email.split('@')[1]}`;
+  const domain = email.split('@')[1];
   return domain;
 }
 
