@@ -251,10 +251,17 @@ export function extractDataFromEmailSearch(
       const emailFrom = getEmailFromString(from);
       const personFrom = from.split('<', 1)[0].trim();
       const phoneNumbers = getPhoneNumbersFromString(emailBody);
-      const domainFromEmail = getDomainFromEmailAddress(emailFrom);
       const emailReplyTo = replyTo ? getEmailFromString(replyTo) : emailFrom;
 
       const bodyEmails = [...new Set(emailBody.match(regexEmail))];
+      const domainFromEmail = (() => {
+        const emailSet =
+          bodyEmails.length > 0 && getDomainFromEmailAddress(emailFrom) === 'linkedin.com'
+            ? new Set(bodyEmails)
+            : new Set([...bodyEmails, emailFrom]);
+        const emailsArray = Array.from(emailSet).flatMap((email) => getDomainFromEmailAddress(email));
+        return Array.from(new Set(emailsArray)).toString();
+      })();
       const salaryAmount = emailBody.match(regexSalary);
       const emailMessageId = firstMsg.getId();
       const date = firstMsg.getDate();
