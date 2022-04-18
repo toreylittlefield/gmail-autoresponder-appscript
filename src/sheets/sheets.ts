@@ -843,7 +843,17 @@ function writeSentDraftsToSentEmailsSheet(
   if (sentEmailsSheet.getName() !== SENT_SHEET_NAME) throw Error('Sheet Must Be The Sent Automated Responses');
   const { numCols, numRows } = getNumRowsAndColsFromArray(rowsForSentSheet);
   addRowsToTopOfSheet(numRows, sentEmailsSheet);
-  setValuesInRangeAndSortSheet(numRows, numCols, rowsForSentSheet, sentEmailsSheet, { asc: false, sortByCol: 21 });
+  const columnObject = findColumnNumbersOrLettersByHeaderNames({
+    sheetName: SENT_SHEET_NAME,
+    headerName: ['Sent Email Message Date'],
+  });
+  const sentDateEmailMessageCol = columnObject['Sent Email Message Date'];
+  if (!sentDateEmailMessageCol)
+    throw Error(`Cannot Find Column ${sentDateEmailMessageCol}in ${writeSentDraftsToSentEmailsSheet.name}`);
+  setValuesInRangeAndSortSheet(numRows, numCols, rowsForSentSheet, sentEmailsSheet, {
+    asc: false,
+    sortByCol: sentDateEmailMessageCol.colNumber,
+  });
 }
 
 export function writeLinkInCellsFromSheetComparison(
