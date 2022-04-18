@@ -79,6 +79,7 @@ export const SENT_SHEET_HEADERS = [
   'Person / Company Name',
   'US Phone Number',
   'Salary',
+  'Thread Permalink',
   'Delete / Discard Draft',
   'Draft Id',
   'Draft Sent Message Id',
