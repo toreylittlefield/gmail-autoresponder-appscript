@@ -39,8 +39,11 @@ function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScri
 
   const receivedEmailsSheetActions = ui.createMenu('Received Sheet Actions');
   receivedEmailsSheetActions.addItem(`Archive Selected Rows`, archiveSelectRowsInAutoReceivedSheet.name);
-  receivedEmailsSheetActions.addItem(`Warning: Delete Selected Rows`, archiveSelectRowsInAutoReceivedSheet.name);
-  receivedEmailsSheetActions.addItem(`Warning: Remove Label Selected Rows`, archiveSelectRowsInAutoReceivedSheet.name);
+  receivedEmailsSheetActions.addItem(`Warning: Delete Selected Rows`, deleteSelectRowsInAutoReceivedSheet.name);
+  receivedEmailsSheetActions.addItem(
+    `Warning: Remove Label Selected Rows`,
+    removeLabelSelectRowsInAutoReceivedSheet.name
+  );
 
   menu.addItem(`Get Emails & Create Drafts - Sync Emails`, uiGetEmailsFromGmail.name);
   menu.addSubMenu(receivedEmailsSheetActions).addToUi();
