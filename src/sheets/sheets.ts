@@ -1046,6 +1046,30 @@ export function findColumnNumbersOrLettersByHeaderNames<T extends SheetsAndHeade
   return headerColsMap;
 }
 
+export function getAllHeaderColNumsAndLetters<V extends SheetHeaders>({
+  sheetName,
+}: {
+  sheetName: SheetNames;
+}): { [Key in V[number]]: { colNumber: number; colLetter: string } } {
+  const sheet = getSheetByName(sheetName);
+
+  if (!sheet) throw Error(`Could Not find ${sheetName} in ${getAllHeaderColNumsAndLetters.name} function`);
+
+  const headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn());
+
+  const [headerValues] = headerRow.getValues();
+
+  const headerColsMap = headerValues.reduce((acc, curVal, index) => {
+    let colLetter = sheet.getRange(1, index + 1).getA1Notation();
+    if (colLetter) {
+      [colLetter] = colLetter.split('1');
+    }
+    acc[curVal] = { colNumber: index + 1, colLetter: colLetter };
+    return acc;
+  }, {});
+  return headerColsMap;
+}
+
 export function writeEmailsListToAutomationSheet(emailsForList: EmailListItem[]) {
   const autoResultsListSheet = getSheetByName(`${AUTOMATED_RECEIVED_SHEET_NAME}`);
   if (!autoResultsListSheet) throw Error(`Cannot find ${AUTOMATED_RECEIVED_SHEET_NAME} Sheet`);
