@@ -1,14 +1,17 @@
 export type EmailDataToSend = {
   send: boolean;
   emailThreadId: string;
-  isReplyorNewEmail: 'new' | 'reply';
-  emailSubject: string;
-  personFrom: string;
   inResponseToEmailMessageId: string;
+  isReplyorNewEmail: 'new' | 'reply';
   date: GoogleAppsScript.Base.Date;
   emailFrom: string;
   emailSendTo: string;
+  emailSubject: string;
   emailBody: string;
+  domain: string;
+  personFrom: string;
+  phoneNumbers: string;
+  salary: string;
   emailThreadPermaLink: string;
 };
 
