@@ -262,14 +262,12 @@ export function extractDataFromEmailSearch(
         const emailsArray = Array.from(emailSet).flatMap((email) => getDomainFromEmailAddress(email));
         return Array.from(new Set(emailsArray)).toString();
       })();
-      const salaryAmount = emailBody.match(regexSalary);
+      const salaryRegexArray = emailBody.match(regexSalary);
+      const salaryAmount = salaryRegexArray ? salaryRegexArray.toString() : '';
       const emailMessageId = firstMsg.getId();
       const date = firstMsg.getDate();
 
       if (isDomainEmailInDoNotTrackSheet(emailFrom)) return;
-
-      // const isNoReplyLinkedIn = from.match(/noreply@linkedin\.com/gi);
-      // if (isNoReplyLinkedIn) return;
 
       isDoNotSendOrPendingSheet(
         buildEmailsObject(
@@ -282,13 +280,16 @@ export function extractDataFromEmailSearch(
             inResponseToEmailMessageId: emailMessageId,
             personFrom,
             emailThreadPermaLink,
+            domain: domainFromEmail,
+            phoneNumbers,
+            salary: salaryAmount,
           },
           bodyEmails,
           emailReplyTo
         )
       );
 
-      salaryAmount && salaryAmount.length > 0 && salaries.push(calcAverage(salaryAmount));
+      salaryRegexArray && salaryRegexArray.length > 0 && salaries.push(calcAverage(salaryRegexArray));
 
       // TODO: Check For Replies / Follow Up Messages?
       if (emailThreadIdsMap.has(emailThreadId)) return;
@@ -305,7 +306,7 @@ export function extractDataFromEmailSearch(
         domainFromEmail,
         personFrom,
         phoneNumbers,
-        salaryAmount ? salaryAmount.toString() : undefined,
+        salaryAmount,
         emailThreadPermaLink,
         autoResponseMsg.length > 0 ? getToEmailArray(autoResponseMsg) : false,
       ]);
