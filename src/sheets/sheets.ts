@@ -67,7 +67,8 @@ export const repliesToUpdateArray: ReplyToUpdateType = [];
 export function WarningResetSheetsAndSpreadsheet() {
   try {
     const activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    sendOrMoveManuallyOrDeleteDraftsInPendingSheet({ type: 'delete' }, { deleteAll: true });
+    activeSpreadsheet.getSheetByName(PENDING_EMAILS_TO_SEND_SHEET_NAME) &&
+      sendOrMoveManuallyOrDeleteDraftsInPendingSheet({ type: 'delete' }, { deleteAll: true });
     deleteAllExistingProjectTriggers();
     const sheetsToDelete: GoogleAppsScript.Spreadsheet.Sheet[] = [];
     allSheets.forEach((sheetName) => {
@@ -87,9 +88,21 @@ export function WarningResetSheetsAndSpreadsheet() {
   }
 }
 
+function filteredRecordOfMissingSheets() {
+  const activeSS = SpreadsheetApp.getActiveSpreadsheet();
+  const sheets = activeSS.getSheets();
+  const sheetNames = sheets.map((sheet) => sheet.getName());
+  return allSheets.reduce((acc: Partial<Record<SheetNames, true>>, ourSheetName) => {
+    if (sheetNames.includes(ourSheetName)) return acc;
+    acc[ourSheetName] = true;
+    return acc;
+  }, {});
+}
+
 export async function checkExistsOrCreateSpreadsheet(): Promise<'done'> {
   return new Promise((resolve, _reject) => {
     let { spreadsheetId } = getSpreadSheetId();
+    const missingSheetsMap = filteredRecordOfMissingSheets();
 
     if (spreadsheetId) {
       try {
@@ -102,37 +115,55 @@ export async function checkExistsOrCreateSpreadsheet(): Promise<'done'> {
       }
     }
 
-    if (!spreadsheetId) {
+    if (!spreadsheetId || Object.keys(missingSheetsMap).length !== 0) {
       const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 
       setUserProps({
         spreadsheetId: spreadsheet.getId(),
       });
-      createSheet(spreadsheet, AUTOMATED_RECEIVED_SHEET_NAME, AUTOMATED_RECEIVED_SHEET_HEADERS, {
-        tabColor: 'blue',
-      });
-      createSheet(spreadsheet, PENDING_EMAILS_TO_SEND_SHEET_NAME, PENDING_EMAILS_TO_SEND_SHEET_HEADERS, {
-        tabColor: 'gold',
-        unprotectColumnLetters: ['A', 'L', 'U'],
-      });
-      createSheet(spreadsheet, SENT_SHEET_NAME, SENT_SHEET_HEADERS, { tabColor: 'green' });
-      createSheet(spreadsheet, FOLLOW_UP_EMAILS_SHEET_NAME, FOLLOW_UP_EMAILS__SHEET_HEADERS, { tabColor: 'black' });
-      createSheet(spreadsheet, BOUNCED_SHEET_NAME, BOUNCED_SHEET_HEADERS, { tabColor: 'red' });
-      createSheet(spreadsheet, ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME, ALWAYS_RESPOND_DOMAIN_LIST_SHEET_HEADERS, {
-        tabColor: 'teal',
-        initData: ALWAYS_RESPOND_LIST_INITIAL_DATA,
-      });
-      createSheet(spreadsheet, DO_NOT_EMAIL_AUTO_SHEET_NAME, DO_NOT_EMAIL_AUTO_SHEET_HEADERS, {
-        tabColor: 'purple',
-        initData: DO_NOT_EMAIL_AUTO_INITIAL_DATA,
-      });
-      createSheet(spreadsheet, DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME, DO_NOT_TRACK_DOMAIN_LIST_SHEET_HEADERS, {
-        tabColor: 'orange',
-        initData: DO_NOT_TRACK_DOMAIN_LIST_INITIAL_DATA,
-      });
-      createSheet(spreadsheet, ARCHIVED_THREADS_SHEET_NAME, ARCHIVED_THREADS_SHEET_HEADERS, {
-        tabColor: 'grey',
-      });
+
+      if (missingSheetsMap['Automated Received Emails']) {
+        createSheet(spreadsheet, AUTOMATED_RECEIVED_SHEET_NAME, AUTOMATED_RECEIVED_SHEET_HEADERS, {
+          tabColor: 'blue',
+        });
+      }
+      if (missingSheetsMap['Pending Emails To Send']) {
+        createSheet(spreadsheet, PENDING_EMAILS_TO_SEND_SHEET_NAME, PENDING_EMAILS_TO_SEND_SHEET_HEADERS, {
+          tabColor: 'gold',
+        });
+      }
+      if (missingSheetsMap['Sent Email Responses']) {
+        createSheet(spreadsheet, SENT_SHEET_NAME, SENT_SHEET_HEADERS, { tabColor: 'green' });
+      }
+      if (missingSheetsMap['Follow Up Emails Received List']) {
+        createSheet(spreadsheet, FOLLOW_UP_EMAILS_SHEET_NAME, FOLLOW_UP_EMAILS__SHEET_HEADERS, { tabColor: 'black' });
+      }
+      if (missingSheetsMap['Bounced Responses']) {
+        createSheet(spreadsheet, BOUNCED_SHEET_NAME, BOUNCED_SHEET_HEADERS, { tabColor: 'red' });
+      }
+      if (missingSheetsMap['Always Autorespond List']) {
+        createSheet(spreadsheet, ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME, ALWAYS_RESPOND_DOMAIN_LIST_SHEET_HEADERS, {
+          tabColor: 'teal',
+          initData: ALWAYS_RESPOND_LIST_INITIAL_DATA,
+        });
+      }
+      if (missingSheetsMap['Do Not Autorespond List']) {
+        createSheet(spreadsheet, DO_NOT_EMAIL_AUTO_SHEET_NAME, DO_NOT_EMAIL_AUTO_SHEET_HEADERS, {
+          tabColor: 'purple',
+          initData: DO_NOT_EMAIL_AUTO_INITIAL_DATA,
+        });
+      }
+      if (missingSheetsMap['Do Not Track List']) {
+        createSheet(spreadsheet, DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME, DO_NOT_TRACK_DOMAIN_LIST_SHEET_HEADERS, {
+          tabColor: 'orange',
+          initData: DO_NOT_TRACK_DOMAIN_LIST_INITIAL_DATA,
+        });
+      }
+      if (missingSheetsMap['Archived Email Threads']) {
+        createSheet(spreadsheet, ARCHIVED_THREADS_SHEET_NAME, ARCHIVED_THREADS_SHEET_HEADERS, {
+          tabColor: 'grey',
+        });
+      }
     }
     resolve('done');
   });
@@ -149,17 +180,21 @@ function createSheet(
   const { initData = [], tabColor = 'green', unprotectColumnLetters = undefined } = options;
   const sheet = activeSS.insertSheet();
   sheet.setName(sheetName);
+  setSheetInProps(sheetName, sheet);
   sheet.setTabColor(tabColor);
+
   writeHeaders(sheet, headersValues);
+
   initData.length > 0 && setInitialSheetData(sheet, headersValues, initData);
-  sheet.deleteColumns(headersValues.length + 1, sheet.getMaxColumns() - headersValues.length);
+
+  const numColsToDelete = sheet.getMaxColumns() - headersValues.length;
+  numColsToDelete > 0 && sheet.deleteColumns(headersValues.length + 1, numColsToDelete);
 
   const startRowIndex = initData.length > 50 ? initData.length : 50;
   sheet.deleteRows(startRowIndex, sheet.getMaxRows() - startRowIndex);
 
   sheet.autoResizeColumns(1, headersValues.length);
   setSheetProtection(sheet, `${sheetName} Protected Range`, unprotectColumnLetters);
-  setSheetInProps(sheetName, sheet);
 }
 
 export function setColumnToCheckBox(sheet: GoogleAppsScript.Spreadsheet.Sheet, columnNumberForCheckbox: number) {
@@ -389,9 +424,12 @@ type ValidRowToWriteInPendingSheet = [
   date: GoogleAppsScript.Base.Date,
   emailFrom: string,
   emailSendTo: string,
-  personFrom: string,
   emailSubject: string,
   emailBody: string,
+  domain: string,
+  personFrom: string,
+  phoneNumber: string,
+  salary: string,
   emailThreadPermaLink: string,
   deleteDraft: boolean,
   draftId: string,
@@ -405,7 +443,7 @@ type ValidRowToWriteInPendingSheet = [
   manuallyMoveDraftToSent: boolean
 ];
 export function writeEmailsToPendingSheet() {
-  const pendingEmailsSheet = getSheetByName('Pending Emails To Send');
+  const pendingEmailsSheet = getSheetByName(PENDING_EMAILS_TO_SEND_SHEET_NAME);
   if (!pendingEmailsSheet) {
     throw Error(`Could Not Find Pending Emails To Send Sheet`);
   }
@@ -413,16 +451,19 @@ export function writeEmailsToPendingSheet() {
   const validSentRows: ValidRowToWriteInPendingSheet[] = emailObjects.map(
     ({
       send,
-      date,
-      emailBody,
-      emailFrom,
-      emailSubject,
       emailThreadId,
-      emailThreadPermaLink,
       inResponseToEmailMessageId,
-      personFrom,
-      emailSendTo,
       isReplyorNewEmail,
+      date,
+      emailFrom,
+      emailSendTo,
+      emailSubject,
+      emailBody,
+      domain,
+      personFrom,
+      phoneNumbers,
+      salary,
+      emailThreadPermaLink,
     }): ValidRowToWriteInPendingSheet => {
       const [
         draftId,
@@ -451,9 +492,12 @@ export function writeEmailsToPendingSheet() {
         date,
         emailFrom,
         emailSendTo,
-        personFrom,
         emailSubject,
         emailBody,
+        domain,
+        personFrom,
+        phoneNumbers,
+        salary,
         emailThreadPermaLink,
         false,
         draftId,
@@ -469,6 +513,18 @@ export function writeEmailsToPendingSheet() {
     }
   );
   if (validSentRows.length === 0) return;
+  const columnsObject = findColumnNumbersOrLettersByHeaderNames({
+    sheetName: PENDING_EMAILS_TO_SEND_SHEET_NAME,
+    headerName: ['Date of Received Email', 'Send', 'Delete / Discard Draft', 'Manually Move Draft To Sent Sheet'],
+  });
+  const sendCol = columnsObject.Send;
+  const deleteDiscardDraftCol = columnsObject['Delete / Discard Draft'];
+  const manuallyMoveCol = columnsObject['Manually Move Draft To Sent Sheet'];
+  const dateOfReceivedEmail = columnsObject['Date of Received Email'];
+  if (!sendCol || !deleteDiscardDraftCol || !manuallyMoveCol || !dateOfReceivedEmail)
+    throw Error(
+      `Could Not Find Column Headers with ${findColumnNumbersOrLettersByHeaderNames.name} in ${sendOrMoveManuallyOrDeleteDraftsInPendingSheet.name} to set sheet protection`
+    );
   const { numCols, numRows } = getNumRowsAndColsFromArray(validSentRows);
   addRowsToTopOfSheet(numRows, pendingEmailsSheet);
   setValuesInRangeAndSortSheet(
@@ -476,25 +532,29 @@ export function writeEmailsToPendingSheet() {
     numCols,
     validSentRows,
     pendingEmailsSheet,
-    { asc: false, sortByCol: 5 },
+    { asc: false, sortByCol: dateOfReceivedEmail.colNumber },
     { startCol: 1, startRow: 2 }
   );
   setCheckedValueForEachRow(
     emailObjects.map(({ send }) => [send]),
     pendingEmailsSheet,
-    1
+    sendCol.colNumber
   );
   setCheckedValueForEachRow(
     emailObjects.map((_row) => [false]),
     pendingEmailsSheet,
-    12
+    deleteDiscardDraftCol.colNumber
   );
   setCheckedValueForEachRow(
     emailObjects.map((_row) => [false]),
     pendingEmailsSheet,
-    21
+    manuallyMoveCol.colNumber
   );
-  setSheetProtection(pendingEmailsSheet, 'Pending Emails To Send Protected Range', ['A', 'L', 'U']);
+  setSheetProtection(pendingEmailsSheet, 'Pending Emails To Send Protected Range', [
+    sendCol.colLetter,
+    deleteDiscardDraftCol.colLetter,
+    manuallyMoveCol.colLetter,
+  ]);
 }
 
 function setCheckedValueForEachRow(
@@ -516,9 +576,12 @@ type ValidRowToWriteInSentSheet = [
   date: GoogleAppsScript.Base.Date,
   emailFrom: string,
   emailSendTo: string,
-  personFrom: string,
   emailSubject: string,
   emailBody: string,
+  domain: string,
+  personFrom: string,
+  phoneNumbers: string,
+  salary: string,
   emailThreadPermaLink: string,
   deleteDraft: boolean,
   draftId: string,
@@ -543,7 +606,7 @@ type DeleteDraftOptions = {
 };
 
 export function setAllPendingDraftsSendCheckBox(truthy: boolean = true) {
-  const pendingEmailsSheet = getSheetByName('Pending Emails To Send');
+  const pendingEmailsSheet = getSheetByName(`${PENDING_EMAILS_TO_SEND_SHEET_NAME}`);
   if (!pendingEmailsSheet) throw Error('No Pending Emails Found, Cannot run ' + setAllPendingDraftsSendCheckBox.name);
   const lastRow = pendingEmailsSheet.getLastRow() - 1;
   const trueRows = Array.from({ length: lastRow }, (_row) => [truthy]);
@@ -573,9 +636,11 @@ export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
   { deleteAll = false }: DeleteDraftOptions
 ) {
   try {
-    const pendingSheetEmailData = getAllDataFromSheet('Pending Emails To Send') as ValidRowToWriteInPendingSheet[];
-    const pendingSheet = getSheetByName('Pending Emails To Send');
-    const sentEmailsSheet = getSheetByName('Sent Automated Responses');
+    const pendingSheetEmailData = getAllDataFromSheet(
+      PENDING_EMAILS_TO_SEND_SHEET_NAME
+    ) as ValidRowToWriteInPendingSheet[];
+    const pendingSheet = getSheetByName(PENDING_EMAILS_TO_SEND_SHEET_NAME);
+    const sentEmailsSheet = getSheetByName(SENT_SHEET_NAME);
 
     if (!sentEmailsSheet) throw Error(`Cannot send emails, no sent sheet found`);
     if (!pendingSheetEmailData) throw Error(`Cannot send emails, no pending emails sheet data found`);
@@ -599,9 +664,12 @@ export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
           _date,
           _emailFrom,
           emailSendTo,
-          _personFrom,
           _emailSubject,
           _emailBody,
+          _domain,
+          _personFrom,
+          _phoneNumbers,
+          _salary,
           _emailThreadPermaLink,
           deleteDraft,
           draftId,
@@ -657,9 +725,12 @@ export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
                 _date,
                 _emailFrom,
                 emailSendTo,
-                _personFrom,
                 _emailSubject,
                 _emailBody,
+                _domain,
+                _personFrom,
+                _phoneNumbers,
+                _salary,
                 _emailThreadPermaLink,
                 deleteDraft,
                 draftId,
@@ -683,15 +754,32 @@ export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
       },
       []
     );
-    setSheetProtection(pendingSheet, 'Pending Emails To Send Protected Range', ['A', 'L', 'U']);
+
     if (rowsForSentSheet.length > 0) {
       writeSentDraftsToSentEmailsSheet(sentEmailsSheet, rowsForSentSheet);
       writeDomainsListToDoNotRespondSheet();
       writeLinkInCellsFromSheetComparison(
-        { sheetToWriteToName: 'Sent Automated Responses', colNumToWriteTo: 1 },
+        { sheetToWriteToName: SENT_SHEET_NAME, colNumToWriteTo: 1 },
         { sheetToLinkFromName: `${AUTOMATED_RECEIVED_SHEET_NAME}`, colNumToLinkFrom: 1 }
       );
     }
+    const columnsObject = findColumnNumbersOrLettersByHeaderNames({
+      sheetName: PENDING_EMAILS_TO_SEND_SHEET_NAME,
+      headerName: ['Send', 'Delete / Discard Draft', 'Manually Move Draft To Sent Sheet'],
+    });
+    const sendCol = columnsObject.Send;
+    const deleteDiscardDraftCol = columnsObject['Delete / Discard Draft'];
+    const manuallyMoveCol = columnsObject['Manually Move Draft To Sent Sheet'];
+    if (!sendCol || !deleteDiscardDraftCol || !manuallyMoveCol)
+      throw Error(
+        `Could Not Find Column Headers with ${findColumnNumbersOrLettersByHeaderNames.name} in ${sendOrMoveManuallyOrDeleteDraftsInPendingSheet.name} to set sheet protection`
+      );
+
+    setSheetProtection(pendingSheet, 'Pending Emails To Send Protected Range', [
+      sendCol.colLetter,
+      deleteDiscardDraftCol.colLetter,
+      manuallyMoveCol.colLetter,
+    ]);
   } catch (error) {
     console.error(error as any);
   }
@@ -752,8 +840,7 @@ function writeSentDraftsToSentEmailsSheet(
   sentEmailsSheet: GoogleAppsScript.Spreadsheet.Sheet,
   rowsForSentSheet: ValidRowToWriteInSentSheet[]
 ) {
-  if (sentEmailsSheet.getName() !== 'Sent Automated Responses')
-    throw Error('Sheet Must Be The Sent Automated Responses');
+  if (sentEmailsSheet.getName() !== SENT_SHEET_NAME) throw Error('Sheet Must Be The Sent Automated Responses');
   const { numCols, numRows } = getNumRowsAndColsFromArray(rowsForSentSheet);
   addRowsToTopOfSheet(numRows, sentEmailsSheet);
   setValuesInRangeAndSortSheet(numRows, numCols, rowsForSentSheet, sentEmailsSheet, { asc: false, sortByCol: 21 });
@@ -799,9 +886,9 @@ export function writeLinkInCellsFromSheetComparison(
 
 export function writeDomainsListToDoNotRespondSheet() {
   try {
-    const doNotRespondSheet = getSheetByName('Do Not Autorespond List');
+    const doNotRespondSheet = getSheetByName(DO_NOT_EMAIL_AUTO_SHEET_NAME);
     if (!doNotRespondSheet) throw Error(`Could find the Do Not Response List to write the array list to`);
-    const existingData = getAllDataFromSheet('Do Not Autorespond List');
+    const existingData = getAllDataFromSheet(DO_NOT_EMAIL_AUTO_SHEET_NAME);
     if (!existingData) throw Error('Could not get existing data from Do Not Respond List');
 
     existingData.forEach(([domainInSheet, _dateInSheet, countInSheet], rowIndex) => {
@@ -821,25 +908,42 @@ export function writeDomainsListToDoNotRespondSheet() {
 }
 
 export function archiveOrDeleteSelectEmailThreadIds({ type }: { type: 'archive' | 'delete' | 'remove gmail label' }) {
-  const automatedReceivedSheet = getSheetByName(`${AUTOMATED_RECEIVED_SHEET_NAME}`);
-  const pendingEmailsSheet = getSheetByName('Pending Emails To Send');
-  const sentEmailsSheet = getSheetByName('Sent Automated Responses');
-  const archivedEmailsSheet = type === 'archive' && getSheetByName('Archived Email Threads');
+  const automatedReceivedSheet = getSheetByName(AUTOMATED_RECEIVED_SHEET_NAME);
+  const pendingEmailsSheet = type !== 'delete' && getSheetByName(PENDING_EMAILS_TO_SEND_SHEET_NAME);
+  const sentEmailsSheet = type !== 'delete' && getSheetByName(SENT_SHEET_NAME);
+
+  const archivedEmailsSheet = type === 'archive' && getSheetByName(ARCHIVED_THREADS_SHEET_NAME);
+
   if (!automatedReceivedSheet) throw Error(`Could Not Find ${AUTOMATED_RECEIVED_SHEET_NAME} Sheet`);
-  if (!pendingEmailsSheet) throw Error(`Could Not Find Pending Emails To Send Sheet`);
-  if (!sentEmailsSheet) throw Error(`Could Not Find Sent Automated Responses Sheet`);
+  if (type !== 'delete' && !pendingEmailsSheet) throw Error(`Could Not Find Pending Emails To Send Sheet`);
+  if (type !== 'delete' && !sentEmailsSheet) throw Error(`Could Not Find Sent Automated Responses Sheet`);
   if (type === 'archive' && !archivedEmailsSheet) throw Error(`Could Not Find Archived Emails Sheet`);
+
   const automatedReceivedSheetData = automatedReceivedSheet.getDataRange().getValues().slice(1);
+
+  const columnsObject = findColumnNumbersOrLettersByHeaderNames({
+    sheetName: AUTOMATED_RECEIVED_SHEET_NAME,
+    headerName: ['Email Thread Id', 'Warning: Delete Thread Id', 'Archive Thread Id', 'Remove Gmail Label'],
+  });
+  const emailThreadIdCol = columnsObject['Email Thread Id'];
+  const archiveThreadIdCol = columnsObject['Archive Thread Id'];
+  const deleteThreadIdCol = columnsObject['Warning: Delete Thread Id'];
+  const removeGmailLabelIdCol = columnsObject['Remove Gmail Label'];
+
+  if (!archiveThreadIdCol || !deleteThreadIdCol || !removeGmailLabelIdCol || !emailThreadIdCol)
+    throw Error(
+      `Cannot find col / header to delete, archive, or remove label in function ${
+        archiveOrDeleteSelectEmailThreadIds.name
+      } with arguments ${archiveOrDeleteSelectEmailThreadIds.arguments.toString()}`
+    );
 
   let rowNumber: number = 2;
   automatedReceivedSheetData.forEach((row) => {
-    const numCols = row.length;
-    if (row.length < 4) return;
-    const emailThreadId = row[0];
-    const archiveCheckBox = row[numCols - 3];
-    const deleteCheckBox = row[numCols - 2];
-    const removeLabelCheckbox = row[numCols - 1];
-    console.log({ archiveCheckBox, deleteCheckBox });
+    const emailThreadId = row[emailThreadIdCol.colNumber - 1];
+    const archiveCheckBox = row[archiveThreadIdCol.colNumber - 1];
+    const deleteCheckBox = row[deleteThreadIdCol.colNumber - 1];
+    const removeLabelCheckbox = row[removeGmailLabelIdCol.colNumber - 1];
+
     if (
       (type === 'archive' && archiveCheckBox === true) ||
       (type === 'delete' && deleteCheckBox === true) ||
@@ -938,11 +1042,11 @@ export function writeEmailsListToAutomationSheet(emailsForList: EmailListItem[])
 
   if (emailsForList.length > 0) {
     const columnsObject = findColumnNumbersOrLettersByHeaderNames({
-      sheetName: `${AUTOMATED_RECEIVED_SHEET_NAME}`,
-      headerName: ['Date', 'Archive Thread Id', 'Warning: Delete Thread Id', 'Remove Gmail Label'],
+      sheetName: AUTOMATED_RECEIVED_SHEET_NAME,
+      headerName: ['Date of Email', 'Archive Thread Id', 'Warning: Delete Thread Id', 'Remove Gmail Label'],
     });
 
-    const dateCol = columnsObject.Date;
+    const dateCol = columnsObject['Date of Email'];
     const archiveThreadIdCol = columnsObject['Archive Thread Id'];
     const deleteThreadIdCol = columnsObject['Warning: Delete Thread Id'];
     const removeGmalLabelCol = columnsObject['Remove Gmail Label'];
