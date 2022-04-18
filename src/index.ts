@@ -3,6 +3,7 @@ import { getUserProps } from './properties-service/properties-service';
 import {
   activeSheet,
   activeSpreadsheet,
+  findColumnNumbersOrLettersByHeaderNames,
   formatRowHeight,
   initSpreadsheet,
   sendDraftsIfAutoResponseUserOptionIsOn,
@@ -28,7 +29,11 @@ import {
   userConfigurationModal,
 } from './ui/ui';
 import { hasAllRequiredUserProps, initialGlobalMap } from './utils/utils';
-import { AUTOMATED_RECEIVED_SHEET_NAME } from './variables/publicvariables';
+import {
+  ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME,
+  AUTOMATED_RECEIVED_SHEET_NAME,
+  PENDING_EMAILS_TO_SEND_SHEET_NAME,
+} from './variables/publicvariables';
 
 // (?:for\W)(.*)(?= at)(?: at\W)(.*) match linkedin email "you applied at..."
 
@@ -67,13 +72,31 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
 
     writeDomainsListToDoNotRespondSheet;
     writeEmailsToPendingSheet();
-    writeLinkInCellsFromSheetComparison(
-      { colNumToWriteTo: 2, sheetToWriteToName: 'Pending Emails To Send' },
-      { colNumToLinkFrom: 1, sheetToLinkFromName: `${AUTOMATED_RECEIVED_SHEET_NAME}` }
-    );
 
-    formatRowHeight('Always Autorespond List');
-    formatRowHeight('Pending Emails To Send');
+    const autoColumns = findColumnNumbersOrLettersByHeaderNames({
+      sheetName: AUTOMATED_RECEIVED_SHEET_NAME,
+      headerName: ['Email Thread Id'],
+    });
+    const pendingColumns = findColumnNumbersOrLettersByHeaderNames({
+      sheetName: PENDING_EMAILS_TO_SEND_SHEET_NAME,
+      headerName: ['Email Thread Id'],
+    });
+
+    if (autoColumns['Email Thread Id'] && pendingColumns['Email Thread Id']) {
+      writeLinkInCellsFromSheetComparison(
+        {
+          colNumToWriteTo: pendingColumns['Email Thread Id'].colNumber,
+          sheetToWriteToName: PENDING_EMAILS_TO_SEND_SHEET_NAME,
+        },
+        {
+          colNumToLinkFrom: autoColumns['Email Thread Id'].colNumber,
+          sheetToLinkFromName: AUTOMATED_RECEIVED_SHEET_NAME,
+        }
+      );
+    }
+
+    formatRowHeight(ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME);
+    formatRowHeight(PENDING_EMAILS_TO_SEND_SHEET_NAME);
   } catch (error) {
     console.error(error as any);
   }
@@ -114,3 +137,5 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
 (global as any).deleteSelectRowsInAutoReceivedSheet = deleteSelectRowsInAutoReceivedSheet;
 (global as any).removeLabelSelectRowsInAutoReceivedSheet = removeLabelSelectRowsInAutoReceivedSheet;
 (global as any).sendDraftsIfAutoResponseUserOptionIsOn = sendDraftsIfAutoResponseUserOptionIsOn;
+
+// delete
