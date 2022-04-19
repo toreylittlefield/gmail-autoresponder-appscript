@@ -1,11 +1,14 @@
 /** Label to create for and attach to email messages */
-export const LABEL_NAME = 'auto-responder-label';
+export const LABEL_NAME = 'auto-responder-received-label';
 
 /** Label for archived email threads */
-export const ARCHIVE_LABEL_NAME = 'archived-auto-responder-label';
+export const ARCHIVE_LABEL_NAME = 'auto-responder-archived-label';
 
 /** Label for send / moved emails drafts/messaged for follow up responses GMAIL search */
-export const FOLLOW_UP_LABEL_NAME = 'sent-email-auto-responder-label';
+export const SENT_MESSAGES_LABEL_NAME = 'auto-responder-sent-email-label';
+
+/** Label for send / moved emails drafts/messaged for follow up responses GMAIL search */
+export const FOLLOW_UP_MESSAGES_LABEL_NAME = 'auto-responder-follow-up-label';
 
 /** Regex For Bounced Messages */
 export const BOUNCED_MESSAGES_REGEX = new RegExp('mailer-daemon@googlemail.com|@bounce|@bounced', 'gi');
