@@ -27,7 +27,7 @@ import {
   DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME,
   FOLLOW_UP_EMAILS__SHEET_HEADERS,
   FOLLOW_UP_EMAILS_SHEET_NAME,
-  FOLLOW_UP_LABEL_NAME,
+  SENT_MESSAGES_LABEL_NAME,
   PENDING_EMAILS_TO_SEND_SHEET_HEADERS,
   PENDING_EMAILS_TO_SEND_SHEET_NAME,
   SENT_SHEET_NAME,
@@ -827,9 +827,9 @@ function sendDraftOrGetMessageFromDraft({ type }: SendDraftsOptions, draftId: st
   } = type === 'send' ? GmailApp.getDraft(draftId).send() : GmailApp.getDraft(draftId).getMessage();
   const { getPermalink, getId, addLabel } = getThread();
   if (type === 'send' || type === 'manuallyMove') {
-    let followUpLabelForSentEmails = GmailApp.getUserLabelByName(FOLLOW_UP_LABEL_NAME);
+    let followUpLabelForSentEmails = GmailApp.getUserLabelByName(SENT_MESSAGES_LABEL_NAME);
     if (!followUpLabelForSentEmails) {
-      followUpLabelForSentEmails = GmailApp.createLabel(FOLLOW_UP_LABEL_NAME);
+      followUpLabelForSentEmails = GmailApp.createLabel(SENT_MESSAGES_LABEL_NAME);
     }
     addLabel(followUpLabelForSentEmails);
   }
