@@ -2,8 +2,8 @@ import {
   doNotSendMailAutoMap,
   doNotTrackMap,
   EmailDataToSend,
-  emailThreadIdsMap,
   emailsToAddToPendingSheet,
+  emailThreadIdsMap,
   pendingEmailsToSendMap,
 } from '../global/maps';
 import { getSingleUserPropValue, getUserProps } from '../properties-service/properties-service';
@@ -17,7 +17,7 @@ import {
   regexEmail,
   regexSalary,
 } from '../utils/utils';
-import { ARCHIVE_LABEL_NAME, LABEL_NAME } from '../variables/publicvariables';
+import { LABEL_NAME } from '../variables/publicvariables';
 
 type EmailReplySendArray = [emailAddress: string, replyOrNew: EmailDataToSend][];
 
@@ -113,7 +113,7 @@ export function createOrSentTemplateEmail({
   }
 }
 
-function isDoNotSendOrPendingSheet(emails: EmailReplySendArray) {
+function addValidEmailDataToPendingSheetMap(emails: EmailReplySendArray) {
   emails.forEach(([email, data]) => {
     const domain = getAtDomainFromEmailAddress(email);
 
@@ -127,7 +127,7 @@ function isDoNotSendOrPendingSheet(emails: EmailReplySendArray) {
   });
 }
 
-function buildEmailsObject(
+function buildEmailsObjectForReplies(
   emailObj: Omit<EmailDataToSend, 'send' | 'isReplyorNewEmail' | 'emailSendTo'>,
   bodyEmails: string[],
   emailReplyTo: string
@@ -210,9 +210,10 @@ export type EmailListItem = [
   HasEmailResponse: string | false
 ];
 
-export function extractDataFromEmailSearch(
+export function extractGMAILDataForNewMessagesReceivedSearch(
   email: string,
   labelToSearch: string,
+  labelToExclude?: string,
   _event?: GoogleAppsScript.Events.TimeDriven
 ) {
   try {
@@ -226,7 +227,7 @@ export function extractDataFromEmailSearch(
     // const threads = GmailApp.search(
     //   "-subject:'re:' -is:chats -is:draft has:nouserlabels -label:" + LABEL_NAME + ' to:(' + EMAIL_ACCOUNT + ')'
     // );
-    const threads = GmailApp.search(`label:${labelToSearch} -label:${ARCHIVE_LABEL_NAME} to:(${email})`);
+    const threads = GmailApp.search(`label:${labelToSearch} -label:${labelToExclude} to:(${email})`);
 
     let salaries: number[] = [];
     threads.forEach((thread, _threadIndex) => {
@@ -269,8 +270,8 @@ export function extractDataFromEmailSearch(
 
       if (isDomainEmailInDoNotTrackSheet(emailFrom)) return;
 
-      isDoNotSendOrPendingSheet(
-        buildEmailsObject(
+      addValidEmailDataToPendingSheetMap(
+        buildEmailsObjectForReplies(
           {
             date,
             emailThreadId,

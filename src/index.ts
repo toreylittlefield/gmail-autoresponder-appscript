@@ -1,4 +1,4 @@
-import { extractDataFromEmailSearch } from './email/email';
+import { extractGMAILDataForNewMessagesReceivedSearch } from './email/email';
 import { getUserProps } from './properties-service/properties-service';
 import {
   activeSheet,
@@ -31,6 +31,7 @@ import {
 import { hasAllRequiredUserProps, initialGlobalMap } from './utils/utils';
 import {
   ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME,
+  ARCHIVE_LABEL_NAME,
   AUTOMATED_RECEIVED_SHEET_NAME,
   PENDING_EMAILS_TO_SEND_SHEET_NAME,
 } from './variables/publicvariables';
@@ -68,7 +69,7 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
     initialGlobalMap('doNotSendMailAutoMap');
     initialGlobalMap('pendingEmailsToSendMap');
 
-    extractDataFromEmailSearch(email, labelToSearch, e);
+    extractGMAILDataForNewMessagesReceivedSearch(email, labelToSearch, ARCHIVE_LABEL_NAME, e);
 
     writeDomainsListToDoNotRespondSheet;
     writeEmailsToPendingSheet();
