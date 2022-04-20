@@ -67,22 +67,29 @@ export const repliesToUpdateArray: ReplyToUpdateType = [];
 export function WarningResetSheetsAndSpreadsheet() {
   try {
     const activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    activeSpreadsheet.getSheetByName(PENDING_EMAILS_TO_SEND_SHEET_NAME) &&
-      sendOrMoveManuallyOrDeleteDraftsInPendingSheet({ type: 'delete' }, { deleteAll: true });
-    deleteAllExistingProjectTriggers();
-    const sheetsToDelete: GoogleAppsScript.Spreadsheet.Sheet[] = [];
-    allSheets.forEach((sheetName) => {
-      const sheet = activeSpreadsheet.getSheetByName(sheetName);
-      if (sheet) sheetsToDelete.push(sheet);
-    });
 
-    // if (sheetsToDelete.length === 0)
-    //   throw Error('Could Not Reset This Spreadsheet Because We Could Not Find The Sheets To Delete');
+    if (activeSpreadsheet.getSheetByName(PENDING_EMAILS_TO_SEND_SHEET_NAME)) {
+      sendOrMoveManuallyOrDeleteDraftsInPendingSheet({ type: 'delete' }, { deleteAll: true });
+    }
+
+    deleteAllExistingProjectTriggers();
+
     const tempSheet = activeSpreadsheet.insertSheet();
+
     PropertiesService.getUserProperties().deleteAllProperties();
-    sheetsToDelete.forEach((sheet) => activeSpreadsheet.deleteSheet(sheet));
-    initSpreadsheet();
-    activeSpreadsheet.deleteSheet(tempSheet);
+
+    const deletedSheetsMap = activeSpreadsheet.getSheets().reduce((acc: Record<SheetNames, true>, sheet) => {
+      console.log(sheet.getName(), allSheets.includes(sheet.getName() as any));
+      if (allSheets.includes(sheet.getName() as SheetNames)) {
+        acc[sheet.getName() as SheetNames] = true;
+        activeSpreadsheet.deleteSheet(sheet);
+      }
+      return acc;
+    }, {} as Record<SheetNames, true>);
+
+    checkExistsOrCreateSpreadsheet(deletedSheetsMap).then((_) => {
+      activeSpreadsheet.deleteSheet(tempSheet);
+    });
   } catch (error) {
     console.error(error as any);
   }
@@ -99,16 +106,17 @@ function filteredRecordOfMissingSheets() {
   }, {});
 }
 
-export async function checkExistsOrCreateSpreadsheet(): Promise<'done'> {
+export async function checkExistsOrCreateSpreadsheet(deletedSheetsMap?: Record<SheetNames, true>): Promise<'done'> {
   return new Promise((resolve, _reject) => {
     let { spreadsheetId } = getSpreadSheetId();
-    const missingSheetsMap = filteredRecordOfMissingSheets();
-
+    const missingSheetsMap =
+      deletedSheetsMap && Object.keys(deletedSheetsMap).length > 0 ? deletedSheetsMap : filteredRecordOfMissingSheets();
+    console.log({ missingSheetsMap });
     if (spreadsheetId) {
       try {
         SpreadsheetApp.openById(spreadsheetId);
-        const file = DriveApp.getFileById(spreadsheetId);
-        if (file.isTrashed()) throw Error('File in trash, creating a new sheet');
+        // const file = DriveApp.getFileById(spreadsheetId);
+        // if (file.isTrashed()) throw Error('File in trash, creating a new sheet');
       } catch (error) {
         PropertiesService.getUserProperties().deleteAllProperties();
         spreadsheetId = undefined;
