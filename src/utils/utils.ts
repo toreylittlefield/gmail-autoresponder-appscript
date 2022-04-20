@@ -4,10 +4,20 @@ import {
   emailThreadIdsMap,
   pendingEmailsToSendMap,
   alwaysAllowMap,
+  ValidRowToWriteInSentSheet,
+  sentEmailsMap,
 } from '../global/maps';
 import { getUserProps } from '../properties-service/properties-service';
-import { getAllDataFromSheet, SheetNames } from '../sheets/sheets';
-import { AUTOMATED_RECEIVED_SHEET_NAME } from '../variables/publicvariables';
+import { getAllDataFromSheet, getAllHeaderColNumsAndLetters, SheetNames } from '../sheets/sheets';
+import {
+  ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME,
+  AUTOMATED_RECEIVED_SHEET_NAME,
+  DO_NOT_EMAIL_AUTO_SHEET_NAME,
+  DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME,
+  PENDING_EMAILS_TO_SEND_SHEET_NAME,
+  SENT_SHEET_HEADERS,
+  SENT_SHEET_NAME,
+} from '../variables/publicvariables';
 
 export function calcAverage(numbersArray: any[]): number {
   return numbersArray.reduce((acc, curVal, index, array) => {
@@ -60,7 +70,8 @@ type MapNames =
   | 'doNotTrackMap'
   | 'doNotSendMailAutoMap'
   | 'pendingEmailsToSendMap'
-  | 'alwaysAllowMap';
+  | 'alwaysAllowMap'
+  | 'sentEmailsMap';
 
 export function initialGlobalMap(mapName: MapNames) {
   try {
@@ -76,21 +87,34 @@ export function initialGlobalMap(mapName: MapNames) {
         );
         break;
       case 'doNotTrackMap':
-        getSheetData('Do Not Track List').forEach(([domainOrEmail]) => doNotTrackMap.set(domainOrEmail, true));
+        getSheetData(DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME).forEach(([domainOrEmail]) =>
+          doNotTrackMap.set(domainOrEmail, true)
+        );
         break;
       case 'alwaysAllowMap':
-        getSheetData('Always Autorespond List').forEach(([domainOrEmail]) => alwaysAllowMap.set(domainOrEmail, true));
+        getSheetData(ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME).forEach(([domainOrEmail]) =>
+          alwaysAllowMap.set(domainOrEmail, true)
+        );
         break;
       case 'doNotSendMailAutoMap':
-        getSheetData('Do Not Autorespond List').forEach(([domain, _, count]) =>
+        getSheetData(DO_NOT_EMAIL_AUTO_SHEET_NAME).forEach(([domain, _, count]) =>
           doNotSendMailAutoMap.set(domain, count)
         );
         break;
       case 'pendingEmailsToSendMap':
-        getSheetData('Pending Emails To Send').forEach(
+        getSheetData(PENDING_EMAILS_TO_SEND_SHEET_NAME).forEach(
           ([_send, _emailThreadId, _inResponseToEmailMessageId, _isReplyOrNewEmail, _date, _emailFrom, sendToEmail]) =>
             pendingEmailsToSendMap.set(sendToEmail, true)
         );
+        break;
+      case 'sentEmailsMap':
+        const data = getSheetData(SENT_SHEET_NAME) as ValidRowToWriteInSentSheet[];
+        const headers = getAllHeaderColNumsAndLetters<typeof SENT_SHEET_HEADERS>({ sheetName: 'Sent Email Responses' });
+        const colNumSentMessageId = headers['Sent Email Message Id'].colNumber;
+        data.forEach((row) => {
+          const sentMessageId = row[colNumSentMessageId] as string;
+          sentEmailsMap.set(sentMessageId, row as ValidRowToWriteInSentSheet);
+        });
         break;
       default:
         break;
