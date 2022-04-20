@@ -1,5 +1,11 @@
 import { createOrSentTemplateEmail, DraftAttributeArray, EmailListItem, getToEmailArray } from '../email/email';
-import { alwaysAllowMap, doNotSendMailAutoMap, emailsToAddToPendingSheet, emailThreadIdsMap } from '../global/maps';
+import {
+  alwaysAllowMap,
+  doNotSendMailAutoMap,
+  emailsToAddToPendingSheet,
+  emailThreadIdsMap,
+  ValidRowToWriteInSentSheet,
+} from '../global/maps';
 import { getSingleUserPropValue, getUserProps, setUserProps } from '../properties-service/properties-service';
 import {
   createTriggerForAutoResponsingToEmails,
@@ -576,36 +582,6 @@ function setCheckedValueForEachRow(
     isChecked && dataRange.check();
   });
 }
-
-type ValidRowToWriteInSentSheet = [
-  emailThreadId: string,
-  inResponseToEmailMessageId: string,
-  isReplyorNewEmail: 'new' | 'reply',
-  date: GoogleAppsScript.Base.Date,
-  emailFrom: string,
-  emailSendTo: string,
-  emailSubject: string,
-  emailBody: string,
-  domain: string,
-  personFrom: string,
-  phoneNumbers: string,
-  salary: string,
-  emailThreadPermaLink: string,
-  deleteDraft: boolean,
-  draftId: string,
-  draftSentMessageId: string,
-  draftMessageDate: GoogleAppsScript.Base.Date,
-  draftMessageSubject: string,
-  draftMessageFrom: string,
-  draftMessageTo: string,
-  draftMessageBody: string,
-  viewDraftInGmail: string,
-  manuallyMoveDraftToSent: boolean,
-  sentThreadId: string,
-  sentEmailMessageId: string,
-  sentEmailMessageDate: GoogleAppsScript.Base.Date,
-  sentThreadPermaLink: string
-];
 
 type SendDraftsOptions = { type: 'send' | 'manuallyMove' | 'delete' };
 
