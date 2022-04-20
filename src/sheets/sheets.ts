@@ -1078,23 +1078,39 @@ export function getAllHeaderColNumsAndLetters<V extends SheetHeaders>({
   return headerColsMap;
 }
 
-export function writeEmailsListToAutomationSheet(emailsForList: EmailListItem[]) {
+export function writeEmailDataToReceivedAutomationSheet(emailsForList: EmailListItem[]) {
   const autoResultsListSheet = getSheetByName(`${AUTOMATED_RECEIVED_SHEET_NAME}`);
   if (!autoResultsListSheet) throw Error(`Cannot find ${AUTOMATED_RECEIVED_SHEET_NAME} Sheet`);
 
   if (emailsForList.length > 0) {
     const columnsObject = findColumnNumbersOrLettersByHeaderNames({
       sheetName: AUTOMATED_RECEIVED_SHEET_NAME,
-      headerName: ['Date of Email', 'Archive Thread Id', 'Warning: Delete Thread Id', 'Remove Gmail Label'],
+      headerName: [
+        'Date of Email',
+        'Archive Thread Id',
+        'Manually Move To Follow Up Emails',
+        'Manually Create Pending Email',
+        'Warning: Delete Thread Id',
+        'Remove Gmail Label',
+      ],
     });
 
     const dateCol = columnsObject['Date of Email'];
     const archiveThreadIdCol = columnsObject['Archive Thread Id'];
     const deleteThreadIdCol = columnsObject['Warning: Delete Thread Id'];
     const removeGmalLabelCol = columnsObject['Remove Gmail Label'];
-    if (!dateCol || !archiveThreadIdCol || !deleteThreadIdCol || !removeGmalLabelCol)
+    const manuallyMoveToFollowUpEmailCol = columnsObject['Manually Move To Follow Up Emails'];
+    const manuallyCreateEmailDraftCol = columnsObject['Manually Create Pending Email'];
+    if (
+      !dateCol ||
+      !archiveThreadIdCol ||
+      !deleteThreadIdCol ||
+      !removeGmalLabelCol ||
+      !manuallyCreateEmailDraftCol ||
+      !manuallyMoveToFollowUpEmailCol
+    )
       throw Error(
-        `Missing header / column in ${findColumnNumbersOrLettersByHeaderNames.name}, function ${writeEmailsListToAutomationSheet.name}`
+        `Missing header / column in ${findColumnNumbersOrLettersByHeaderNames.name}, function ${writeEmailDataToReceivedAutomationSheet.name}`
       );
 
     const { numCols, numRows } = getNumRowsAndColsFromArray(emailsForList);
@@ -1103,6 +1119,16 @@ export function writeEmailsListToAutomationSheet(emailsForList: EmailListItem[])
       sortByCol: dateCol.colNumber,
       asc: false,
     });
+    setCheckedValueForEachRow(
+      emailsForList.map((_) => [false]),
+      autoResultsListSheet,
+      manuallyCreateEmailDraftCol.colNumber
+    );
+    setCheckedValueForEachRow(
+      emailsForList.map((_) => [false]),
+      autoResultsListSheet,
+      manuallyMoveToFollowUpEmailCol.colNumber
+    );
     setCheckedValueForEachRow(
       emailsForList.map((_) => [false]),
       autoResultsListSheet,
@@ -1122,6 +1148,8 @@ export function writeEmailsListToAutomationSheet(emailsForList: EmailListItem[])
       archiveThreadIdCol.colLetter,
       deleteThreadIdCol.colLetter,
       removeGmalLabelCol.colLetter,
+      manuallyMoveToFollowUpEmailCol.colLetter,
+      manuallyCreateEmailDraftCol.colLetter,
     ]);
   }
 }
