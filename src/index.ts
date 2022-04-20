@@ -30,7 +30,7 @@ import {
 } from './ui/ui';
 import { hasAllRequiredUserProps, initialGlobalMap } from './utils/utils';
 import {
-  ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME,
+  allSheets,
   ARCHIVE_LABEL_NAME,
   AUTOMATED_RECEIVED_SHEET_NAME,
   PENDING_EMAILS_TO_SEND_SHEET_NAME,
@@ -68,6 +68,7 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
     initialGlobalMap('alwaysAllowMap');
     initialGlobalMap('doNotSendMailAutoMap');
     initialGlobalMap('pendingEmailsToSendMap');
+    //initialGlobalMap('sentEmailsMap');
 
     extractGMAILDataForNewMessagesReceivedSearch(email, labelToSearch, ARCHIVE_LABEL_NAME, e);
 
@@ -96,8 +97,9 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
       );
     }
 
-    formatRowHeight(ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME);
-    formatRowHeight(PENDING_EMAILS_TO_SEND_SHEET_NAME);
+    allSheets.forEach((sheet) => {
+      formatRowHeight(sheet);
+    });
   } catch (error) {
     console.error(error as any);
   }
