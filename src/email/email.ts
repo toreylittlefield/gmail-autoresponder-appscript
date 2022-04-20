@@ -7,17 +7,18 @@ import {
   pendingEmailsToSendMap,
 } from '../global/maps';
 import { getSingleUserPropValue, getUserProps } from '../properties-service/properties-service';
-import { addToRepliesArray, writeEmailsListToAutomationSheet } from '../sheets/sheets';
+import { addToRepliesArray, writeEmailDataToReceivedAutomationSheet } from '../sheets/sheets';
 import {
   calcAverage,
   getAtDomainFromEmailAddress,
   getDomainFromEmailAddress,
   getEmailFromString,
   getPhoneNumbersFromString,
+  initialGlobalMap,
   regexEmail,
   regexSalary,
 } from '../utils/utils';
-import { LABEL_NAME } from '../variables/publicvariables';
+import { LABEL_NAME, SENT_MESSAGES_LABEL_NAME } from '../variables/publicvariables';
 
 type EmailReplySendArray = [emailAddress: string, replyOrNew: EmailDataToSend][];
 
@@ -231,42 +232,25 @@ export function extractGMAILDataForNewMessagesReceivedSearch(
 
     let salaries: number[] = [];
     threads.forEach((thread, _threadIndex) => {
-      const emailMessageCount = thread.getMessageCount();
-      const [firstMsg, ...restMsgs] = thread.getMessages();
-
-      const firstMsgId = firstMsg.getId();
-
-      const autoResponseMsg = emailMessageCount > 1 ? updateRepliesColumnIfMessageHasReplies(firstMsgId, restMsgs) : [];
-
-      const from = firstMsg.getFrom();
-      const emailThreadId = thread.getId();
-      const emailThreadPermaLink = thread.getPermalink();
-      const emailSubject = thread.getFirstMessageSubject();
-
-      const emailBody = firstMsg.getPlainBody();
-      const replyTo = firstMsg.getReplyTo();
-
-      /** Use as a backup in case other split methods fail */
-      // const emailFrom = [...new Set(from.match(regexEmail))];
-      // const emailReplyTo = [...new Set(replyTo.match(regexEmail))];
-      const emailFrom = getEmailFromString(from);
-      const personFrom = from.split('<', 1)[0].trim();
-      const phoneNumbers = getPhoneNumbersFromString(emailBody);
-      const emailReplyTo = replyTo ? getEmailFromString(replyTo) : emailFrom;
-
-      const bodyEmails = [...new Set(emailBody.match(regexEmail))];
-      const domainFromEmail = (() => {
-        const emailSet =
-          bodyEmails.length > 0 && getDomainFromEmailAddress(emailFrom) === 'linkedin.com'
-            ? new Set(bodyEmails)
-            : new Set([...bodyEmails, emailFrom]);
-        const emailsArray = Array.from(emailSet).flatMap((email) => getDomainFromEmailAddress(email));
-        return Array.from(new Set(emailsArray)).toString();
-      })();
-      const salaryRegexArray = emailBody.match(regexSalary);
-      const salaryAmount = salaryRegexArray ? salaryRegexArray.toString() : '';
-      const emailMessageId = firstMsg.getId();
-      const date = firstMsg.getDate();
+      const {
+        autoResString,
+        salaryRegexArray,
+        bodyEmailsString,
+        bodyEmails,
+        date,
+        domainFromEmail,
+        emailBody,
+        emailFrom,
+        emailMessageId,
+        emailReplyTo,
+        emailReplyToString,
+        emailSubject,
+        emailThreadId,
+        emailThreadPermaLink,
+        personFrom,
+        phoneNumbers,
+        salaryAmount,
+      } = makeEmailValidResponseObject(thread);
 
       if (isDomainEmailInDoNotTrackSheet(emailFrom)) return;
 
@@ -300,23 +284,253 @@ export function extractGMAILDataForNewMessagesReceivedSearch(
         emailMessageId,
         date,
         emailFrom,
-        emailReplyTo.toString(),
+        emailReplyToString,
         emailSubject,
-        bodyEmails.length > 0 ? bodyEmails.toString() : undefined,
+        bodyEmailsString,
         emailBody,
         domainFromEmail,
         personFrom,
         phoneNumbers,
         salaryAmount,
         emailThreadPermaLink,
-        autoResponseMsg.length > 0 ? getToEmailArray(autoResponseMsg) : false,
+        autoResString,
       ]);
 
       // Add label to email for exclusion
       // thread.addLabel(label);
     });
 
-    writeEmailsListToAutomationSheet(emailsForList);
+    writeEmailDataToReceivedAutomationSheet(emailsForList);
+
+    console.log({ salaries: calcAverage(salaries) });
+  } catch (error) {
+    console.error(error as any);
+  }
+}
+
+/**
+ * @TODO Complete later to sync any sent emails on init or after reset
+ */
+export function getSentResponsesInGmail() {
+  initialGlobalMap('sentEmailsMap');
+  const userEmail = getSingleUserPropValue('email');
+  if (!userEmail) throw Error(`User Email is Not set in in ${getSentResponsesInGmail.name}`);
+  // const validSentRows: ValidRowToWriteInSentSheet[] = [];
+  const threads = GmailApp.search(`in:sent label:${SENT_MESSAGES_LABEL_NAME}`);
+  threads.forEach((thread) => {
+    const {
+      // autoResString,
+      // salaryRegexArray,
+      // bodyEmailsString,
+      // bodyEmails,
+      // date,
+      // domainFromEmail,
+      // emailBody,
+      // emailFrom,
+      // emailMessageId,
+      // emailReplyTo,
+      // emailReplyToString,
+      // emailSubject,
+      // emailThreadId,
+      // emailThreadPermaLink,
+      // personFrom,
+      // phoneNumbers,
+      // salaryAmount,
+    } = makeEmailValidResponseObject(thread);
+    const [firstMessage] = thread.getMessages();
+    if (getEmailFromString(firstMessage.getFrom()) === userEmail) {
+      // then is a new message not a reply to a message
+    }
+  });
+}
+
+export function makeEmailValidResponseObject(thread: GoogleAppsScript.Gmail.GmailThread) {
+  const emailMessageCount = thread.getMessageCount();
+  const [firstMsg, ...restMsgs] = thread.getMessages();
+  const firstMsgId = firstMsg.getId();
+
+  const autoResponseMsg = emailMessageCount > 1 ? updateRepliesColumnIfMessageHasReplies(firstMsgId, restMsgs) : [];
+
+  const from = firstMsg.getFrom();
+  const emailThreadId = thread.getId();
+  const emailThreadPermaLink = thread.getPermalink();
+  const emailSubject = thread.getFirstMessageSubject();
+
+  const emailBody = firstMsg.getPlainBody();
+  const replyTo = firstMsg.getReplyTo();
+
+  /** Use as a backup in case other split methods fail */
+  // const emailFrom = [...new Set(from.match(regexEmail))];
+  // const emailReplyTo = [...new Set(replyTo.match(regexEmail))];
+  const emailFrom = getEmailFromString(from);
+  const personFrom = from.split('<', 1)[0].trim();
+  const phoneNumbers = getPhoneNumbersFromString(emailBody);
+  const emailReplyTo = replyTo ? getEmailFromString(replyTo) : emailFrom;
+
+  const bodyEmails = [...new Set(emailBody.match(regexEmail))];
+  const domainFromEmail = (() => {
+    const emailSet =
+      bodyEmails.length > 0 && getDomainFromEmailAddress(emailFrom) === 'linkedin.com'
+        ? new Set(bodyEmails)
+        : new Set([...bodyEmails, emailFrom]);
+    const emailsArray = Array.from(emailSet).flatMap((email) => getDomainFromEmailAddress(email));
+    return Array.from(new Set(emailsArray)).toString();
+  })();
+  const salaryRegexArray = emailBody.match(regexSalary);
+  const salaryAmount = salaryRegexArray ? salaryRegexArray.toString() : '';
+  const emailMessageId = firstMsg.getId();
+  const date = firstMsg.getDate();
+  const bodyEmailsString = bodyEmails.length > 0 ? bodyEmails.toString() : undefined;
+  const autoResString = autoResponseMsg.length > 0 ? getToEmailArray(autoResponseMsg) : (false as const);
+
+  return {
+    emailThreadId,
+    emailMessageId,
+    date,
+    emailFrom,
+    emailReplyTo,
+    emailReplyToString: emailReplyTo.toString(),
+    emailSubject,
+    bodyEmails,
+    bodyEmailsString,
+    emailBody,
+    domainFromEmail,
+    personFrom,
+    phoneNumbers,
+    salaryAmount,
+    emailThreadPermaLink,
+    autoResString,
+    salaryRegexArray,
+  };
+}
+
+export function extractGMAILDataForFollowUpSearch(
+  email: string,
+  labelToSearch: string,
+  labelToExclude?: string,
+  _event?: GoogleAppsScript.Events.TimeDriven
+) {
+  try {
+    const emailsForList: EmailListItem[] = [];
+
+    // Exclude this label:
+    // (And creates it if it doesn't exist)
+    // return;
+
+    // Send our response email and label it responded to
+    // const threads = GmailApp.search(
+    //   "-subject:'re:' -is:chats -is:draft has:nouserlabels -label:" + LABEL_NAME + ' to:(' + EMAIL_ACCOUNT + ')'
+    // );
+    const threads = GmailApp.search(`label:${labelToSearch} -label:${labelToExclude} to:(${email})`);
+    // const threads = GmailApp.search(`label:sent-email-auto-responder-label -label: to:(hi@toreylittlefield.dev)`);
+
+    let salaries: number[] = [];
+    threads.forEach((thread, _threadIndex) => {
+      // const emailMessageCount = thread.getMessageCount();
+      // const [firstMsg, ...restMsgs] = thread.getMessages();
+
+      // const firstMsgId = firstMsg.getId();
+
+      // const autoResponseMsg = emailMessageCount > 1 ? updateRepliesColumnIfMessageHasReplies(firstMsgId, restMsgs) : [];
+
+      // const from = firstMsg.getFrom();
+      // const emailThreadId = thread.getId();
+      // const emailThreadPermaLink = thread.getPermalink();
+      // const emailSubject = thread.getFirstMessageSubject();
+
+      // const emailBody = firstMsg.getPlainBody();
+      // const replyTo = firstMsg.getReplyTo();
+
+      // /** Use as a backup in case other split methods fail */
+      // // const emailFrom = [...new Set(from.match(regexEmail))];
+      // // const emailReplyTo = [...new Set(replyTo.match(regexEmail))];
+      // const emailFrom = getEmailFromString(from);
+      // const personFrom = from.split('<', 1)[0].trim();
+      // const phoneNumbers = getPhoneNumbersFromString(emailBody);
+      // const emailReplyTo = replyTo ? getEmailFromString(replyTo) : emailFrom;
+
+      // const bodyEmails = [...new Set(emailBody.match(regexEmail))];
+      // const domainFromEmail = (() => {
+      //   const emailSet =
+      //     bodyEmails.length > 0 && getDomainFromEmailAddress(emailFrom) === 'linkedin.com'
+      //       ? new Set(bodyEmails)
+      //       : new Set([...bodyEmails, emailFrom]);
+      //   const emailsArray = Array.from(emailSet).flatMap((email) => getDomainFromEmailAddress(email));
+      //   return Array.from(new Set(emailsArray)).toString();
+      // })();
+      // const salaryRegexArray = emailBody.match(regexSalary);
+      // const salaryAmount = salaryRegexArray ? salaryRegexArray.toString() : '';
+      // const emailMessageId = firstMsg.getId();
+      // const date = firstMsg.getDate();
+      const {
+        autoResString,
+        salaryRegexArray,
+        bodyEmailsString,
+        bodyEmails,
+        date,
+        domainFromEmail,
+        emailBody,
+        emailFrom,
+        emailMessageId,
+        emailReplyTo,
+        emailReplyToString,
+        emailSubject,
+        emailThreadId,
+        emailThreadPermaLink,
+        personFrom,
+        phoneNumbers,
+        salaryAmount,
+      } = makeEmailValidResponseObject(thread);
+
+      if (isDomainEmailInDoNotTrackSheet(emailFrom)) return;
+
+      addValidEmailDataToPendingSheetMap(
+        buildEmailsObjectForReplies(
+          {
+            date,
+            emailThreadId,
+            emailBody,
+            emailSubject,
+            emailFrom,
+            inResponseToEmailMessageId: emailMessageId,
+            personFrom,
+            emailThreadPermaLink,
+            domain: domainFromEmail,
+            phoneNumbers,
+            salary: salaryAmount,
+          },
+          bodyEmails,
+          emailReplyTo
+        )
+      );
+
+      salaryRegexArray && salaryRegexArray.length > 0 && salaries.push(calcAverage(salaryRegexArray));
+
+      // TODO: Check For Replies / Follow Up Messages?
+      if (emailThreadIdsMap.has(emailThreadId)) return;
+
+      emailsForList.push([
+        emailThreadId,
+        emailMessageId,
+        date,
+        emailFrom,
+        emailReplyToString,
+        emailSubject,
+        bodyEmailsString,
+        emailBody,
+        domainFromEmail,
+        personFrom,
+        phoneNumbers,
+        salaryAmount,
+        emailThreadPermaLink,
+        autoResString,
+      ]);
+
+      // Add label to email for exclusion
+      // thread.addLabel(label);
+    });
+
+    writeEmailDataToReceivedAutomationSheet(emailsForList);
 
     console.log({ salaries: calcAverage(salaries) });
   } catch (error) {
