@@ -32,3 +32,38 @@ export const emailsToAddToPendingSheet = new Map<string, EmailDataToSend>();
 
 /** map of all emails in pending to send sheet, key is "send email to", value is true,  */
 export const pendingEmailsToSendMap = new Map<string, true>();
+
+export type ValidRowToWriteInSentSheet = [
+  emailThreadId: string,
+  inResponseToEmailMessageId: string,
+  isReplyorNewEmail: 'new' | 'reply',
+  date: GoogleAppsScript.Base.Date,
+  emailFrom: string,
+  emailSendTo: string,
+  emailSubject: string,
+  emailBody: string,
+  domain: string,
+  personFrom: string,
+  phoneNumbers: string,
+  salary: string,
+  emailThreadPermaLink: string,
+  deleteDraft: boolean,
+  draftId: string,
+  draftSentMessageId: string,
+  draftMessageDate: GoogleAppsScript.Base.Date,
+  draftMessageSubject: string,
+  draftMessageFrom: string,
+  draftMessageTo: string,
+  draftMessageBody: string,
+  viewDraftInGmail: string,
+  manuallyMoveDraftToSent: boolean,
+  sentThreadId: string,
+  sentEmailMessageId: string,
+  sentEmailMessageDate: GoogleAppsScript.Base.Date,
+  sentThreadPermaLink: string
+];
+/** map of all sent emails in the sent email responses sheet with the sent message ID as the key  */
+export const sentEmailsMap = new Map<string, ValidRowToWriteInSentSheet>();
+
+/** map of all emails in pending to send sheet, key is "send email to", value is true,  */
+export const followUpEmailsSheet = new Map<string, true>();
