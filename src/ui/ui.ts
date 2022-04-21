@@ -15,6 +15,7 @@ import {
 import {
   archiveOrDeleteSelectEmailThreadIds,
   checkExistsOrCreateSpreadsheet,
+  manuallyCreateEmailForSelectedRowsInReceivedSheet,
   sendDraftsIfAutoResponseUserOptionIsOn,
   sendOrMoveManuallyOrDeleteDraftsInPendingSheet,
   WarningResetSheetsAndSpreadsheet,
@@ -38,6 +39,10 @@ function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScri
   );
 
   const receivedEmailsSheetActions = ui.createMenu('Received Sheet Actions');
+  receivedEmailsSheetActions.addItem(
+    `Manually Create Draft Emails For Selected Rows`,
+    uiButtonManuallyCreateDraftEmailsForSelectedRowsInAutoReceivedSheet.name
+  );
   receivedEmailsSheetActions.addItem(`Archive Selected Rows`, archiveSelectRowsInAutoReceivedSheet.name);
   receivedEmailsSheetActions.addItem(`Warning: Delete Selected Rows`, deleteSelectRowsInAutoReceivedSheet.name);
   receivedEmailsSheetActions.addItem(
@@ -45,10 +50,10 @@ function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScri
     removeLabelSelectRowsInAutoReceivedSheet.name
   );
 
-  menu.addItem(`Get Emails & Create Drafts - Sync Emails`, uiGetEmailsFromGmail.name);
+  menu.addItem(`Get Emails & Create Drafts - Sync Emails`, uiGetEmailsFromGmail.name).addSeparator();
   menu.addSubMenu(receivedEmailsSheetActions).addToUi();
   menu.addSubMenu(pendingSheetActions).addToUi();
-  menu.addItem('User Configuration', userConfigurationModal.name);
+  menu.addSeparator().addItem('User Configuration', userConfigurationModal.name);
   menu.addSeparator().addSubMenu(optionsMenu).addToUi();
 }
 
@@ -87,15 +92,17 @@ export async function initializeSpreadsheets() {
   }
 }
 
-export function sendSelectedEmailsInPendingEmailsSheet() {
+export function uiButtonManuallyCreateDraftEmailsForSelectedRowsInAutoReceivedSheet() {
   const ui = SpreadsheetApp.getUi();
   const response = ui.alert(
-    `Send Selected Drafts`,
-    `You are about to SEND any selected / checked draft emails in the "Pending Emails To Send" sheet. The rows for the draft emails will be moved to the "Sent Automated Responses" Sheet`,
+    `Create Draft Emails For Selected Rows`,
+    `All rows with the "Manually Create Pending Email" checkbox will be have a draft email created in the to the "Pending Emails To Send" sheet.
+    
+    Note: if a draft email in the pending sheet already exists for this email thread Id then the draft emails will not be created`,
     ui.ButtonSet.OK_CANCEL
   );
   if (response === ui.Button.OK) {
-    sendOrMoveManuallyOrDeleteDraftsInPendingSheet({ type: 'send' }, {});
+    manuallyCreateEmailForSelectedRowsInReceivedSheet();
   }
 }
 
@@ -145,6 +152,30 @@ export function removeLabelSelectRowsInAutoReceivedSheet() {
   }
 }
 
+export function sendSelectedEmailsInPendingEmailsSheet() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    `Send Selected Drafts`,
+    `You are about to SEND any selected / checked draft emails in the "Pending Emails To Send" sheet. The rows for the draft emails will be moved to the "Sent Automated Responses" Sheet`,
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (response === ui.Button.OK) {
+    sendOrMoveManuallyOrDeleteDraftsInPendingSheet({ type: 'send' }, {});
+  }
+}
+
+export function deleteSelectedEmailsInPendingEmailsSheet() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    `Delete Selected Drafts`,
+    `You are about to delete any selected / checked draft emails in the "Pending Emails To Send" sheet. The rows for the draft emails will be delete and you will have to run an email sync again to recreate them`,
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (response === ui.Button.OK) {
+    sendOrMoveManuallyOrDeleteDraftsInPendingSheet({ type: 'delete' }, {});
+  }
+}
+
 export function moveManuallySelectedEmailsInPendingEmailsSheet() {
   const ui = SpreadsheetApp.getUi();
   const response = ui.alert(
@@ -157,17 +188,6 @@ export function moveManuallySelectedEmailsInPendingEmailsSheet() {
   );
   if (response === ui.Button.OK) {
     sendOrMoveManuallyOrDeleteDraftsInPendingSheet({ type: 'manuallyMove' }, {});
-  }
-}
-export function deleteSelectedEmailsInPendingEmailsSheet() {
-  const ui = SpreadsheetApp.getUi();
-  const response = ui.alert(
-    `Delete Selected Drafts`,
-    `You are about to delete any selected / checked draft emails in the "Pending Emails To Send" sheet. The rows for the draft emails will be delete and you will have to run an email sync again to recreate them`,
-    ui.ButtonSet.OK_CANCEL
-  );
-  if (response === ui.Button.OK) {
-    sendOrMoveManuallyOrDeleteDraftsInPendingSheet({ type: 'delete' }, {});
   }
 }
 
