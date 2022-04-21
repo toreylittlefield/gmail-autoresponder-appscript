@@ -108,19 +108,28 @@ export const SENT_SHEET_HEADERS = [
 /** Name of the sheet for the emails found results */
 export const FOLLOW_UP_EMAILS_SHEET_NAME = 'Follow Up Emails Received List';
 export const FOLLOW_UP_EMAILS__SHEET_HEADERS = [
-  'From Domain',
   'Email Thread Id',
   'Email Message Id',
-  'Date',
-  'From',
-  'ReplyTo',
+  'Date of Received Email',
+  'From Email',
+  'Send Email To',
+  'Received Email Subject',
+  'Received Email Body',
+  'Domain',
   'Person / Company Name',
-  'Subject',
-  'Body Emails',
-  'Body',
+  'US Phone Number',
   'Salary',
   'Thread Permalink',
-  'Has Email Response',
+  'View In Gmail',
+  'Response To Sent Thread Id',
+  'Response To Sent Email Message Id',
+  'Response To Sent Email Message Date',
+  'Response To Sent Thread PermaLink',
+  'Archive Thread Id',
+  'Warning: Delete Thread Id',
+  'Remove Gmail Label',
+  'Manual: Replied To Email?',
+  'Manual: Replied To Date?',
 ] as const;
 
 /** Name of the sheet for the any bounced emails */
