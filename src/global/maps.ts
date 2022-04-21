@@ -30,7 +30,7 @@ export const alwaysAllowMap = new Map<string, boolean>();
 export const emailThreadIdsMap = new Map<string, number>();
 
 /** list of all emails by email address as key, and replyToEmail as boolean with emailSubject and body */
-export const emailsToAddToPendingSheet = new Map<string, EmailDataToSend>();
+export const emailsToAddToPendingSheetMap = new Map<string, EmailDataToSend>();
 
 /** map of all emails in pending to send sheet, key is "send email to", value is true,  */
 export const pendingEmailsToSendMap = new Map<string, true>();
