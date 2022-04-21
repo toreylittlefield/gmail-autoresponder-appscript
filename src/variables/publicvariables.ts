@@ -125,11 +125,13 @@ export const FOLLOW_UP_EMAILS__SHEET_HEADERS = [
   'Response To Sent Email Message Id',
   'Response To Sent Email Message Date',
   'Response To Sent Thread PermaLink',
+  'Last Email Message Date In Thread',
   'Archive Thread Id',
   'Warning: Delete Thread Id',
   'Remove Gmail Label',
-  'Manual: Replied To Email?',
-  'Manual: Replied To Date?',
+  'Add Follows Up Gmail Label',
+  'Manual: Replied To Email',
+  'Manual: Replied To Date',
 ] as const;
 
 /** Name of the sheet for the any bounced emails */
