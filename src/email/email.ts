@@ -209,7 +209,7 @@ function isDomainEmailInDoNotTrackSheet(fromEmail: string) {
   return false;
 }
 
-export type EmailListItem = [
+export type EmailReceivedSheetRowItem = [
   EmailThreadId: string,
   EmailMessageId: string,
   Date: GoogleAppsScript.Base.Date,
@@ -237,7 +237,7 @@ export function extractGMAILDataForNewMessagesReceivedSearch(
   _event?: GoogleAppsScript.Events.TimeDriven
 ) {
   try {
-    const emailsForList: EmailListItem[] = [];
+    const emailsForList: EmailReceivedSheetRowItem[] = [];
 
     // Exclude this label:
     // (And creates it if it doesn't exist)
@@ -472,7 +472,7 @@ export function extractGMAILDataForFollowUpSearch(
   _event?: GoogleAppsScript.Events.TimeDriven
 ) {
   try {
-    const emailsForList: EmailListItem[] = [];
+    const emailsForList: EmailReceivedSheetRowItem[] = [];
 
     // Exclude this label:
     // (And creates it if it doesn't exist)
@@ -489,15 +489,12 @@ export function extractGMAILDataForFollowUpSearch(
     threads.forEach((thread, _threadIndex) => {
       const {
         autoResString,
-        salaryRegexArray,
         bodyEmailsString,
-        bodyEmails,
         date,
         domainFromEmail,
         emailBody,
         emailFrom,
         emailMessageId,
-        emailReplyTo,
         emailReplyToString,
         emailSubject,
         emailThreadId,
@@ -510,30 +507,6 @@ export function extractGMAILDataForFollowUpSearch(
         sentDraftSubject,
         sentToPerson,
       } = makeEmailValidResponseObject(thread);
-
-      if (isDomainEmailInDoNotTrackSheet(emailFrom)) return;
-
-      addValidEmailDataToPendingSheetMap(
-        buildEmailsObjectForReplies(
-          {
-            date,
-            emailThreadId,
-            emailBody,
-            emailSubject,
-            emailFrom,
-            inResponseToEmailMessageId: emailMessageId,
-            personFrom,
-            emailThreadPermaLink,
-            domain: domainFromEmail,
-            phoneNumbers,
-            salary: salaryAmount,
-          },
-          bodyEmails,
-          emailReplyTo
-        )
-      );
-
-      salaryRegexArray && salaryRegexArray.length > 0 && salaries.push(calcAverage(salaryRegexArray));
 
       // TODO: Check For Replies / Follow Up Messages?
       if (emailThreadIdsMap.has(emailThreadId)) return;
@@ -563,7 +536,7 @@ export function extractGMAILDataForFollowUpSearch(
       // thread.addLabel(label);
     });
 
-    writeEmailDataToReceivedAutomationSheet(emailsForList);
+    // writeEmailDataToReceivedAutomationSheet(emailsForList);
 
     console.log({ salaries: calcAverage(salaries) });
   } catch (error) {
