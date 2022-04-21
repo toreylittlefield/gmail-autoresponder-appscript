@@ -68,7 +68,7 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
     initialGlobalMap('alwaysAllowMap');
     initialGlobalMap('doNotSendMailAutoMap');
     initialGlobalMap('pendingEmailsToSendMap');
-    //initialGlobalMap('sentEmailsMap');
+    initialGlobalMap('sentEmailsBySentMessageIdMap');
 
     extractGMAILDataForNewMessagesReceivedSearch(email, labelToSearch, ARCHIVE_LABEL_NAME, e);
 
