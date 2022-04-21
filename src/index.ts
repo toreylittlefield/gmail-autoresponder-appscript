@@ -1,4 +1,4 @@
-import { extractGMAILDataForNewMessagesReceivedSearch } from './email/email';
+import { extractGMAILDataForFollowUpSearch, extractGMAILDataForNewMessagesReceivedSearch } from './email/email';
 import { getUserProps } from './properties-service/properties-service';
 import {
   activeSheet,
@@ -65,7 +65,7 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
     if (!activeSheet) throw Error('No Active Sheet');
 
     initialGlobalMap('doNotTrackMap');
-    initialGlobalMap('emailThreadIdsMap');
+    initialGlobalMap('autoReceivedSheetEmailThreadIdsMap');
     initialGlobalMap('alwaysAllowMap');
     initialGlobalMap('doNotSendMailAutoMap');
     initialGlobalMap('pendingEmailsToSendMap');
@@ -111,6 +111,7 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
  * @customFunction
  */
 (global as any).getEmailsFromGmail = getEmailsFromGmail;
+(global as any).extractGMAILDataForFollowUpSearch = extractGMAILDataForFollowUpSearch;
 
 /**
  * Runs The UI Script
