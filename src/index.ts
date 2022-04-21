@@ -6,6 +6,7 @@ import {
   findColumnNumbersOrLettersByHeaderNames,
   formatRowHeight,
   initSpreadsheet,
+  manuallyCreateEmailForSelectedRowsInReceivedSheet,
   sendDraftsIfAutoResponseUserOptionIsOn,
   sendOrMoveManuallyOrDeleteDraftsInPendingSheet,
   writeDomainsListToDoNotRespondSheet,
@@ -26,6 +27,7 @@ import {
   removeLabelSelectRowsInAutoReceivedSheet,
   sendSelectedEmailsInPendingEmailsSheet,
   toggleAutoResponseOnOff,
+  uiButtonManuallyCreateDraftEmailsForSelectedRowsInAutoReceivedSheet,
   userConfigurationModal,
 } from './ui/ui';
 import { hasAllRequiredUserProps, initialGlobalMap } from './utils/utils';
@@ -136,6 +138,9 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
 (global as any).getUserPropertiesForPageModal = getUserPropertiesForPageModal;
 (global as any).processFormEventsFromPage = processFormEventsFromPage;
 (global as any).sendOrMoveManuallyOrDeleteDraftsInPendingSheet = sendOrMoveManuallyOrDeleteDraftsInPendingSheet;
+(global as any).uiButtonManuallyCreateDraftEmailsForSelectedRowsInAutoReceivedSheet =
+  uiButtonManuallyCreateDraftEmailsForSelectedRowsInAutoReceivedSheet;
+
 (global as any).archiveSelectRowsInAutoReceivedSheet = archiveSelectRowsInAutoReceivedSheet;
 (global as any).deleteSelectRowsInAutoReceivedSheet = deleteSelectRowsInAutoReceivedSheet;
 (global as any).removeLabelSelectRowsInAutoReceivedSheet = removeLabelSelectRowsInAutoReceivedSheet;
