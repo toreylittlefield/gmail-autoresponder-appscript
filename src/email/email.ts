@@ -1,8 +1,9 @@
 import {
+  alwaysAllowMap,
   doNotSendMailAutoMap,
   doNotTrackMap,
   EmailDataToSend,
-  emailsToAddToPendingSheet,
+  emailsToAddToPendingSheetMap,
   emailThreadIdsMap,
   pendingEmailsToSendMap,
   sentEmailsByDomainMap,
@@ -122,11 +123,22 @@ function addValidEmailDataToPendingSheetMap(emails: EmailReplySendArray) {
     if (
       !doNotSendMailAutoMap.has(email) &&
       !doNotSendMailAutoMap.has(domain) &&
-      !emailsToAddToPendingSheet.has(email)
+      !emailsToAddToPendingSheetMap.has(email)
     ) {
-      emailsToAddToPendingSheet.set(email, data);
+      emailsToAddToPendingSheetMap.set(email, data);
     }
   });
+}
+
+export function getEmailByThreadAndAddToMap(
+  emailThreadId: string,
+  emailObjData: Omit<EmailDataToSend, 'send' | 'isReplyorNewEmail' | 'emailSendTo'>,
+  bodyEmails: string[],
+  emailReplyTo: string
+) {
+  const thread = GmailApp.getThreadById(emailThreadId);
+  if (!thread) return;
+  addValidEmailDataToPendingSheetMap(buildEmailsObjectForReplies(emailObjData, bodyEmails, emailReplyTo));
 }
 
 function buildEmailsObjectForReplies(
@@ -187,6 +199,8 @@ function updateRepliesColumnIfMessageHasReplies(firstMsgId: string, restMsgs: Go
 
 function isDomainEmailInDoNotTrackSheet(fromEmail: string) {
   const domain = getAtDomainFromEmailAddress(fromEmail);
+
+  if (alwaysAllowMap.has(domain) || alwaysAllowMap.has(fromEmail)) return false;
 
   if (doNotTrackMap.has(domain) || doNotSendMailAutoMap.has(fromEmail)) return true;
   /**TODO: Can be optimized in future if slow perf */
