@@ -1,7 +1,7 @@
 import {
   createOrSentTemplateEmail,
   DraftAttributeArray,
-  EmailListItem,
+  EmailReceivedSheetRowItem,
   getEmailByThreadAndAddToMap,
   getToEmailArray,
 } from '../email/email';
@@ -1061,7 +1061,7 @@ export function getAllHeaderColNumsAndLetters<V extends SheetHeaders>({
   return headerColsMap;
 }
 
-export function writeEmailDataToReceivedAutomationSheet(emailsForList: EmailListItem[]) {
+export function writeEmailDataToReceivedAutomationSheet(emailsForList: EmailReceivedSheetRowItem[]) {
   const autoResultsListSheet = getSheetByName(`${AUTOMATED_RECEIVED_SHEET_NAME}`);
   if (!autoResultsListSheet) throw Error(`Cannot find ${AUTOMATED_RECEIVED_SHEET_NAME} Sheet`);
 
@@ -1150,7 +1150,7 @@ export function manuallyCreateEmailForSelectedRowsInReceivedSheet() {
   initialGlobalMap('pendingEmailsToSendMap');
 
   const automatedReceivedSheet = getSheetByName(AUTOMATED_RECEIVED_SHEET_NAME);
-  const automatedReceivedSheetData = getAllDataFromSheet(AUTOMATED_RECEIVED_SHEET_NAME) as EmailListItem[];
+  const automatedReceivedSheetData = getAllDataFromSheet(AUTOMATED_RECEIVED_SHEET_NAME) as EmailReceivedSheetRowItem[];
 
   if (!automatedReceivedSheet)
     throw Error(
