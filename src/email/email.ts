@@ -5,6 +5,7 @@ import {
   emailsToAddToPendingSheet,
   emailThreadIdsMap,
   pendingEmailsToSendMap,
+  sentEmailsBySentMessageIdMap,
 } from '../global/maps';
 import { getSingleUserPropValue, getUserProps } from '../properties-service/properties-service';
 import { addToRepliesArray, writeEmailDataToReceivedAutomationSheet } from '../sheets/sheets';
@@ -312,7 +313,7 @@ export function extractGMAILDataForNewMessagesReceivedSearch(
  * @TODO Complete later to sync any sent emails on init or after reset
  */
 export function getSentResponsesInGmail() {
-  initialGlobalMap('sentEmailsMap');
+  initialGlobalMap('sentEmailsBySentMessageIdMap');
   const userEmail = getSingleUserPropValue('email');
   if (!userEmail) throw Error(`User Email is Not set in in ${getSentResponsesInGmail.name}`);
   // const validSentRows: ValidRowToWriteInSentSheet[] = [];
@@ -342,6 +343,15 @@ export function getSentResponsesInGmail() {
       // then is a new message not a reply to a message
     }
   });
+}
+
+/**
+ * get the latest sent data in the sent email sheet for this domain if it exists
+ * @description ignores "linkedin.com" domain
+ */
+function getDataInSentMailByDomainMap(domain: string) {
+  if (domain === 'linkedin.com') return;
+  return sentEmailsBySentMessageIdMap.get(domain);
 }
 
 export function makeEmailValidResponseObject(thread: GoogleAppsScript.Gmail.GmailThread) {
@@ -383,6 +393,8 @@ export function makeEmailValidResponseObject(thread: GoogleAppsScript.Gmail.Gmai
   const bodyEmailsString = bodyEmails.length > 0 ? bodyEmails.toString() : undefined;
   const autoResString = autoResponseMsg.length > 0 ? getToEmailArray(autoResponseMsg) : (false as const);
 
+  const lastSentData = getDataInSentMailByDomainMap(domainFromEmail);
+
   return {
     emailThreadId,
     emailMessageId,
@@ -401,6 +413,7 @@ export function makeEmailValidResponseObject(thread: GoogleAppsScript.Gmail.Gmai
     emailThreadPermaLink,
     autoResString,
     salaryRegexArray,
+    lastSentData,
   };
 }
 
