@@ -6,7 +6,6 @@ import {
   findColumnNumbersOrLettersByHeaderNames,
   formatRowHeight,
   initSpreadsheet,
-  manuallyCreateEmailForSelectedRowsInReceivedSheet,
   sendDraftsIfAutoResponseUserOptionIsOn,
   sendOrMoveManuallyOrDeleteDraftsInPendingSheet,
   writeDomainsListToDoNotRespondSheet,
