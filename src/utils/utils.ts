@@ -15,6 +15,7 @@ import {
   AUTOMATED_RECEIVED_SHEET_NAME,
   DO_NOT_EMAIL_AUTO_SHEET_NAME,
   DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME,
+  FOLLOW_UP_EMAILS_SHEET_NAME,
   PENDING_EMAILS_TO_SEND_SHEET_NAME,
   SENT_SHEET_HEADERS,
   SENT_SHEET_NAME,
@@ -67,7 +68,8 @@ export const getPhoneNumbersFromString = (str: string) => {
 };
 
 type MapNames =
-  | 'emailThreadIdsMap'
+  | 'autoReceivedSheetEmailThreadIdsMap'
+  | 'followUpSheetEmailThreadIdsMap'
   | 'doNotTrackMap'
   | 'doNotSendMailAutoMap'
   | 'pendingEmailsToSendMap'
@@ -83,8 +85,13 @@ export function initialGlobalMap(mapName: MapNames) {
       return sheetData;
     };
     switch (mapName) {
-      case 'emailThreadIdsMap':
+      case 'autoReceivedSheetEmailThreadIdsMap':
         getSheetData(`${AUTOMATED_RECEIVED_SHEET_NAME}`).forEach(([emailThreadId], index) =>
+          emailThreadIdsMap.set(emailThreadId, index + 2)
+        );
+        break;
+      case 'followUpSheetEmailThreadIdsMap':
+        getSheetData(FOLLOW_UP_EMAILS_SHEET_NAME).forEach(([emailThreadId], index) =>
           emailThreadIdsMap.set(emailThreadId, index + 2)
         );
         break;
