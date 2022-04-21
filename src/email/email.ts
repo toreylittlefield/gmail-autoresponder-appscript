@@ -5,7 +5,7 @@ import {
   emailsToAddToPendingSheet,
   emailThreadIdsMap,
   pendingEmailsToSendMap,
-  sentEmailsBySentMessageIdMap,
+  sentEmailsByDomainMap,
 } from '../global/maps';
 import { getSingleUserPropValue, getUserProps } from '../properties-service/properties-service';
 import { addToRepliesArray, writeEmailDataToReceivedAutomationSheet } from '../sheets/sheets';
@@ -209,7 +209,11 @@ export type EmailListItem = [
   PhoneNumbers: string,
   Salary: string | undefined,
   ThreadPermalink: string,
-  HasEmailResponse: string | false
+  HasEmailResponse: string | false,
+  LastSentDate: false | GoogleAppsScript.Base.Date,
+  LastSentThreadId: false | string,
+  LastSentDraftSubject: false | string,
+  LastSentPerson: false | string
 ];
 
 export function extractGMAILDataForNewMessagesReceivedSearch(
@@ -251,6 +255,10 @@ export function extractGMAILDataForNewMessagesReceivedSearch(
         personFrom,
         phoneNumbers,
         salaryAmount,
+        lastSentDate,
+        sentThreadId,
+        sentDraftSubject,
+        sentToPerson,
       } = makeEmailValidResponseObject(thread);
 
       if (isDomainEmailInDoNotTrackSheet(emailFrom)) return;
@@ -295,6 +303,10 @@ export function extractGMAILDataForNewMessagesReceivedSearch(
         salaryAmount,
         emailThreadPermaLink,
         autoResString,
+        lastSentDate,
+        sentThreadId,
+        sentDraftSubject,
+        sentToPerson,
       ]);
 
       // Add label to email for exclusion
@@ -350,8 +362,27 @@ export function getSentResponsesInGmail() {
  * @description ignores "linkedin.com" domain
  */
 function getDataInSentMailByDomainMap(domain: string) {
-  if (domain === 'linkedin.com') return;
-  return sentEmailsBySentMessageIdMap.get(domain);
+  const dataToReturn = {
+    lastSentDate: false,
+    sentThreadId: false,
+    sentDraftSubject: false,
+    sentToPerson: false,
+  } as const;
+  if (domain === 'linkedin.com') return dataToReturn;
+  const lastSentData = sentEmailsByDomainMap.get(domain);
+  if (!lastSentData) return dataToReturn;
+  const {
+    'Sent Email Message Date': lastSentDate,
+    'Sent Thread Id': sentThreadId,
+    'Draft Subject': sentDraftSubject,
+    'Person / Company Name': sentToPerson,
+  } = lastSentData.rowObject;
+  return { lastSentDate, sentThreadId, sentDraftSubject, sentToPerson } as {
+    lastSentDate: GoogleAppsScript.Base.Date;
+    sentDraftSubject: string;
+    sentThreadId: string;
+    sentToPerson: string;
+  };
 }
 
 export function makeEmailValidResponseObject(thread: GoogleAppsScript.Gmail.GmailThread) {
@@ -393,7 +424,7 @@ export function makeEmailValidResponseObject(thread: GoogleAppsScript.Gmail.Gmai
   const bodyEmailsString = bodyEmails.length > 0 ? bodyEmails.toString() : undefined;
   const autoResString = autoResponseMsg.length > 0 ? getToEmailArray(autoResponseMsg) : (false as const);
 
-  const lastSentData = getDataInSentMailByDomainMap(domainFromEmail);
+  const { lastSentDate, sentThreadId, sentDraftSubject, sentToPerson } = getDataInSentMailByDomainMap(domainFromEmail);
 
   return {
     emailThreadId,
@@ -413,7 +444,10 @@ export function makeEmailValidResponseObject(thread: GoogleAppsScript.Gmail.Gmai
     emailThreadPermaLink,
     autoResString,
     salaryRegexArray,
-    lastSentData,
+    lastSentDate,
+    sentThreadId,
+    sentDraftSubject,
+    sentToPerson,
   };
 }
 
@@ -493,6 +527,10 @@ export function extractGMAILDataForFollowUpSearch(
         personFrom,
         phoneNumbers,
         salaryAmount,
+        lastSentDate,
+        sentThreadId,
+        sentDraftSubject,
+        sentToPerson,
       } = makeEmailValidResponseObject(thread);
 
       if (isDomainEmailInDoNotTrackSheet(emailFrom)) return;
@@ -537,6 +575,10 @@ export function extractGMAILDataForFollowUpSearch(
         salaryAmount,
         emailThreadPermaLink,
         autoResString,
+        lastSentDate,
+        sentThreadId,
+        sentDraftSubject,
+        sentToPerson,
       ]);
 
       // Add label to email for exclusion
