@@ -1,8 +1,14 @@
-import { createOrSentTemplateEmail, DraftAttributeArray, EmailListItem, getToEmailArray } from '../email/email';
+import {
+  createOrSentTemplateEmail,
+  DraftAttributeArray,
+  EmailListItem,
+  getEmailByThreadAndAddToMap,
+  getToEmailArray,
+} from '../email/email';
 import {
   alwaysAllowMap,
   doNotSendMailAutoMap,
-  emailsToAddToPendingSheet,
+  emailsToAddToPendingSheetMap,
   emailThreadIdsMap,
   ValidRowToWriteInSentSheet,
 } from '../global/maps';
@@ -23,21 +29,21 @@ import {
   ARCHIVE_LABEL_NAME,
   AUTOMATED_RECEIVED_SHEET_HEADERS,
   AUTOMATED_RECEIVED_SHEET_NAME,
-  BOUNCED_SHEET_NAME,
   BOUNCED_SHEET_HEADERS,
+  BOUNCED_SHEET_NAME,
   DO_NOT_EMAIL_AUTO_INITIAL_DATA,
   DO_NOT_EMAIL_AUTO_SHEET_HEADERS,
   DO_NOT_EMAIL_AUTO_SHEET_NAME,
-  DO_NOT_TRACK_DOMAIN_LIST_SHEET_HEADERS,
   DO_NOT_TRACK_DOMAIN_LIST_INITIAL_DATA,
+  DO_NOT_TRACK_DOMAIN_LIST_SHEET_HEADERS,
   DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME,
-  FOLLOW_UP_EMAILS__SHEET_HEADERS,
   FOLLOW_UP_EMAILS_SHEET_NAME,
-  SENT_MESSAGES_LABEL_NAME,
+  FOLLOW_UP_EMAILS__SHEET_HEADERS,
   PENDING_EMAILS_TO_SEND_SHEET_HEADERS,
   PENDING_EMAILS_TO_SEND_SHEET_NAME,
-  SENT_SHEET_NAME,
+  SENT_MESSAGES_LABEL_NAME,
   SENT_SHEET_HEADERS,
+  SENT_SHEET_NAME,
 } from '../variables/publicvariables';
 
 export type SheetNames =
@@ -85,7 +91,6 @@ export function WarningResetSheetsAndSpreadsheet() {
     PropertiesService.getUserProperties().deleteAllProperties();
 
     const deletedSheetsMap = activeSpreadsheet.getSheets().reduce((acc: Record<SheetNames, true>, sheet) => {
-      console.log(sheet.getName(), allSheets.includes(sheet.getName() as any));
       if (allSheets.includes(sheet.getName() as SheetNames)) {
         acc[sheet.getName() as SheetNames] = true;
         activeSpreadsheet.deleteSheet(sheet);
@@ -117,7 +122,6 @@ export async function checkExistsOrCreateSpreadsheet(deletedSheetsMap?: Record<S
     let { spreadsheetId } = getSpreadSheetId();
     const missingSheetsMap =
       deletedSheetsMap && Object.keys(deletedSheetsMap).length > 0 ? deletedSheetsMap : filteredRecordOfMissingSheets();
-    console.log({ missingSheetsMap });
     if (spreadsheetId) {
       try {
         SpreadsheetApp.openById(spreadsheetId);
@@ -408,8 +412,10 @@ export function addRowsToTopOfSheet(numRows: number, sheet: GoogleAppsScript.Spr
 
 export function formatRowHeight(sheetName: SheetNames) {
   const sheet = getSheetByName(sheetName);
+  if (!sheet) throw Error(`Could Not Find ${sheetName} in function call ${formatRowHeight.name}`);
+  const numRows = sheet.getDataRange().getNumRows() - 1;
   //@ts-expect-error
-  sheet && sheet.setRowHeightsForced(2, sheet.getDataRange().getNumRows() - 1, 21);
+  numRows > 0 && sheet.setRowHeightsForced(2, sheet.getDataRange().getNumRows() - 1, 21);
 }
 
 export function addToRepliesArray(index: number, emailMessages: GoogleAppsScript.Gmail.GmailMessage[]) {
@@ -461,7 +467,7 @@ export function writeEmailsToPendingSheet() {
   if (!pendingEmailsSheet) {
     throw Error(`Could Not Find Pending Emails To Send Sheet`);
   }
-  const emailObjects = Array.from(emailsToAddToPendingSheet.values());
+  const emailObjects = Array.from(emailsToAddToPendingSheetMap.values());
   const validSentRows: ValidRowToWriteInPendingSheet[] = emailObjects.map(
     ({
       send,
@@ -569,6 +575,7 @@ export function writeEmailsToPendingSheet() {
     deleteDiscardDraftCol.colLetter,
     manuallyMoveCol.colLetter,
   ]);
+  formatRowHeight(PENDING_EMAILS_TO_SEND_SHEET_NAME);
 }
 
 function setCheckedValueForEachRow(
@@ -1137,6 +1144,90 @@ export function writeEmailDataToReceivedAutomationSheet(emailsForList: EmailList
       manuallyCreateEmailDraftCol.colLetter,
     ]);
   }
+}
+
+export function manuallyCreateEmailForSelectedRowsInReceivedSheet() {
+  initialGlobalMap('pendingEmailsToSendMap');
+
+  const automatedReceivedSheet = getSheetByName(AUTOMATED_RECEIVED_SHEET_NAME);
+  const automatedReceivedSheetData = getAllDataFromSheet(AUTOMATED_RECEIVED_SHEET_NAME) as EmailListItem[];
+
+  if (!automatedReceivedSheet)
+    throw Error(
+      `Cannot find ${AUTOMATED_RECEIVED_SHEET_NAME} SHEET in ${manuallyCreateEmailForSelectedRowsInReceivedSheet.name} execution...`
+    );
+  if (!automatedReceivedSheetData)
+    throw Error(
+      `Cannot find ${AUTOMATED_RECEIVED_SHEET_NAME} DATA in ${manuallyCreateEmailForSelectedRowsInReceivedSheet.name} execution...`
+    );
+
+  const automatedReceivedSheetColumnHeaders = getAllHeaderColNumsAndLetters<typeof AUTOMATED_RECEIVED_SHEET_HEADERS>({
+    sheetName: AUTOMATED_RECEIVED_SHEET_NAME,
+  });
+  const manuallyCreateEmailDraftColNumber =
+    automatedReceivedSheetColumnHeaders['Manually Create Pending Email'].colNumber;
+
+  const threadId = automatedReceivedSheetColumnHeaders['Email Thread Id'].colNumber;
+  const emailMessageIdCol = automatedReceivedSheetColumnHeaders['Email Message Id'].colNumber;
+  const dateCol = automatedReceivedSheetColumnHeaders['Date of Email'].colNumber;
+  const emailFromCol = automatedReceivedSheetColumnHeaders['From Email'].colNumber;
+  const emailSubjectCol = automatedReceivedSheetColumnHeaders['Email Subject'].colNumber;
+  const emailBodyCol = automatedReceivedSheetColumnHeaders['Email Body'].colNumber;
+  const domainCol = automatedReceivedSheetColumnHeaders['Domain'].colNumber;
+  const personFromCol = automatedReceivedSheetColumnHeaders['Person / Company Name'].colNumber;
+  const phoneNumbersCol = automatedReceivedSheetColumnHeaders['US Phone Number'].colNumber;
+  const salaryCol = automatedReceivedSheetColumnHeaders['Salary'].colNumber;
+  const emailThreadPermaLinkCol = automatedReceivedSheetColumnHeaders['Thread Permalink'].colNumber;
+  const emailsInBodyCol = automatedReceivedSheetColumnHeaders['Body Emails'].colNumber;
+  const emailReplyToCol = automatedReceivedSheetColumnHeaders['ReplyTo Email'].colNumber;
+
+  const emailBodyFromStringToArray = (emailBodyString: string) => {
+    const hasCommaSeperatedValues = emailBodyString.match(/\,/gim);
+    if (hasCommaSeperatedValues) {
+      return emailBodyString.split(',').map((str) => str.trim());
+    }
+    return [emailBodyString];
+  };
+
+  automatedReceivedSheetData.forEach((row) => {
+    const manuallyCreateEmailDraft = row[manuallyCreateEmailDraftColNumber - 1];
+    const emailThreadId = row[threadId - 1] as string;
+    if (manuallyCreateEmailDraft) {
+      const emailsInBody = row[emailsInBodyCol - 1] as string;
+      const emailReplyTo = row[emailReplyToCol - 1] as string;
+
+      const date = row[dateCol - 1] as GoogleAppsScript.Base.Date;
+      const domain = row[domainCol - 1] as string;
+      const emailBody = row[emailBodyCol - 1] as string;
+      const emailFrom = row[emailFromCol - 1] as string;
+      const emailSubject = row[emailSubjectCol - 1] as string;
+      const emailThreadPermaLink = row[emailThreadPermaLinkCol - 1] as string;
+      const inResponseToEmailMessageId = row[emailMessageIdCol - 1] as string;
+      const personFrom = row[personFromCol - 1] as string;
+      const phoneNumbers = row[phoneNumbersCol - 1] as string;
+      const salary = row[salaryCol - 1] as string;
+
+      getEmailByThreadAndAddToMap(
+        emailThreadId,
+        {
+          emailThreadId,
+          date,
+          domain,
+          emailBody,
+          emailFrom,
+          emailSubject,
+          emailThreadPermaLink,
+          inResponseToEmailMessageId,
+          personFrom,
+          phoneNumbers,
+          salary,
+        },
+        emailBodyFromStringToArray(emailsInBody),
+        emailReplyTo
+      );
+    }
+  });
+  writeEmailsToPendingSheet();
 }
 
 export function initSpreadsheet() {
