@@ -473,42 +473,6 @@ export function extractGMAILDataForFollowUpSearch(
 
     let salaries: number[] = [];
     threads.forEach((thread, _threadIndex) => {
-      // const emailMessageCount = thread.getMessageCount();
-      // const [firstMsg, ...restMsgs] = thread.getMessages();
-
-      // const firstMsgId = firstMsg.getId();
-
-      // const autoResponseMsg = emailMessageCount > 1 ? updateRepliesColumnIfMessageHasReplies(firstMsgId, restMsgs) : [];
-
-      // const from = firstMsg.getFrom();
-      // const emailThreadId = thread.getId();
-      // const emailThreadPermaLink = thread.getPermalink();
-      // const emailSubject = thread.getFirstMessageSubject();
-
-      // const emailBody = firstMsg.getPlainBody();
-      // const replyTo = firstMsg.getReplyTo();
-
-      // /** Use as a backup in case other split methods fail */
-      // // const emailFrom = [...new Set(from.match(regexEmail))];
-      // // const emailReplyTo = [...new Set(replyTo.match(regexEmail))];
-      // const emailFrom = getEmailFromString(from);
-      // const personFrom = from.split('<', 1)[0].trim();
-      // const phoneNumbers = getPhoneNumbersFromString(emailBody);
-      // const emailReplyTo = replyTo ? getEmailFromString(replyTo) : emailFrom;
-
-      // const bodyEmails = [...new Set(emailBody.match(regexEmail))];
-      // const domainFromEmail = (() => {
-      //   const emailSet =
-      //     bodyEmails.length > 0 && getDomainFromEmailAddress(emailFrom) === 'linkedin.com'
-      //       ? new Set(bodyEmails)
-      //       : new Set([...bodyEmails, emailFrom]);
-      //   const emailsArray = Array.from(emailSet).flatMap((email) => getDomainFromEmailAddress(email));
-      //   return Array.from(new Set(emailsArray)).toString();
-      // })();
-      // const salaryRegexArray = emailBody.match(regexSalary);
-      // const salaryAmount = salaryRegexArray ? salaryRegexArray.toString() : '';
-      // const emailMessageId = firstMsg.getId();
-      // const date = firstMsg.getDate();
       const {
         autoResString,
         salaryRegexArray,
