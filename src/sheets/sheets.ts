@@ -1059,6 +1059,8 @@ export function writeEmailDataToReceivedAutomationSheet(emailsForList: EmailList
   if (!autoResultsListSheet) throw Error(`Cannot find ${AUTOMATED_RECEIVED_SHEET_NAME} Sheet`);
 
   if (emailsForList.length > 0) {
+    const { 'Sent Thread Id': sentThreadIdCol } = getAllHeaderColNumsAndLetters({ sheetName: SENT_SHEET_NAME });
+
     const columnsObject = findColumnNumbersOrLettersByHeaderNames({
       sheetName: AUTOMATED_RECEIVED_SHEET_NAME,
       headerName: [
@@ -1068,6 +1070,7 @@ export function writeEmailDataToReceivedAutomationSheet(emailsForList: EmailList
         'Manually Create Pending Email',
         'Warning: Delete Thread Id',
         'Remove Gmail Label',
+        'Last Sent Email Thread Id To This Domain',
       ],
     });
 
@@ -1077,13 +1080,15 @@ export function writeEmailDataToReceivedAutomationSheet(emailsForList: EmailList
     const removeGmalLabelCol = columnsObject['Remove Gmail Label'];
     const manuallyMoveToFollowUpEmailCol = columnsObject['Manually Move To Follow Up Emails'];
     const manuallyCreateEmailDraftCol = columnsObject['Manually Create Pending Email'];
+    const lastSentThreadIdCol = columnsObject['Last Sent Email Thread Id To This Domain'];
     if (
       !dateCol ||
       !archiveThreadIdCol ||
       !deleteThreadIdCol ||
       !removeGmalLabelCol ||
       !manuallyCreateEmailDraftCol ||
-      !manuallyMoveToFollowUpEmailCol
+      !manuallyMoveToFollowUpEmailCol ||
+      !lastSentThreadIdCol
     )
       throw Error(
         `Missing header / column in ${findColumnNumbersOrLettersByHeaderNames.name}, function ${writeEmailDataToReceivedAutomationSheet.name}`
@@ -1119,6 +1124,10 @@ export function writeEmailDataToReceivedAutomationSheet(emailsForList: EmailList
       emailsForList.map((_) => [false]),
       autoResultsListSheet,
       removeGmalLabelCol.colNumber
+    );
+    writeLinkInCellsFromSheetComparison(
+      { sheetToWriteToName: AUTOMATED_RECEIVED_SHEET_NAME, colNumToWriteTo: lastSentThreadIdCol.colNumber },
+      { sheetToLinkFromName: SENT_SHEET_NAME, colNumToLinkFrom: sentThreadIdCol.colNumber }
     );
     setSheetProtection(autoResultsListSheet, 'Automated Results List Protection', [
       archiveThreadIdCol.colLetter,
