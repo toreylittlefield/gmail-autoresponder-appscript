@@ -147,7 +147,6 @@ export function initialGlobalMap(mapName: MapNames) {
               });
             }
           } else {
-            console.log({ domain }, 'setting in map');
             sentEmailsByDomainMap.set(domain, {
               rowObject: keyHeaderRowValuePairs,
               rowArray: row as ValidRowToWriteInSentSheet,
