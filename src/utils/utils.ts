@@ -5,7 +5,8 @@ import {
   pendingEmailsToSendMap,
   alwaysAllowMap,
   ValidRowToWriteInSentSheet,
-  sentEmailsMap,
+  sentEmailsBySentMessageIdMap,
+  sentEmailsByDomainMap,
 } from '../global/maps';
 import { getUserProps } from '../properties-service/properties-service';
 import { getAllDataFromSheet, getAllHeaderColNumsAndLetters, SheetNames } from '../sheets/sheets';
@@ -71,7 +72,8 @@ type MapNames =
   | 'doNotSendMailAutoMap'
   | 'pendingEmailsToSendMap'
   | 'alwaysAllowMap'
-  | 'sentEmailsMap';
+  | 'sentEmailsBySentMessageIdMap'
+  | 'sentEmailsByDomainMap';
 
 export function initialGlobalMap(mapName: MapNames) {
   try {
@@ -107,15 +109,53 @@ export function initialGlobalMap(mapName: MapNames) {
             pendingEmailsToSendMap.set(sendToEmail, true)
         );
         break;
-      case 'sentEmailsMap':
+      case 'sentEmailsBySentMessageIdMap':
         const data = getSheetData(SENT_SHEET_NAME) as ValidRowToWriteInSentSheet[];
         const headers = getAllHeaderColNumsAndLetters<typeof SENT_SHEET_HEADERS>({ sheetName: 'Sent Email Responses' });
         const colNumSentMessageId = headers['Sent Email Message Id'].colNumber;
         data.forEach((row) => {
           const sentMessageId = row[colNumSentMessageId] as string;
-          sentEmailsMap.set(sentMessageId, row as ValidRowToWriteInSentSheet);
+          sentEmailsBySentMessageIdMap.set(sentMessageId, row as ValidRowToWriteInSentSheet);
         });
         break;
+      case 'sentEmailsByDomainMap': {
+        const data = getSheetData(SENT_SHEET_NAME) as ValidRowToWriteInSentSheet[];
+        const headers = getAllHeaderColNumsAndLetters<typeof SENT_SHEET_HEADERS>({
+          sheetName: 'Sent Email Responses',
+        });
+        const colNumDomain = headers['Domain'].colNumber;
+        const colNumSentDate = headers['Sent Email Message Date'].colNumber;
+        const headersAsKeys = Object.keys(headers) as typeof SENT_SHEET_HEADERS[number][];
+
+        data.forEach((row) => {
+          const domain = row[colNumDomain - 1] as string;
+          const sentDate = row[colNumSentDate - 1] as string;
+
+          const keyHeaderRowValuePairs = row.reduce((acc, col, index) => {
+            const key = headersAsKeys[index];
+            acc[key] = col;
+            return acc;
+          }, {} as Record<typeof SENT_SHEET_HEADERS[number], ValidRowToWriteInSentSheet[number]>);
+
+          const existingDomain = sentEmailsByDomainMap.get(domain);
+
+          if (existingDomain) {
+            if (existingDomain.rowObject['Sent Email Message Date'] < sentDate) {
+              sentEmailsByDomainMap.set(domain, {
+                rowObject: keyHeaderRowValuePairs,
+                rowArray: row as ValidRowToWriteInSentSheet,
+              });
+            }
+          } else {
+            console.log({ domain }, 'setting in map');
+            sentEmailsByDomainMap.set(domain, {
+              rowObject: keyHeaderRowValuePairs,
+              rowArray: row as ValidRowToWriteInSentSheet,
+            });
+          }
+        });
+        break;
+      }
       default:
         break;
     }
