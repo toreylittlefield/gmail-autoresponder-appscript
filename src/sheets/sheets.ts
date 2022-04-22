@@ -4,6 +4,7 @@ import {
   EmailReceivedSheetRowItem,
   getEmailByThreadAndAddToMap,
   getToEmailArray,
+  ValidFollowUpSheetRowItem,
 } from '../email/email';
 import {
   alwaysAllowMap,
@@ -26,7 +27,7 @@ import {
   ALWAYS_RESPOND_LIST_INITIAL_DATA,
   ARCHIVED_THREADS_SHEET_HEADERS,
   ARCHIVED_THREADS_SHEET_NAME,
-  ARCHIVE_LABEL_NAME,
+  RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME,
   AUTOMATED_RECEIVED_SHEET_HEADERS,
   AUTOMATED_RECEIVED_SHEET_NAME,
   BOUNCED_SHEET_HEADERS,
@@ -952,9 +953,9 @@ export function archiveOrDeleteSelectEmailThreadIds({ type }: { type: 'archive' 
     ) {
       emailThreadIdsMap.set(emailThreadId, rowNumber);
       if (type === 'archive') {
-        let archiveGmailLabel = GmailApp.getUserLabelByName(ARCHIVE_LABEL_NAME);
+        let archiveGmailLabel = GmailApp.getUserLabelByName(RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME);
         if (!archiveGmailLabel) {
-          archiveGmailLabel = GmailApp.createLabel(ARCHIVE_LABEL_NAME);
+          archiveGmailLabel = GmailApp.createLabel(RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME);
         }
         GmailApp.getThreadById(emailThreadId).addLabel(archiveGmailLabel);
         addRowsToTopOfSheet(1, archivedEmailsSheet as GoogleAppsScript.Spreadsheet.Sheet);
@@ -1144,6 +1145,46 @@ export function writeEmailDataToReceivedAutomationSheet(emailsForList: EmailRece
       manuallyCreateEmailDraftCol.colLetter,
     ]);
   }
+}
+
+export function writeMessagesToFollowUpEmailsSheet(validFollowUpList: ValidFollowUpSheetRowItem[]) {
+  if (validFollowUpList.length === 0) return;
+
+  const followUpSheet = getSheetByName(FOLLOW_UP_EMAILS_SHEET_NAME);
+  if (!followUpSheet)
+    throw Error(`Cannot find ${FOLLOW_UP_EMAILS_SHEET_NAME} Sheet in ${writeMessagesToFollowUpEmailsSheet.name}`);
+
+  const followUpSheetColumnHeaders = getAllHeaderColNumsAndLetters<typeof FOLLOW_UP_EMAILS__SHEET_HEADERS>({
+    sheetName: FOLLOW_UP_EMAILS_SHEET_NAME,
+  });
+
+  const dateOfReceivedEmailCol = followUpSheetColumnHeaders['Date of Received Email'];
+
+  const { numCols, numRows } = getNumRowsAndColsFromArray(validFollowUpList);
+
+  addRowsToTopOfSheet(numRows, followUpSheet);
+
+  setValuesInRangeAndSortSheet(numRows, numCols, validFollowUpList, followUpSheet, {
+    sortByCol: dateOfReceivedEmailCol.colNumber,
+    asc: false,
+  });
+
+  // setCheckedValueForEachRow(
+  //   emailsForList.map((_) => [false]),
+  //   autoResultsListSheet,
+  //   manuallyCreateEmailDraftCol.colNumber
+  // );
+  // writeLinkInCellsFromSheetComparison(
+  //   { sheetToWriteToName: AUTOMATED_RECEIVED_SHEET_NAME, colNumToWriteTo: lastSentThreadIdCol.colNumber },
+  //   { sheetToLinkFromName: SENT_SHEET_NAME, colNumToLinkFrom: sentThreadIdCol.colNumber }
+  // );
+  // setSheetProtection(autoResultsListSheet, 'Automated Results List Protection', [
+  //   archiveThreadIdCol.colLetter,
+  //   deleteThreadIdCol.colLetter,
+  //   removeGmalLabelCol.colLetter,
+  //   manuallyMoveToFollowUpEmailCol.colLetter,
+  //   manuallyCreateEmailDraftCol.colLetter,
+  // ]);
 }
 
 export function manuallyCreateEmailForSelectedRowsInReceivedSheet() {
