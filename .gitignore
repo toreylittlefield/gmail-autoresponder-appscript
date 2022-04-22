@@ -136,6 +136,7 @@ dist
 template.html
 .clasp.json
 .clasp.origin.json
+ignore.js
 
 # vs code
 .vscode/settings.json
