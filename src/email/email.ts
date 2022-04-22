@@ -5,11 +5,17 @@ import {
   EmailDataToSend,
   emailsToAddToPendingSheetMap,
   emailThreadIdsMap,
+  followUpSheetMessageIdMap,
   pendingEmailsToSendMap,
   sentEmailsByDomainMap,
+  sentEmailsBySentMessageIdMap,
 } from '../global/maps';
 import { getSingleUserPropValue, getUserProps } from '../properties-service/properties-service';
-import { addToRepliesArray, writeEmailDataToReceivedAutomationSheet } from '../sheets/sheets';
+import {
+  addToRepliesArray,
+  writeEmailDataToReceivedAutomationSheet,
+  writeMessagesToFollowUpEmailsSheet,
+} from '../sheets/sheets';
 import {
   calcAverage,
   getAtDomainFromEmailAddress,
@@ -20,7 +26,7 @@ import {
   regexEmail,
   regexSalary,
 } from '../utils/utils';
-import { LABEL_NAME, SENT_MESSAGES_LABEL_NAME } from '../variables/publicvariables';
+import { RECEIVED_MESSAGES_LABEL_NAME, SENT_MESSAGES_LABEL_NAME } from '../variables/publicvariables';
 
 type EmailReplySendArray = [emailAddress: string, replyOrNew: EmailDataToSend][];
 
@@ -399,20 +405,15 @@ function getDataInSentMailByDomainMap(domain: string) {
   };
 }
 
-export function makeEmailValidResponseObject(thread: GoogleAppsScript.Gmail.GmailThread) {
-  const emailMessageCount = thread.getMessageCount();
-  const [firstMsg, ...restMsgs] = thread.getMessages();
-  const firstMsgId = firstMsg.getId();
+export function getMessagePropertiesForResponseObject(emailMessage: GoogleAppsScript.Gmail.GmailMessage) {
+  const emailMessageId = emailMessage.getId();
 
-  const autoResponseMsg = emailMessageCount > 1 ? updateRepliesColumnIfMessageHasReplies(firstMsgId, restMsgs) : [];
+  const from = emailMessage.getFrom();
 
-  const from = firstMsg.getFrom();
-  const emailThreadId = thread.getId();
-  const emailThreadPermaLink = thread.getPermalink();
-  const emailSubject = thread.getFirstMessageSubject();
+  const emailSubject = emailMessage.getSubject();
 
-  const emailBody = firstMsg.getPlainBody();
-  const replyTo = firstMsg.getReplyTo();
+  const emailBody = emailMessage.getPlainBody();
+  const replyTo = emailMessage.getReplyTo();
 
   /** Use as a backup in case other split methods fail */
   // const emailFrom = [...new Set(from.match(regexEmail))];
@@ -433,12 +434,62 @@ export function makeEmailValidResponseObject(thread: GoogleAppsScript.Gmail.Gmai
   })();
   const salaryRegexArray = emailBody.match(regexSalary);
   const salaryAmount = salaryRegexArray ? salaryRegexArray.toString() : '';
-  const emailMessageId = firstMsg.getId();
-  const date = firstMsg.getDate();
+  const date = emailMessage.getDate();
   const bodyEmailsString = bodyEmails.length > 0 ? bodyEmails.toString() : undefined;
-  const autoResString = autoResponseMsg.length > 0 ? getToEmailArray(autoResponseMsg) : (false as const);
 
   const { lastSentDate, sentThreadId, sentDraftSubject, sentToPerson } = getDataInSentMailByDomainMap(domainFromEmail);
+
+  return {
+    emailMessageId,
+    emailBody,
+    emailSubject,
+    personFrom,
+    phoneNumbers,
+    salaryRegexArray,
+    emailFrom,
+    bodyEmails,
+    domainFromEmail,
+    emailReplyTo,
+    salaryAmount,
+    date,
+    bodyEmailsString,
+    lastSentDate,
+    sentThreadId,
+    sentDraftSubject,
+    sentToPerson,
+  };
+}
+
+export function makeEmailValidResponseObject(thread: GoogleAppsScript.Gmail.GmailThread) {
+  const emailMessageCount = thread.getMessageCount();
+  const [firstMsg, ...restMsgs] = thread.getMessages();
+  const firstMsgId = firstMsg.getId();
+
+  const autoResponseMsg = emailMessageCount > 1 ? updateRepliesColumnIfMessageHasReplies(firstMsgId, restMsgs) : [];
+
+  const emailThreadId = thread.getId();
+  const emailThreadPermaLink = thread.getPermalink();
+  const {
+    emailMessageId,
+    date,
+    emailReplyTo,
+    emailSubject,
+    bodyEmailsString,
+    salaryRegexArray,
+    emailFrom,
+    bodyEmails,
+    domainFromEmail,
+    lastSentDate,
+    emailBody,
+    personFrom,
+    phoneNumbers,
+    salaryAmount,
+    sentDraftSubject,
+    sentThreadId,
+    sentToPerson,
+  } = getMessagePropertiesForResponseObject(firstMsg);
+
+  const autoResString = autoResponseMsg.length > 0 ? getToEmailArray(autoResponseMsg) : (false as const);
 
   return {
     emailThreadId,
@@ -465,6 +516,34 @@ export function makeEmailValidResponseObject(thread: GoogleAppsScript.Gmail.Gmai
   };
 }
 
+export type ValidFollowUpSheetRowItem = [
+  EmailThreadId: string,
+  EmailMessageId: string,
+  DateOfEmail: GoogleAppsScript.Base.Date,
+  EmailFrom: string,
+  EmailSendReplyTo: string,
+  EmailSubject: string,
+  EmailsInBodyList: string | undefined,
+  EmailBody: string,
+  DomainOfSender: string,
+  PersonCompanyName: string,
+  PhoneNumbers: string,
+  Salary: string | undefined,
+  EmailThreadPermalink: string,
+  ViewInGmailLink: string,
+  FollowUpToSentThreadId: string,
+  FollowUpToSentEmailMessageId: string,
+  FollowUpToSentEmailDate: GoogleAppsScript.Base.Date | undefined,
+  FollowUpToSendThreadPermaLink: string,
+  DateOfLastMessageInEmailThread: GoogleAppsScript.Base.Date,
+  ArchiveThreadIdCheckbox: false,
+  DeleteThreadIdCheckbox: false,
+  RemoveGmailLabelCheckbox: false,
+  AddFollowUpGmailLabelCheckbox: false,
+  ManualRepliedToEmailCheckbox: false,
+  ManualRepliedToEmailDateCheckbox: GoogleAppsScript.Base.Date | undefined
+];
+
 export function extractGMAILDataForFollowUpSearch(
   email: string,
   labelToSearch: string,
@@ -472,7 +551,7 @@ export function extractGMAILDataForFollowUpSearch(
   _event?: GoogleAppsScript.Events.TimeDriven
 ) {
   try {
-    const emailsForList: EmailReceivedSheetRowItem[] = [];
+    const validRowInFollowUpSheet: ValidFollowUpSheetRowItem[] = [];
 
     // Exclude this label:
     // (And creates it if it doesn't exist)
@@ -482,63 +561,126 @@ export function extractGMAILDataForFollowUpSearch(
     // const threads = GmailApp.search(
     //   "-subject:'re:' -is:chats -is:draft has:nouserlabels -label:" + LABEL_NAME + ' to:(' + EMAIL_ACCOUNT + ')'
     // );
-    const threads = GmailApp.search(`label:${labelToSearch} -label:${labelToExclude} to:(${email})`);
+    const sentThreads = GmailApp.search(`label:${labelToSearch} -label:${labelToExclude} to:(${email})`);
     // const threads = GmailApp.search(`label:sent-email-auto-responder-label -label: to:(hi@toreylittlefield.dev)`);
 
-    let salaries: number[] = [];
-    threads.forEach((thread, _threadIndex) => {
-      const {
-        autoResString,
-        bodyEmailsString,
-        date,
-        domainFromEmail,
-        emailBody,
-        emailFrom,
-        emailMessageId,
-        emailReplyToString,
-        emailSubject,
-        emailThreadId,
-        emailThreadPermaLink,
-        personFrom,
-        phoneNumbers,
-        salaryAmount,
-        lastSentDate,
-        sentThreadId,
-        sentDraftSubject,
-        sentToPerson,
-      } = makeEmailValidResponseObject(thread);
+    sentThreads.forEach((sentThread, _threadIndex) => {
+      const messagesInSentThread = sentThread.getMessages();
+      messagesInSentThread.forEach((message) => {
+        const messageIdToCompare = message.getId();
+        // already exists in the follow up sheet
+        if (followUpSheetMessageIdMap.has(messageIdToCompare)) return;
 
+        const from = message.getFrom();
+        const fromEmail = getEmailFromString(from);
+        if (fromEmail === email) return;
+        // const threadId = sentThread.getId();
+        // const emailSubject = sentThread.getFirstMessageSubject();
+        // const threadPermaLink = sentThread.getPermalink();
+        const lastMessageDate = sentThread.getLastMessageDate();
+
+        const {
+          emailThreadId,
+          emailMessageId,
+          bodyEmailsString,
+          date,
+          domainFromEmail,
+          emailBody,
+          emailFrom,
+          emailReplyToString,
+          emailSubject,
+          emailThreadPermaLink,
+          personFrom,
+          phoneNumbers,
+          salaryAmount,
+          // autoResString,
+          // lastSentDate,
+          // sentThreadId,
+          // sentDraftSubject,
+          // sentToPerson,
+          // bodyEmails,
+          // emailReplyTo,
+          // salaryRegexArray,
+        } = makeEmailValidResponseObject(sentThread);
+
+        let sentThreadId = '';
+        let sentMessageId = '';
+        let sentMessageDate;
+        let sentThreadPermaLink = '';
+        const sentData = sentEmailsBySentMessageIdMap.get(emailMessageId);
+        if (sentData) {
+          const {
+            'Sent Thread Id': sentThreadIdData,
+            'Sent Email Message Id': sentMessageIdData,
+            'Sent Email Message Date': sentMessageDateData,
+            'Sent Thread PermaLink': sentThreadPermaLinkData,
+          } = sentData.rowObject;
+          sentThreadId = sentThreadIdData as string;
+          (sentMessageId = sentMessageIdData as string),
+            (sentMessageDate = sentMessageDateData as GoogleAppsScript.Base.Date),
+            (sentThreadPermaLink = sentThreadPermaLinkData as string);
+        }
+
+        validRowInFollowUpSheet.push([
+          emailThreadId,
+          emailMessageId,
+          date,
+          emailFrom,
+          emailReplyToString,
+          emailSubject,
+          bodyEmailsString,
+          emailBody,
+          domainFromEmail,
+          personFrom,
+          phoneNumbers,
+          salaryAmount,
+          emailThreadPermaLink,
+          `https://mail.google.com/mail/u/0/#label/auto-responder-sent-email-label/${emailMessageId}`,
+          sentThreadId,
+          sentMessageId,
+          sentMessageDate,
+          sentThreadPermaLink,
+          lastMessageDate,
+          false,
+          false,
+          false,
+          false,
+          false,
+          undefined,
+        ]);
+      });
       // TODO: Check For Replies / Follow Up Messages?
-      if (emailThreadIdsMap.has(emailThreadId)) return;
+      // if (emailThreadIdsMap.has(emailThreadId)) return;
 
-      emailsForList.push([
-        emailThreadId,
-        emailMessageId,
-        date,
-        emailFrom,
-        emailReplyToString,
-        emailSubject,
-        bodyEmailsString,
-        emailBody,
-        domainFromEmail,
-        personFrom,
-        phoneNumbers,
-        salaryAmount,
-        emailThreadPermaLink,
-        autoResString,
-        lastSentDate,
-        sentThreadId,
-        sentDraftSubject,
-        sentToPerson,
-      ]);
+      /**
+       *   
+  EmailsInBody: string | undefined,
+  EmailsInBodyList: string | undefined,
+  EmailBody: string,
+  DomainOfSender: string,
+  PersonCompanyName: string,
+  PhoneNumbers: string,
+  Salary: string | undefined,
+  EmailThreadPermalink: string,
+  ViewInGmailLink: string,
+  FollowUpToSentThreadId: string,
+  FollowUpToSentEmailMessageId: string,
+  FollowUpToSentEmailDate: GoogleAppsScript.Base.Date | undefined,
+  FollowUpToSendThreadPermaLink: string,
+  DateOfLastMessageInEmailThread: GoogleAppsScript.Base.Date,
+  ArchiveThreadIdCheckbox: false,
+  DeleteThreadIdCheckbox: false,
+  RemoveGmailLabelCheckbox: false,
+  AddFollowUpGmailLabelCheckbox: false,
+  ManualRepliedToEmailCheckbox: false,
+  ManualRepliedToEmailDateCheckbox: GoogleAppsScript.Base.Date | undefined
+       */
 
       // Add label to email for exclusion
       // thread.addLabel(label);
     });
-
+    writeMessagesToFollowUpEmailsSheet(validRowInFollowUpSheet);
     // writeEmailDataToReceivedAutomationSheet(emailsForList);
-
-    console.log({ salaries: calcAverage(salaries) });
   } catch (error) {
     console.error(error as any);
   }
@@ -563,7 +705,7 @@ export function createFilterAndLabel(currentEmail: string) {
         backgroundColor: '#42d692',
         textColor: '#ffffff',
       },
-      name: LABEL_NAME,
+      name: RECEIVED_MESSAGES_LABEL_NAME,
       labelListVisibility: 'labelShow',
       messageListVisibility: 'show',
       type: 'user',
