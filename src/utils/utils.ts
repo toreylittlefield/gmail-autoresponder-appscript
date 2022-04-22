@@ -118,9 +118,14 @@ export function initialGlobalMap(mapName: MapNames) {
         );
         break;
       case 'followUpSheetMessageIdMap':
-        getSheetData(FOLLOW_UP_EMAILS_SHEET_NAME).forEach(([_emailThreadId, emailMessageId]) =>
-          pendingEmailsToSendMap.set(emailMessageId, true)
-        );
+        {
+          const headersColumns = getAllHeaderColNumsAndLetters({ sheetName: FOLLOW_UP_EMAILS_SHEET_NAME });
+          const emailMessageIdColNumber = headersColumns['Email Message Id'].colNumber;
+
+          getSheetData(FOLLOW_UP_EMAILS_SHEET_NAME).forEach((row) => {
+            pendingEmailsToSendMap.set(row[emailMessageIdColNumber - 1], true);
+          });
+        }
         break;
       case 'sentEmailsBySentMessageIdMap':
         const data = getSheetData(SENT_SHEET_NAME) as ValidRowToWriteInSentSheet[];
