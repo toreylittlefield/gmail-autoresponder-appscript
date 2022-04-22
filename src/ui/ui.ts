@@ -20,7 +20,7 @@ import {
   sendOrMoveManuallyOrDeleteDraftsInPendingSheet,
   WarningResetSheetsAndSpreadsheet,
 } from '../sheets/sheets';
-import { ARCHIVE_LABEL_NAME } from '../variables/publicvariables';
+import { RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME } from '../variables/publicvariables';
 
 const menuName = `Autoresponder Email Settings Menu`;
 
@@ -112,7 +112,7 @@ export function archiveSelectRowsInAutoReceivedSheet() {
     `Archive Selected Rows`,
     `All rows with the "Archive" checkbox will be moved to the "Archive" sheet. Use this to clean up rows you don't want to see any more.
     
-    Archiving applies a GMAIL label ${ARCHIVE_LABEL_NAME} to the email thread in Gmail. This action means it will not appear again in the recieved emails sheet. 
+    Archiving applies a GMAIL label ${RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME} to the email thread in Gmail. This action means it will not appear again in the recieved emails sheet. 
     To undo this you'll have to manually remove the label in GMAIL and run "Get Emails" again`,
     ui.ButtonSet.OK_CANCEL
   );
