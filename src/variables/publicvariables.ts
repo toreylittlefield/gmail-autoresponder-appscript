@@ -1,11 +1,14 @@
 /** Label to create for and attach to email messages */
-export const LABEL_NAME = 'auto-responder-received-label';
+export const RECEIVED_MESSAGES_LABEL_NAME = 'auto-responder-received-label';
 
 /** Label for archived email threads */
-export const ARCHIVE_LABEL_NAME = 'auto-responder-archived-label';
+export const RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME = 'auto-responder-archived-label';
 
 /** Label for send / moved emails drafts/messaged for follow up responses GMAIL search */
 export const SENT_MESSAGES_LABEL_NAME = 'auto-responder-sent-email-label';
+
+/** Label for send / moved emails drafts/messaged for follow up responses GMAIL search */
+export const SENT_MESSAGES_ARCHIVE_LABEL_NAME = 'auto-responder-sent-email-archived-label';
 
 /** Label for send / moved emails drafts/messaged for follow up responses GMAIL search */
 export const FOLLOW_UP_MESSAGES_LABEL_NAME = 'auto-responder-follow-up-label';
@@ -114,6 +117,7 @@ export const FOLLOW_UP_EMAILS__SHEET_HEADERS = [
   'From Email',
   'Send Email To',
   'Received Email Subject',
+  'Body Emails',
   'Received Email Body',
   'Domain',
   'Person / Company Name',
