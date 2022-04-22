@@ -73,6 +73,7 @@ type MapNames =
   | 'doNotTrackMap'
   | 'doNotSendMailAutoMap'
   | 'pendingEmailsToSendMap'
+  | 'followUpSheetMessageIdMap'
   | 'alwaysAllowMap'
   | 'sentEmailsBySentMessageIdMap'
   | 'sentEmailsByDomainMap';
@@ -116,13 +117,30 @@ export function initialGlobalMap(mapName: MapNames) {
             pendingEmailsToSendMap.set(sendToEmail, true)
         );
         break;
+      case 'followUpSheetMessageIdMap':
+        getSheetData(FOLLOW_UP_EMAILS_SHEET_NAME).forEach(([_emailThreadId, emailMessageId]) =>
+          pendingEmailsToSendMap.set(emailMessageId, true)
+        );
+        break;
       case 'sentEmailsBySentMessageIdMap':
         const data = getSheetData(SENT_SHEET_NAME) as ValidRowToWriteInSentSheet[];
         const headers = getAllHeaderColNumsAndLetters<typeof SENT_SHEET_HEADERS>({ sheetName: 'Sent Email Responses' });
         const colNumSentMessageId = headers['Sent Email Message Id'].colNumber;
+        const headersAsKeys = Object.keys(headers) as typeof SENT_SHEET_HEADERS[number][];
+
         data.forEach((row) => {
-          const sentMessageId = row[colNumSentMessageId] as string;
-          sentEmailsBySentMessageIdMap.set(sentMessageId, row as ValidRowToWriteInSentSheet);
+          const sentMessageId = row[colNumSentMessageId - 1] as string;
+
+          const keyHeaderRowValuePairs = row.reduce((acc, col, index) => {
+            const key = headersAsKeys[index];
+            acc[key] = col;
+            return acc;
+          }, {} as Record<typeof SENT_SHEET_HEADERS[number], ValidRowToWriteInSentSheet[number]>);
+
+          sentEmailsBySentMessageIdMap.set(sentMessageId, {
+            rowArray: row as ValidRowToWriteInSentSheet,
+            rowObject: keyHeaderRowValuePairs,
+          });
         });
         break;
       case 'sentEmailsByDomainMap': {
