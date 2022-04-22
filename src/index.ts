@@ -32,9 +32,11 @@ import {
 import { hasAllRequiredUserProps, initialGlobalMap } from './utils/utils';
 import {
   allSheets,
-  ARCHIVE_LABEL_NAME,
+  RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME,
   AUTOMATED_RECEIVED_SHEET_NAME,
   PENDING_EMAILS_TO_SEND_SHEET_NAME,
+  SENT_MESSAGES_ARCHIVE_LABEL_NAME,
+  SENT_MESSAGES_LABEL_NAME,
 } from './variables/publicvariables';
 
 // (?:for\W)(.*)(?= at)(?: at\W)(.*) match linkedin email "you applied at..."
@@ -70,8 +72,12 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
     initialGlobalMap('doNotSendMailAutoMap');
     initialGlobalMap('pendingEmailsToSendMap');
     initialGlobalMap('sentEmailsByDomainMap');
+    initialGlobalMap('followUpSheetMessageIdMap');
+    initialGlobalMap('sentEmailsBySentMessageIdMap');
 
-    extractGMAILDataForNewMessagesReceivedSearch(email, labelToSearch, ARCHIVE_LABEL_NAME, e);
+    extractGMAILDataForNewMessagesReceivedSearch(email, labelToSearch, RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME, e);
+
+    extractGMAILDataForFollowUpSearch(email, SENT_MESSAGES_LABEL_NAME, SENT_MESSAGES_ARCHIVE_LABEL_NAME);
 
     writeDomainsListToDoNotRespondSheet;
     writeEmailsToPendingSheet();
