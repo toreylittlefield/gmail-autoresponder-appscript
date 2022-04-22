@@ -65,7 +65,13 @@ export type ValidRowToWriteInSentSheet = [
   sentThreadPermaLink: string
 ];
 /** map of all sent emails in the sent email responses sheet with the sent message ID as the key  */
-export const sentEmailsBySentMessageIdMap = new Map<string, ValidRowToWriteInSentSheet>();
+export const sentEmailsBySentMessageIdMap = new Map<
+  string,
+  {
+    rowObject: Record<typeof SENT_SHEET_HEADERS[number], ValidRowToWriteInSentSheet[number]>;
+    rowArray: ValidRowToWriteInSentSheet;
+  }
+>();
 
 /** map of all sent emails in the sent email responses sheet with the domain as the key  */
 export const sentEmailsByDomainMap = new Map<
@@ -76,5 +82,5 @@ export const sentEmailsByDomainMap = new Map<
   }
 >();
 
-/** map of all emails in pending to send sheet, key is "send email to", value is true,  */
-export const followUpEmailsSheet = new Map<string, true>();
+/** map of all rows in the follow up  sheet, key is "received message id", value is true,  */
+export const followUpSheetMessageIdMap = new Map<string, true>();
