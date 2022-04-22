@@ -564,6 +564,11 @@ export function extractGMAILDataForFollowUpSearch(
     const sentThreads = GmailApp.search(`label:${labelToSearch} -label:${labelToExclude} to:(${email})`);
 
     sentThreads.forEach((sentThread, _threadIndex) => {
+      let sentThreadId = '';
+      let sentMessageId = '';
+      let sentMessageDate: undefined | GoogleAppsScript.Base.Date = undefined;
+      let sentThreadPermaLink = '';
+
       const messagesInSentThread = sentThread.getMessages();
       messagesInSentThread.forEach((message) => {
         const messageIdToCompare = message.getId();
@@ -573,7 +578,23 @@ export function extractGMAILDataForFollowUpSearch(
 
         const from = message.getFrom();
         const fromEmail = getEmailFromString(from);
-        if (fromEmail === email) return;
+
+        if (fromEmail === email) {
+          const sentData = sentEmailsBySentMessageIdMap.get(message.getId());
+          if (sentData) {
+            const {
+              'Sent Thread Id': sentThreadIdData,
+              'Sent Email Message Id': sentMessageIdData,
+              'Sent Email Message Date': sentMessageDateData,
+              'Sent Thread PermaLink': sentThreadPermaLinkData,
+            } = sentData.rowObject;
+            sentThreadId = sentThreadIdData as string;
+            sentMessageId = sentMessageIdData as string;
+            sentMessageDate = sentMessageDateData as GoogleAppsScript.Base.Date;
+            sentThreadPermaLink = sentThreadPermaLinkData as string;
+          }
+          return;
+        }
         const emailThreadId = sentThread.getId();
         // const emailSubject = sentThread.getFirstMessageSubject();
         const emailThreadPermaLink = sentThread.getPermalink();
@@ -592,24 +613,6 @@ export function extractGMAILDataForFollowUpSearch(
           phoneNumbers,
           salaryAmount,
         } = getMessagePropertiesForResponseObject(message);
-
-        let sentThreadId = '';
-        let sentMessageId = '';
-        let sentMessageDate;
-        let sentThreadPermaLink = '';
-        const sentData = sentEmailsBySentMessageIdMap.get(emailMessageId);
-        if (sentData) {
-          const {
-            'Sent Thread Id': sentThreadIdData,
-            'Sent Email Message Id': sentMessageIdData,
-            'Sent Email Message Date': sentMessageDateData,
-            'Sent Thread PermaLink': sentThreadPermaLinkData,
-          } = sentData.rowObject;
-          sentThreadId = sentThreadIdData as string;
-          (sentMessageId = sentMessageIdData as string),
-            (sentMessageDate = sentMessageDateData as GoogleAppsScript.Base.Date),
-            (sentThreadPermaLink = sentThreadPermaLinkData as string);
-        }
 
         validRowInFollowUpSheet.push([
           emailThreadId,
