@@ -72,11 +72,12 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
     initialGlobalMap('doNotSendMailAutoMap');
     initialGlobalMap('pendingEmailsToSendMap');
     initialGlobalMap('sentEmailsByDomainMap');
-    initialGlobalMap('followUpSheetMessageIdMap');
     initialGlobalMap('sentEmailsBySentMessageIdMap');
 
     extractGMAILDataForNewMessagesReceivedSearch(email, labelToSearch, RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME, e);
 
+    // order initializing this map matters as writing to the received automation sheet should occur first
+    initialGlobalMap('followUpSheetMessageIdMap');
     extractGMAILDataForFollowUpSearch(email, SENT_MESSAGES_LABEL_NAME, SENT_MESSAGES_ARCHIVE_LABEL_NAME);
 
     writeDomainsListToDoNotRespondSheet;
