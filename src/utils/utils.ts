@@ -88,15 +88,15 @@ export function initialGlobalMap(mapName: MapNames) {
     };
     switch (mapName) {
       case 'autoReceivedSheetEmailThreadIdsMap':
-        getSheetData(`${AUTOMATED_RECEIVED_SHEET_NAME}`).forEach(([emailThreadId], index) =>
-          emailThreadIdsMap.set(emailThreadId, index + 2)
+        getSheetData(`${AUTOMATED_RECEIVED_SHEET_NAME}`).forEach(([emailThreadId, messageId], index) =>
+          emailThreadIdsMap.set(emailThreadId, { rowNumber: index + 2, emailMessageId: messageId })
         );
         break;
-      case 'followUpSheetEmailThreadIdsMap':
-        getSheetData(FOLLOW_UP_EMAILS_SHEET_NAME).forEach(([emailThreadId], index) =>
-          emailThreadIdsMap.set(emailThreadId, index + 2)
-        );
-        break;
+      // case 'followUpSheetEmailThreadIdsMap':
+      //   getSheetData(FOLLOW_UP_EMAILS_SHEET_NAME).forEach(([emailThreadId], index) =>
+      //     emailThreadIdsMap.set(emailThreadId, index + 2)
+      //   );
+      //   break;
       case 'doNotTrackMap':
         getSheetData(DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME).forEach(([domainOrEmail]) =>
           doNotTrackMap.set(domainOrEmail, true)

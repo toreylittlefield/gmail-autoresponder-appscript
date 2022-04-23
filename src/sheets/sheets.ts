@@ -925,14 +925,21 @@ export function archiveOrDeleteSelectEmailThreadIds({ type }: { type: 'archive' 
 
   const columnsObject = findColumnNumbersOrLettersByHeaderNames({
     sheetName: AUTOMATED_RECEIVED_SHEET_NAME,
-    headerName: ['Email Thread Id', 'Warning: Delete Thread Id', 'Archive Thread Id', 'Remove Gmail Label'],
+    headerName: [
+      'Email Thread Id',
+      'Warning: Delete Thread Id',
+      'Archive Thread Id',
+      'Remove Gmail Label',
+      'Email Message Id',
+    ],
   });
   const emailThreadIdCol = columnsObject['Email Thread Id'];
+  const emailMessageIdCol = columnsObject['Email Message Id'];
   const archiveThreadIdCol = columnsObject['Archive Thread Id'];
   const deleteThreadIdCol = columnsObject['Warning: Delete Thread Id'];
   const removeGmailLabelIdCol = columnsObject['Remove Gmail Label'];
 
-  if (!archiveThreadIdCol || !deleteThreadIdCol || !removeGmailLabelIdCol || !emailThreadIdCol)
+  if (!archiveThreadIdCol || !deleteThreadIdCol || !removeGmailLabelIdCol || !emailThreadIdCol || !emailMessageIdCol)
     throw Error(
       `Cannot find col / header to delete, archive, or remove label in function ${
         archiveOrDeleteSelectEmailThreadIds.name
@@ -942,6 +949,7 @@ export function archiveOrDeleteSelectEmailThreadIds({ type }: { type: 'archive' 
   let rowNumber: number = 2;
   automatedReceivedSheetData.forEach((row) => {
     const emailThreadId = row[emailThreadIdCol.colNumber - 1];
+    const emailMessageId = row[emailMessageIdCol.colNumber - 1];
     const archiveCheckBox = row[archiveThreadIdCol.colNumber - 1];
     const deleteCheckBox = row[deleteThreadIdCol.colNumber - 1];
     const removeLabelCheckbox = row[removeGmailLabelIdCol.colNumber - 1];
@@ -951,7 +959,7 @@ export function archiveOrDeleteSelectEmailThreadIds({ type }: { type: 'archive' 
       (type === 'delete' && deleteCheckBox === true) ||
       (type === 'remove gmail label' && removeLabelCheckbox === true)
     ) {
-      emailThreadIdsMap.set(emailThreadId, rowNumber);
+      emailThreadIdsMap.set(emailThreadId, { rowNumber, emailMessageId });
       if (type === 'archive') {
         let archiveGmailLabel = GmailApp.getUserLabelByName(RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME);
         if (!archiveGmailLabel) {
@@ -986,7 +994,7 @@ export function archiveOrDeleteSelectEmailThreadIds({ type }: { type: 'archive' 
     rowNumber++;
   });
 
-  emailThreadIdsMap.forEach((rowNumber, _emailThreadIdToDelete) => {
+  emailThreadIdsMap.forEach(({ rowNumber }, _emailThreadIdToDelete) => {
     automatedReceivedSheet.deleteRow(rowNumber);
   });
 }
