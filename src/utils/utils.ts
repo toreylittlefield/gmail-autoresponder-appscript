@@ -7,6 +7,7 @@ import {
   ValidRowToWriteInSentSheet,
   sentEmailsBySentMessageIdMap,
   sentEmailsByDomainMap,
+  followUpSheetMessageIdMap,
 } from '../global/maps';
 import { getUserProps } from '../properties-service/properties-service';
 import { getAllDataFromSheet, getAllHeaderColNumsAndLetters, SheetNames } from '../sheets/sheets';
@@ -123,7 +124,7 @@ export function initialGlobalMap(mapName: MapNames) {
           const emailMessageIdColNumber = headersColumns['Email Message Id'].colNumber;
 
           getSheetData(FOLLOW_UP_EMAILS_SHEET_NAME).forEach((row) => {
-            pendingEmailsToSendMap.set(row[emailMessageIdColNumber - 1], true);
+            followUpSheetMessageIdMap.set(row[emailMessageIdColNumber - 1], true);
           });
         }
         break;
