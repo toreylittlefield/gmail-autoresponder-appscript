@@ -1167,6 +1167,19 @@ export function writeMessagesToFollowUpEmailsSheet(validFollowUpList: ValidFollo
   });
 
   const dateOfReceivedEmailCol = followUpSheetColumnHeaders['Date of Received Email'];
+  const archiveThreadIdCol = followUpSheetColumnHeaders['Archive Thread Id'];
+  const deleteThreadIdCol = followUpSheetColumnHeaders['Warning: Delete Thread Id'];
+  const removeGmailLabelCol = followUpSheetColumnHeaders['Remove Gmail Label'];
+  const addFollowUpLabelCol = followUpSheetColumnHeaders['Add Follows Up Gmail Label'];
+  const manualRepliedToEmailCheckboxCol = followUpSheetColumnHeaders['Manual: Replied To Email'];
+
+  const checkboxesColNumbersArray = [
+    archiveThreadIdCol.colNumber,
+    deleteThreadIdCol.colNumber,
+    removeGmailLabelCol.colNumber,
+    addFollowUpLabelCol.colNumber,
+    manualRepliedToEmailCheckboxCol.colNumber,
+  ];
 
   const { numCols, numRows } = getNumRowsAndColsFromArray(validFollowUpList);
 
@@ -1177,11 +1190,13 @@ export function writeMessagesToFollowUpEmailsSheet(validFollowUpList: ValidFollo
     asc: false,
   });
 
-  // setCheckedValueForEachRow(
-  //   emailsForList.map((_) => [false]),
-  //   autoResultsListSheet,
-  //   manuallyCreateEmailDraftCol.colNumber
-  // );
+  checkboxesColNumbersArray.forEach((colNumber) => {
+    setCheckedValueForEachRow(
+      validFollowUpList.map((_) => [false]),
+      followUpSheet,
+      colNumber
+    );
+  });
   // writeLinkInCellsFromSheetComparison(
   //   { sheetToWriteToName: AUTOMATED_RECEIVED_SHEET_NAME, colNumToWriteTo: lastSentThreadIdCol.colNumber },
   //   { sheetToLinkFromName: SENT_SHEET_NAME, colNumToLinkFrom: sentThreadIdCol.colNumber }
