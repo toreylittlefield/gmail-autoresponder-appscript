@@ -1180,6 +1180,13 @@ export function writeMessagesToFollowUpEmailsSheet(validFollowUpList: ValidFollo
     addFollowUpLabelCol.colNumber,
     manualRepliedToEmailCheckboxCol.colNumber,
   ];
+  const checkboxesColLettersArray = [
+    archiveThreadIdCol.colLetter,
+    deleteThreadIdCol.colLetter,
+    removeGmailLabelCol.colLetter,
+    addFollowUpLabelCol.colLetter,
+    manualRepliedToEmailCheckboxCol.colLetter,
+  ];
 
   const { numCols, numRows } = getNumRowsAndColsFromArray(validFollowUpList);
 
@@ -1201,13 +1208,7 @@ export function writeMessagesToFollowUpEmailsSheet(validFollowUpList: ValidFollo
   //   { sheetToWriteToName: AUTOMATED_RECEIVED_SHEET_NAME, colNumToWriteTo: lastSentThreadIdCol.colNumber },
   //   { sheetToLinkFromName: SENT_SHEET_NAME, colNumToLinkFrom: sentThreadIdCol.colNumber }
   // );
-  // setSheetProtection(autoResultsListSheet, 'Automated Results List Protection', [
-  //   archiveThreadIdCol.colLetter,
-  //   deleteThreadIdCol.colLetter,
-  //   removeGmalLabelCol.colLetter,
-  //   manuallyMoveToFollowUpEmailCol.colLetter,
-  //   manuallyCreateEmailDraftCol.colLetter,
-  // ]);
+  setSheetProtection(followUpSheet, 'Follow Up Sheet Results List Protection', checkboxesColLettersArray);
 }
 
 export function manuallyCreateEmailForSelectedRowsInReceivedSheet() {
