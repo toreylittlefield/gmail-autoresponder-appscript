@@ -196,8 +196,8 @@ function updateRepliesColumnIfMessageHasReplies(firstMsgId: string, restMsgs: Go
   const autoResponseMsg = getAutoResponseMsgsFromThread(restMsgs);
 
   if (autoResponseMsg.length > 0 && messageAlreadyExists) {
-    const rowNumber = emailThreadIdsMap.get(firstMsgId) as number;
-    addToRepliesArray(rowNumber, autoResponseMsg);
+    const data = emailThreadIdsMap.get(firstMsgId);
+    addToRepliesArray(data ? data.rowNumber : 0, autoResponseMsg);
   }
 
   return autoResponseMsg;
@@ -570,8 +570,13 @@ export function extractGMAILDataForFollowUpSearch(
       let sentThreadPermaLink = '';
 
       const messagesInSentThread = sentThread.getMessages();
+
       messagesInSentThread.forEach((message) => {
         const messageIdToCompare = message.getId();
+
+        // return if message already exist in received automation sheet
+        const receivedSheetData = emailThreadIdsMap.get(sentThread.getId());
+        if (receivedSheetData && receivedSheetData.emailMessageId === messageIdToCompare) return;
 
         // already exists in the follow up sheet
         if (followUpSheetMessageIdMap.has(messageIdToCompare)) return;
