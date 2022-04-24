@@ -1165,8 +1165,23 @@ export function writeMessagesToFollowUpEmailsSheet(validFollowUpList: ValidFollo
   const followUpSheetColumnHeaders = getAllHeaderColNumsAndLetters<typeof FOLLOW_UP_EMAILS__SHEET_HEADERS>({
     sheetName: FOLLOW_UP_EMAILS_SHEET_NAME,
   });
+  const sentSheetColumnHeaders = getAllHeaderColNumsAndLetters<typeof SENT_SHEET_HEADERS>({
+    sheetName: SENT_SHEET_NAME,
+  });
+  const automatedReceivedSheetColumnHeaders = getAllHeaderColNumsAndLetters<typeof AUTOMATED_RECEIVED_SHEET_HEADERS>({
+    sheetName: AUTOMATED_RECEIVED_SHEET_NAME,
+  });
 
   const dateOfReceivedEmailCol = followUpSheetColumnHeaders['Date of Received Email'];
+
+  // link sent / followup sheet columns for email message id
+  const responseToSentEmailMessageIdCol = followUpSheetColumnHeaders['Response To Sent Email Message Id'];
+  const sentEmailMessageIdCol = sentSheetColumnHeaders['Sent Email Message Id'];
+
+  // link email thread ids columns for received & follow up sheets
+  const receivedEmailThreadIdCol = automatedReceivedSheetColumnHeaders['Email Thread Id'];
+  const followupEmailThreadIdCol = followUpSheetColumnHeaders['Email Thread Id'];
+
   const archiveThreadIdCol = followUpSheetColumnHeaders['Archive Thread Id'];
   const deleteThreadIdCol = followUpSheetColumnHeaders['Warning: Delete Thread Id'];
   const removeGmailLabelCol = followUpSheetColumnHeaders['Remove Gmail Label'];
@@ -1204,10 +1219,14 @@ export function writeMessagesToFollowUpEmailsSheet(validFollowUpList: ValidFollo
       colNumber
     );
   });
-  // writeLinkInCellsFromSheetComparison(
-  //   { sheetToWriteToName: AUTOMATED_RECEIVED_SHEET_NAME, colNumToWriteTo: lastSentThreadIdCol.colNumber },
-  //   { sheetToLinkFromName: SENT_SHEET_NAME, colNumToLinkFrom: sentThreadIdCol.colNumber }
-  // );
+  writeLinkInCellsFromSheetComparison(
+    { sheetToWriteToName: FOLLOW_UP_EMAILS_SHEET_NAME, colNumToWriteTo: responseToSentEmailMessageIdCol.colNumber },
+    { sheetToLinkFromName: SENT_SHEET_NAME, colNumToLinkFrom: sentEmailMessageIdCol.colNumber }
+  );
+  writeLinkInCellsFromSheetComparison(
+    { sheetToWriteToName: FOLLOW_UP_EMAILS_SHEET_NAME, colNumToWriteTo: followupEmailThreadIdCol.colNumber },
+    { sheetToLinkFromName: AUTOMATED_RECEIVED_SHEET_NAME, colNumToLinkFrom: receivedEmailThreadIdCol.colNumber }
+  );
   setSheetProtection(followUpSheet, 'Follow Up Sheet Results List Protection', checkboxesColLettersArray);
 }
 
