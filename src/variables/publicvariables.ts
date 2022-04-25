@@ -200,6 +200,10 @@ export const ARCHIVED_THREADS_SHEET_HEADERS = [
   'Remove Gmail Label',
 ] as const;
 
+/** Name of the sheet for the archived found results */
+export const ARCHIVED_FOLLOW_UP_SHEET_NAME = 'Archived Follow Up Threads';
+export const ARCHIVED_FOLLOW_UP_SHEET_HEADERS = FOLLOW_UP_EMAILS__SHEET_HEADERS;
+
 export const allSheets = [
   AUTOMATED_RECEIVED_SHEET_NAME,
   PENDING_EMAILS_TO_SEND_SHEET_NAME,
@@ -210,4 +214,5 @@ export const allSheets = [
   DO_NOT_EMAIL_AUTO_SHEET_NAME,
   DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME,
   ARCHIVED_THREADS_SHEET_NAME,
+  ARCHIVED_FOLLOW_UP_SHEET_NAME,
 ] as const;
