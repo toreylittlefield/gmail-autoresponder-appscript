@@ -13,6 +13,7 @@ import {
   UserRecords,
 } from '../properties-service/properties-service';
 import {
+  archiveDeleteAddOrRemoveGmailLabelsInFollowUpSheet,
   archiveOrDeleteSelectEmailThreadIds,
   checkExistsOrCreateSpreadsheet,
   manuallyCreateEmailForSelectedRowsInReceivedSheet,
@@ -21,7 +22,11 @@ import {
   sendOrMoveManuallyOrDeleteDraftsInPendingSheet,
   WarningResetSheetsAndSpreadsheet,
 } from '../sheets/sheets';
-import { RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME } from '../variables/publicvariables';
+import {
+  ARCHIVED_FOLLOW_UP_SHEET_NAME,
+  RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME,
+  SENT_MESSAGES_ARCHIVE_LABEL_NAME,
+} from '../variables/publicvariables';
 
 const menuName = `Autoresponder Email Settings Menu`;
 
@@ -52,9 +57,19 @@ function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScri
     removeLabelSelectRowsInAutoReceivedSheet.name
   );
 
+  const followUpSheetActions = ui.createMenu('Follow Up Sheet Actions');
+  followUpSheetActions.addItem(`Archived Follow Up Messages`, uiButtonArchiveFollowUp.name);
+  followUpSheetActions.addItem(
+    `Warning: Delete Selected Email Threads`,
+    uiButtonManuallyCreateDraftEmailsForSelectedRowsInAutoReceivedSheet.name
+  );
+  followUpSheetActions.addItem(`Remove From GMAIL Sent Message Label`, archiveSelectRowsInAutoReceivedSheet.name);
+  followUpSheetActions.addItem(`Add GMAIL Follow Up Label`, deleteSelectRowsInAutoReceivedSheet.name);
+
   menu.addItem(`Get Emails & Create Drafts - Sync Emails`, uiGetEmailsFromGmail.name).addSeparator();
   menu.addSubMenu(receivedEmailsSheetActions).addToUi();
   menu.addSubMenu(pendingSheetActions).addToUi();
+  menu.addSubMenu(followUpSheetActions).addToUi();
   menu.addSeparator().addItem('User Configuration', userConfigurationModal.name);
   menu.addSeparator().addSubMenu(optionsMenu).addToUi();
 }
@@ -91,6 +106,21 @@ export async function initializeSpreadsheets() {
     SpreadsheetApp.getActiveSpreadsheet().removeMenu(menuName);
     const menu = ui.createMenu(menuName);
     createMenuAfterStart(ui, menu);
+  }
+}
+
+export function uiButtonArchiveFollowUp() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    `Archived Selected In Follow Up Sheet`,
+    `All rows with the "Archive" checkbox will be moved to the "Archive Follow Up" sheet. Use this to clean up rows you don't want to see any more.
+    
+    Archiving applies a GMAIL label ${SENT_MESSAGES_ARCHIVE_LABEL_NAME} to the email thread in Gmail. This action means it will not appear again in the ${ARCHIVED_FOLLOW_UP_SHEET_NAME} emails sheet. 
+    To undo this you'll have to manually remove the label in GMAIL and run "Get Emails" again`,
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (response === ui.Button.OK) {
+    archiveDeleteAddOrRemoveGmailLabelsInFollowUpSheet({ type: 'archive' });
   }
 }
 
