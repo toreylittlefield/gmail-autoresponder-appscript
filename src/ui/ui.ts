@@ -16,6 +16,7 @@ import {
   archiveOrDeleteSelectEmailThreadIds,
   checkExistsOrCreateSpreadsheet,
   manuallyCreateEmailForSelectedRowsInReceivedSheet,
+  manuallyMoveToFollowUpSheet,
   sendDraftsIfAutoResponseUserOptionIsOn,
   sendOrMoveManuallyOrDeleteDraftsInPendingSheet,
   WarningResetSheetsAndSpreadsheet,
@@ -39,8 +40,9 @@ function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScri
   );
 
   const receivedEmailsSheetActions = ui.createMenu('Received Sheet Actions');
+  receivedEmailsSheetActions.addItem(`Move Selected To Follow Up Sheet`, uiButtonMoveSelectedToFollowUpSheet.name);
   receivedEmailsSheetActions.addItem(
-    `Manually Create Draft Emails For Selected Rows`,
+    `Force Create Draft Emails in Pending Sheet For Selected Rows`,
     uiButtonManuallyCreateDraftEmailsForSelectedRowsInAutoReceivedSheet.name
   );
   receivedEmailsSheetActions.addItem(`Archive Selected Rows`, archiveSelectRowsInAutoReceivedSheet.name);
@@ -92,6 +94,19 @@ export async function initializeSpreadsheets() {
   }
 }
 
+export function uiButtonMoveSelectedToFollowUpSheet() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    `Move Selected Rows To Follow Up Sheet`,
+    `All rows with the "Manually Move To Follow Up Emails" checkbox will be moved to the "Follow Up Emails" Sheet and will be updated to also have the "auto-responder-sent-email-label" GMAIL label added to each sent thread.
+    
+    Note: You cannot undo this action. Use this action for emails that you believe should be marked as Follow Up Emails and not emails that need an autoresponse message`,
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (response === ui.Button.OK) {
+    manuallyMoveToFollowUpSheet();
+  }
+}
 export function uiButtonManuallyCreateDraftEmailsForSelectedRowsInAutoReceivedSheet() {
   const ui = SpreadsheetApp.getUi();
   const response = ui.alert(
