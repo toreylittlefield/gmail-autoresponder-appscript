@@ -721,7 +721,6 @@ export function manuallyMoveToFollowUpSheet() {
 
         acc.rowsToWrite.push(validFollowUpSheetRowItem);
         acc.rowsToDelete.push(rowNumberToDelete);
-        // automatedReceivedSheet.deleteRow(rowNumber);
         rowNumberToDelete--;
       }
       rowNumberToDelete++;
