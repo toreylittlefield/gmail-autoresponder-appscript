@@ -27,6 +27,7 @@ import {
   sendSelectedEmailsInPendingEmailsSheet,
   toggleAutoResponseOnOff,
   uiButtonManuallyCreateDraftEmailsForSelectedRowsInAutoReceivedSheet,
+  uiButtonMoveSelectedToFollowUpSheet,
   userConfigurationModal,
 } from './ui/ui';
 import { hasAllRequiredUserProps, initialGlobalMap } from './utils/utils';
@@ -145,6 +146,7 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
 (global as any).getUserPropertiesForPageModal = getUserPropertiesForPageModal;
 (global as any).processFormEventsFromPage = processFormEventsFromPage;
 (global as any).sendOrMoveManuallyOrDeleteDraftsInPendingSheet = sendOrMoveManuallyOrDeleteDraftsInPendingSheet;
+(global as any).uiButtonMoveSelectedToFollowUpSheet = uiButtonMoveSelectedToFollowUpSheet;
 (global as any).uiButtonManuallyCreateDraftEmailsForSelectedRowsInAutoReceivedSheet =
   uiButtonManuallyCreateDraftEmailsForSelectedRowsInAutoReceivedSheet;
 
