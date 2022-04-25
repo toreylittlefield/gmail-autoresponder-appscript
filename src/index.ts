@@ -32,9 +32,9 @@ import {
 import { hasAllRequiredUserProps, initialGlobalMap } from './utils/utils';
 import {
   allSheets,
-  RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME,
   AUTOMATED_RECEIVED_SHEET_NAME,
   PENDING_EMAILS_TO_SEND_SHEET_NAME,
+  RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME,
   SENT_MESSAGES_ARCHIVE_LABEL_NAME,
   SENT_MESSAGES_LABEL_NAME,
 } from './variables/publicvariables';
