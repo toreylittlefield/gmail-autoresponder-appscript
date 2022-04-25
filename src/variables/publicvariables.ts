@@ -46,6 +46,7 @@ export const AUTOMATED_RECEIVED_SHEET_HEADERS = [
   'Warning: Delete Thread Id',
   'Remove Gmail Label',
 ] as const;
+export const AUTOMATED_RECEIVED_SHEET_PROTECTION_DESCRIPTION = `${AUTOMATED_RECEIVED_SHEET_NAME} Sheet Protection`;
 
 /** Name of the sheet for the sent auto response email data */
 export const PENDING_EMAILS_TO_SEND_SHEET_NAME = 'Pending Emails To Send';
@@ -75,6 +76,7 @@ export const PENDING_EMAILS_TO_SEND_SHEET_HEADERS = [
   'View Draft In Gmail',
   'Manually Move Draft To Sent Sheet',
 ] as const;
+export const PENDING_EMAILS_TO_SEND_SHEET_PROTECTION_DESCRIPTION = `${PENDING_EMAILS_TO_SEND_SHEET_NAME} Sheet Protection`;
 
 /** Name of the sheet for the sent auto response email data */
 export const SENT_SHEET_NAME = 'Sent Email Responses';
@@ -107,6 +109,7 @@ export const SENT_SHEET_HEADERS = [
   'Sent Email Message Date',
   'Sent Thread PermaLink',
 ] as const;
+export const SENT_SHEET_PROTECTION_DESCRIPTION = `${SENT_SHEET_NAME} Sheet Protection`;
 
 /** Name of the sheet for the emails found results */
 export const FOLLOW_UP_EMAILS_SHEET_NAME = 'Follow Up Emails Received List';
@@ -137,6 +140,7 @@ export const FOLLOW_UP_EMAILS__SHEET_HEADERS = [
   'Manual: Replied To Email',
   'Manual: Replied To Date',
 ] as const;
+export const FOLLOW_UP_EMAILS_SHEET_PROTECTION_DESCRIPTION = `${FOLLOW_UP_EMAILS_SHEET_NAME} Sheet Protection`;
 
 /** Name of the sheet for the any bounced emails */
 export const BOUNCED_SHEET_NAME = 'Bounced Responses';
