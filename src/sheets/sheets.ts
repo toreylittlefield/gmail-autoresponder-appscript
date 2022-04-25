@@ -728,7 +728,6 @@ export function manuallyMoveToFollowUpSheet() {
     },
     { rowsToWrite: [], rowsToDelete: [] } as { rowsToWrite: ValidFollowUpSheetRowItem[]; rowsToDelete: number[] }
   );
-  console.log({ automatedReceivedSheet });
   rowsToWriteAndDelete.rowsToDelete.forEach((rowNumber) => {
     automatedReceivedSheet.deleteRow(rowNumber);
   });
