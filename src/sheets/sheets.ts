@@ -45,6 +45,9 @@ import {
   SENT_MESSAGES_LABEL_NAME,
   SENT_SHEET_HEADERS,
   SENT_SHEET_NAME,
+  AUTOMATED_RECEIVED_SHEET_PROTECTION_DESCRIPTION,
+  PENDING_EMAILS_TO_SEND_SHEET_PROTECTION_DESCRIPTION,
+  FOLLOW_UP_EMAILS_SHEET_PROTECTION_DESCRIPTION,
 } from '../variables/publicvariables';
 
 export type SheetNames =
@@ -213,7 +216,7 @@ function createSheet(
   sheet.deleteRows(startRowIndex, sheet.getMaxRows() - startRowIndex);
 
   sheet.autoResizeColumns(1, headersValues.length);
-  setSheetProtection(sheet, `${sheetName} Protected Range`, unprotectColumnLetters);
+  setSheetProtection(sheet, `${sheetName} Sheet Protection`, unprotectColumnLetters);
 }
 
 export function setColumnToCheckBox(sheet: GoogleAppsScript.Spreadsheet.Sheet, columnNumberForCheckbox: number) {
@@ -571,7 +574,7 @@ export function writeEmailsToPendingSheet() {
     pendingEmailsSheet,
     manuallyMoveCol.colNumber
   );
-  setSheetProtection(pendingEmailsSheet, 'Pending Emails To Send Protected Range', [
+  setSheetProtection(pendingEmailsSheet, PENDING_EMAILS_TO_SEND_SHEET_PROTECTION_DESCRIPTION, [
     sendCol.colLetter,
     deleteDiscardDraftCol.colLetter,
     manuallyMoveCol.colLetter,
@@ -768,7 +771,7 @@ function setProtectionForCheckboxesInPendingSheet() {
   const deleteDiscardDraftCol = pendingSheetHeaders['Delete / Discard Draft'];
   const manuallyMoveCol = pendingSheetHeaders['Manually Move Draft To Sent Sheet'];
 
-  setSheetProtection(pendingSheet, 'Pending Emails To Send Protected Range', [
+  setSheetProtection(pendingSheet, PENDING_EMAILS_TO_SEND_SHEET_PROTECTION_DESCRIPTION, [
     sendCol.colLetter,
     deleteDiscardDraftCol.colLetter,
     manuallyMoveCol.colLetter,
@@ -1080,88 +1083,56 @@ export function getAllHeaderColNumsAndLetters<V extends SheetHeaders>({
 }
 
 export function writeEmailDataToReceivedAutomationSheet(emailsForList: EmailReceivedSheetRowItem[]) {
+  if (emailsForList.length === 0) return;
   const autoResultsListSheet = getSheetByName(`${AUTOMATED_RECEIVED_SHEET_NAME}`);
   if (!autoResultsListSheet) throw Error(`Cannot find ${AUTOMATED_RECEIVED_SHEET_NAME} Sheet`);
 
-  if (emailsForList.length > 0) {
-    const { 'Sent Thread Id': sentThreadIdCol } = getAllHeaderColNumsAndLetters({ sheetName: SENT_SHEET_NAME });
+  const { 'Sent Thread Id': sentThreadIdCol } = getAllHeaderColNumsAndLetters({ sheetName: SENT_SHEET_NAME });
 
-    const columnsObject = findColumnNumbersOrLettersByHeaderNames({
-      sheetName: AUTOMATED_RECEIVED_SHEET_NAME,
-      headerName: [
-        'Date of Email',
-        'Archive Thread Id',
-        'Manually Move To Follow Up Emails',
-        'Manually Create Pending Email',
-        'Warning: Delete Thread Id',
-        'Remove Gmail Label',
-        'Last Sent Email Thread Id To This Domain',
-      ],
-    });
+  const autoReceivedHeaders = getAllHeaderColNumsAndLetters<typeof AUTOMATED_RECEIVED_SHEET_HEADERS>({
+    sheetName: AUTOMATED_RECEIVED_SHEET_NAME,
+  });
 
-    const dateCol = columnsObject['Date of Email'];
-    const archiveThreadIdCol = columnsObject['Archive Thread Id'];
-    const deleteThreadIdCol = columnsObject['Warning: Delete Thread Id'];
-    const removeGmalLabelCol = columnsObject['Remove Gmail Label'];
-    const manuallyMoveToFollowUpEmailCol = columnsObject['Manually Move To Follow Up Emails'];
-    const manuallyCreateEmailDraftCol = columnsObject['Manually Create Pending Email'];
-    const lastSentThreadIdCol = columnsObject['Last Sent Email Thread Id To This Domain'];
-    if (
-      !dateCol ||
-      !archiveThreadIdCol ||
-      !deleteThreadIdCol ||
-      !removeGmalLabelCol ||
-      !manuallyCreateEmailDraftCol ||
-      !manuallyMoveToFollowUpEmailCol ||
-      !lastSentThreadIdCol
-    )
-      throw Error(
-        `Missing header / column in ${findColumnNumbersOrLettersByHeaderNames.name}, function ${writeEmailDataToReceivedAutomationSheet.name}`
-      );
+  const dateCol = autoReceivedHeaders['Date of Email'];
+  const archiveThreadIdCol = autoReceivedHeaders['Archive Thread Id'];
+  const deleteThreadIdCol = autoReceivedHeaders['Warning: Delete Thread Id'];
+  const removeGmalLabelCol = autoReceivedHeaders['Remove Gmail Label'];
+  const manuallyMoveToFollowUpEmailCol = autoReceivedHeaders['Manually Move To Follow Up Emails'];
+  const manuallyCreateEmailDraftCol = autoReceivedHeaders['Manually Create Pending Email'];
+  const lastSentThreadIdCol = autoReceivedHeaders['Last Sent Email Thread Id To This Domain'];
 
-    const { numCols, numRows } = getNumRowsAndColsFromArray(emailsForList);
-    addRowsToTopOfSheet(numRows, autoResultsListSheet);
-    setValuesInRangeAndSortSheet(numRows, numCols, emailsForList, autoResultsListSheet, {
-      sortByCol: dateCol.colNumber,
-      asc: false,
-    });
+  const { numCols, numRows } = getNumRowsAndColsFromArray(emailsForList);
+  addRowsToTopOfSheet(numRows, autoResultsListSheet);
+  setValuesInRangeAndSortSheet(numRows, numCols, emailsForList, autoResultsListSheet, {
+    sortByCol: dateCol.colNumber,
+    asc: false,
+  });
+
+  const colNumbersArray = [
+    manuallyCreateEmailDraftCol.colNumber,
+    manuallyMoveToFollowUpEmailCol.colNumber,
+    archiveThreadIdCol.colNumber,
+    deleteThreadIdCol.colNumber,
+    removeGmalLabelCol.colNumber,
+  ];
+  colNumbersArray.forEach((colNumber) => {
     setCheckedValueForEachRow(
       emailsForList.map((_) => [false]),
       autoResultsListSheet,
-      manuallyCreateEmailDraftCol.colNumber
+      colNumber
     );
-    setCheckedValueForEachRow(
-      emailsForList.map((_) => [false]),
-      autoResultsListSheet,
-      manuallyMoveToFollowUpEmailCol.colNumber
-    );
-    setCheckedValueForEachRow(
-      emailsForList.map((_) => [false]),
-      autoResultsListSheet,
-      archiveThreadIdCol.colNumber
-    );
-    setCheckedValueForEachRow(
-      emailsForList.map((_) => [false]),
-      autoResultsListSheet,
-      deleteThreadIdCol.colNumber
-    );
-    setCheckedValueForEachRow(
-      emailsForList.map((_) => [false]),
-      autoResultsListSheet,
-      removeGmalLabelCol.colNumber
-    );
-    writeLinkInCellsFromSheetComparison(
-      { sheetToWriteToName: AUTOMATED_RECEIVED_SHEET_NAME, colNumToWriteTo: lastSentThreadIdCol.colNumber },
-      { sheetToLinkFromName: SENT_SHEET_NAME, colNumToLinkFrom: sentThreadIdCol.colNumber }
-    );
-    setSheetProtection(autoResultsListSheet, 'Automated Results List Protection', [
-      archiveThreadIdCol.colLetter,
-      deleteThreadIdCol.colLetter,
-      removeGmalLabelCol.colLetter,
-      manuallyMoveToFollowUpEmailCol.colLetter,
-      manuallyCreateEmailDraftCol.colLetter,
-    ]);
-  }
+  });
+  writeLinkInCellsFromSheetComparison(
+    { sheetToWriteToName: AUTOMATED_RECEIVED_SHEET_NAME, colNumToWriteTo: lastSentThreadIdCol.colNumber },
+    { sheetToLinkFromName: SENT_SHEET_NAME, colNumToLinkFrom: sentThreadIdCol.colNumber }
+  );
+  setSheetProtection(autoResultsListSheet, AUTOMATED_RECEIVED_SHEET_PROTECTION_DESCRIPTION, [
+    archiveThreadIdCol.colLetter,
+    deleteThreadIdCol.colLetter,
+    removeGmalLabelCol.colLetter,
+    manuallyMoveToFollowUpEmailCol.colLetter,
+    manuallyCreateEmailDraftCol.colLetter,
+  ]);
 }
 
 export function writeMessagesToFollowUpEmailsSheet(validFollowUpList: ValidFollowUpSheetRowItem[]) {
@@ -1236,7 +1207,7 @@ export function writeMessagesToFollowUpEmailsSheet(validFollowUpList: ValidFollo
     { sheetToWriteToName: FOLLOW_UP_EMAILS_SHEET_NAME, colNumToWriteTo: followupEmailThreadIdCol.colNumber },
     { sheetToLinkFromName: AUTOMATED_RECEIVED_SHEET_NAME, colNumToLinkFrom: receivedEmailThreadIdCol.colNumber }
   );
-  setSheetProtection(followUpSheet, 'Follow Up Sheet Results List Protection', checkboxesColLettersArray);
+  setSheetProtection(followUpSheet, FOLLOW_UP_EMAILS_SHEET_PROTECTION_DESCRIPTION, checkboxesColLettersArray);
 }
 
 export function manuallyCreateEmailForSelectedRowsInReceivedSheet() {
