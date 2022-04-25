@@ -9,12 +9,15 @@ import {
   pendingEmailsToSendMap,
   sentEmailsByDomainMap,
   sentEmailsBySentMessageIdMap,
+  ValidRowToWriteInSentSheet,
 } from '../global/maps';
 import { getSingleUserPropValue, getUserProps } from '../properties-service/properties-service';
 import {
   addToRepliesArray,
+  writeDomainsListToDoNotRespondSheet,
   writeEmailDataToReceivedAutomationSheet,
   writeMessagesToFollowUpEmailsSheet,
+  writeToSentEmailsSheet,
 } from '../sheets/sheets';
 import {
   calcAverage,
@@ -26,7 +29,7 @@ import {
   regexEmail,
   regexSalary,
 } from '../utils/utils';
-import { RECEIVED_MESSAGES_LABEL_NAME, SENT_MESSAGES_LABEL_NAME } from '../variables/publicvariables';
+import { RECEIVED_MESSAGES_LABEL_NAME } from '../variables/publicvariables';
 
 type EmailReplySendArray = [emailAddress: string, replyOrNew: EmailDataToSend][];
 
@@ -342,39 +345,137 @@ export function extractGMAILDataForNewMessagesReceivedSearch(
 }
 
 /**
- * @TODO Complete later to sync any sent emails on init or after reset
+ * @TODO needs logic to extract sent messages and only the data from sent messages before usage
  */
-export function getSentResponsesInGmail() {
-  initialGlobalMap('sentEmailsBySentMessageIdMap');
-  const userEmail = getSingleUserPropValue('email');
-  if (!userEmail) throw Error(`User Email is Not set in in ${getSentResponsesInGmail.name}`);
-  // const validSentRows: ValidRowToWriteInSentSheet[] = [];
-  const threads = GmailApp.search(`in:sent label:${SENT_MESSAGES_LABEL_NAME}`);
-  threads.forEach((thread) => {
-    const {
-      // autoResString,
-      // salaryRegexArray,
-      // bodyEmailsString,
-      // bodyEmails,
-      // date,
-      // domainFromEmail,
-      // emailBody,
-      // emailFrom,
-      // emailMessageId,
-      // emailReplyTo,
-      // emailReplyToString,
-      // emailSubject,
-      // emailThreadId,
-      // emailThreadPermaLink,
-      // personFrom,
-      // phoneNumbers,
-      // salaryAmount,
-    } = makeEmailValidResponseObject(thread);
-    const [firstMessage] = thread.getMessages();
-    if (getEmailFromString(firstMessage.getFrom()) === userEmail) {
-      // then is a new message not a reply to a message
+export function extractGMAILDataSentEmailsSearch(
+  email: string,
+  labelToSearch: string,
+  labelToExclude?: string,
+  _event?: GoogleAppsScript.Events.TimeDriven
+) {
+  try {
+    initialGlobalMap('sentEmailsBySentMessageIdMap');
+    const validRowInSentSheet: ValidRowToWriteInSentSheet[] = [];
+
+    // Exclude this label:
+    // (And creates it if it doesn't exist)
+    // return;
+
+    // Send our response email and label it responded to
+    // const threads = GmailApp.search(
+    //   "-subject:'re:' -is:chats -is:draft has:nouserlabels -label:" + LABEL_NAME + ' to:(' + EMAIL_ACCOUNT + ')'
+    // );
+    const sentThreads = GmailApp.search(`label:${labelToSearch} -label:${labelToExclude} to:(${email})`);
+
+    sentThreads.forEach((sentThread, _threadIndex) => {
+      const messagesInSentThread = sentThread.getMessages();
+
+      messagesInSentThread.forEach((message) => {
+        const from = message.getFrom();
+        const fromEmail = getEmailFromString(from);
+        if (fromEmail !== email) return;
+
+        const messageIdToCompare = message.getId();
+
+        if (sentEmailsBySentMessageIdMap.has(messageIdToCompare)) return;
+
+        const isNewOrReply = sentThread.getMessageCount() === 1 ? 'new' : 'reply';
+        const sentMessageTo = getEmailFromString(message.getTo());
+        // const emailSubject = sentThread.getFirstMessageSubject();
+
+        const {
+          date: sentMessageDate,
+          emailBody: sentMessageBody,
+          emailFrom: sentMessageFrom,
+          emailMessageId: sentMessageId,
+          emailSubject: sentMessageSubject,
+        } = getMessagePropertiesForResponseObject(message);
+
+        const {
+          emailThreadId,
+          emailMessageId,
+          date,
+          emailFrom,
+          emailReplyToString,
+          emailSubject,
+          emailBody,
+          domainFromEmail,
+          personFrom,
+          phoneNumbers,
+          salaryAmount,
+          emailThreadPermaLink,
+        } = makeEmailValidResponseObject(sentThread);
+
+        validRowInSentSheet.push([
+          emailThreadId,
+          emailMessageId,
+          isNewOrReply,
+          date,
+          emailFrom,
+          emailReplyToString,
+          emailSubject,
+          emailBody,
+          domainFromEmail,
+          personFrom,
+          phoneNumbers,
+          salaryAmount,
+          emailThreadPermaLink,
+          false,
+          '',
+          sentMessageId,
+          sentMessageDate,
+          sentMessageSubject,
+          sentMessageFrom,
+          sentMessageTo,
+          sentMessageBody,
+          '',
+          false,
+          emailThreadId,
+          sentMessageId,
+          sentMessageDate,
+          emailThreadPermaLink,
+        ]);
+      });
+      /**
+       *   emailThreadId: string,
+  inResponseToEmailMessageId: string,
+  isReplyorNewEmail: 'new' | 'reply',
+  date: GoogleAppsScript.Base.Date,
+  emailFrom: string,
+  emailSendTo: string,
+  emailSubject: string,
+  emailBody: string,
+  domain: string,
+  personFrom: string,
+  phoneNumbers: string,
+  salary: string,
+  emailThreadPermaLink: string,
+  deleteDraft: boolean,
+  draftId: string,
+  draftSentMessageId: string,
+  draftMessageDate: GoogleAppsScript.Base.Date,
+  draftMessageSubject: string,
+  draftMessageFrom: string,
+  draftMessageTo: string,
+  draftMessageBody: string,
+  viewDraftInGmail: string,
+  manuallyMoveDraftToSent: boolean,
+  sentThreadId: string,
+  sentEmailMessageId: string,
+  sentEmailMessageDate: GoogleAppsScript.Base.Date,
+  sentThreadPermaLink: string
+       */
+
+      // Add label to email for exclusion
+      // thread.addLabel(label);
+    });
+    if (validRowInSentSheet.length > 0) {
+      writeToSentEmailsSheet(validRowInSentSheet);
+      writeDomainsListToDoNotRespondSheet();
     }
-  });
+  } catch (error) {
+    console.error(error as any);
+  }
 }
 
 /**
