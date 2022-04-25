@@ -59,10 +59,7 @@ function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScri
 
   const followUpSheetActions = ui.createMenu('Follow Up Sheet Actions');
   followUpSheetActions.addItem(`Archived Follow Up Messages`, uiButtonArchiveFollowUp.name);
-  followUpSheetActions.addItem(
-    `Warning: Delete Selected Email Threads`,
-    uiButtonManuallyCreateDraftEmailsForSelectedRowsInAutoReceivedSheet.name
-  );
+  followUpSheetActions.addItem(`Warning: Delete Selected Email Threads`, uiButtonDeleteFollowUp.name);
   followUpSheetActions.addItem(`Remove From GMAIL Sent Message Label`, archiveSelectRowsInAutoReceivedSheet.name);
   followUpSheetActions.addItem(`Add GMAIL Follow Up Label`, deleteSelectRowsInAutoReceivedSheet.name);
 
@@ -121,6 +118,20 @@ export function uiButtonArchiveFollowUp() {
   );
   if (response === ui.Button.OK) {
     archiveDeleteAddOrRemoveGmailLabelsInFollowUpSheet({ type: 'archive' });
+  }
+}
+
+export function uiButtonDeleteFollowUp() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    `Warning: Delete Selected Rows In Follow Up Sheet`,
+    `All rows with the "Delete" checkbox will be deleted from the sheet. Use this to clean up rows you don't need.
+    
+    Deleting will ALSO DELETE that email / thread in GMAIL by moving it to the trash in GMAIL. So be careful with this option.`,
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (response === ui.Button.OK) {
+    archiveDeleteAddOrRemoveGmailLabelsInFollowUpSheet({ type: 'delete' });
   }
 }
 
