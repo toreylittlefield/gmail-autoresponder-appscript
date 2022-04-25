@@ -48,6 +48,7 @@ import {
   AUTOMATED_RECEIVED_SHEET_PROTECTION_DESCRIPTION,
   PENDING_EMAILS_TO_SEND_SHEET_PROTECTION_DESCRIPTION,
   FOLLOW_UP_EMAILS_SHEET_PROTECTION_DESCRIPTION,
+  RECEIVED_MESSAGES_LABEL_NAME,
 } from '../variables/publicvariables';
 
 export type SheetNames =
@@ -624,6 +625,115 @@ export function sendDraftsIfAutoResponseUserOptionIsOn() {
     deleteAllTriggersWithMatchingFunctionName(sendDraftsIfAutoResponseUserOptionIsOn.name);
     setAllPendingDraftsSendCheckBox(false);
   }
+}
+
+export function manuallyMoveToFollowUpSheet() {
+  const followUpSheet = getSheetByName(FOLLOW_UP_EMAILS_SHEET_NAME);
+  const automatedReceivedSheet = getSheetByName(AUTOMATED_RECEIVED_SHEET_NAME);
+  const automatedReceivedSheetData = getAllDataFromSheet(AUTOMATED_RECEIVED_SHEET_NAME) as EmailReceivedSheetRowItem[];
+  const userLabel = getSingleUserPropValue('labelToSearch');
+
+  if (!followUpSheet) throw Error(`Cannot get ${followUpSheet} SHEET for ${manuallyMoveToFollowUpSheet.name}`);
+  if (!automatedReceivedSheet)
+    throw Error(`Cannot get ${AUTOMATED_RECEIVED_SHEET_NAME} SHEET for ${manuallyMoveToFollowUpSheet.name}`);
+  if (!automatedReceivedSheetData)
+    throw Error(`Cannot get ${AUTOMATED_RECEIVED_SHEET_NAME} DATA for ${manuallyMoveToFollowUpSheet.name}`);
+
+  const automatedReceivedColumnHeaders = getAllHeaderColNumsAndLetters<typeof AUTOMATED_RECEIVED_SHEET_HEADERS>({
+    sheetName: AUTOMATED_RECEIVED_SHEET_NAME,
+  });
+  const manuallyMoveToFollowUpEmailCol = automatedReceivedColumnHeaders['Manually Move To Follow Up Emails'];
+  const emailThreadIdCol = automatedReceivedColumnHeaders['Email Thread Id'];
+  const emailMessageIdCol = automatedReceivedColumnHeaders['Email Message Id'];
+  const dateOfEmailCol = automatedReceivedColumnHeaders['Date of Email'];
+  const fromEmailCol = automatedReceivedColumnHeaders['From Email'];
+  const replyToEmailCol = automatedReceivedColumnHeaders['ReplyTo Email'];
+  const emailSubjectCol = automatedReceivedColumnHeaders['Email Subject'];
+  const bodyEmailsCol = automatedReceivedColumnHeaders['Body Emails'];
+  const emailBodyCol = automatedReceivedColumnHeaders['Email Body'];
+  const domainCol = automatedReceivedColumnHeaders['Domain'];
+  const personFromCol = automatedReceivedColumnHeaders['Person / Company Name'];
+  const phoneNumbersCol = automatedReceivedColumnHeaders['US Phone Number'];
+  const salaryCol = automatedReceivedColumnHeaders['Salary'];
+  const threadPermalinkCol = automatedReceivedColumnHeaders['Thread Permalink'];
+
+  let rowNumberToDelete: number = 2;
+  const rowsToWriteAndDelete = automatedReceivedSheetData.reduce(
+    (acc, row) => {
+      const manuallyMoveToFollowUpEmail = row[manuallyMoveToFollowUpEmailCol.colNumber - 1];
+
+      if (manuallyMoveToFollowUpEmail) {
+        const emailThreadId = row[emailThreadIdCol.colNumber - 1] as string;
+        const emailMessageId = row[emailMessageIdCol.colNumber - 1] as string;
+
+        const gmailMessage = GmailApp.getMessageById(emailMessageId);
+        const gmailThread = gmailMessage.getThread();
+        const lastMessageDate = gmailThread.getLastMessageDate();
+
+        const dateOfEamil = row[dateOfEmailCol.colNumber - 1] as GoogleAppsScript.Base.Date;
+        const fromEmail = row[fromEmailCol.colNumber - 1] as string;
+        const replyToEmail = row[replyToEmailCol.colNumber - 1] as string;
+        const emailSubject = row[emailSubjectCol.colNumber - 1] as string;
+        const bodyEmails = row[bodyEmailsCol.colNumber - 1] as string;
+        const emailBody = row[emailBodyCol.colNumber - 1] as string;
+        const domain = row[domainCol.colNumber - 1] as string;
+        const personFrom = row[personFromCol.colNumber - 1] as string;
+        const phoneNumbers = row[phoneNumbersCol.colNumber - 1] as string;
+        const salary = row[salaryCol.colNumber - 1] as string;
+        const emailThreadPermalink = row[threadPermalinkCol.colNumber - 1] as string;
+
+        const validFollowUpSheetRowItem: ValidFollowUpSheetRowItem = [
+          emailThreadId,
+          emailMessageId,
+          dateOfEamil,
+          fromEmail,
+          replyToEmail,
+          emailSubject,
+          bodyEmails,
+          emailBody,
+          domain,
+          personFrom,
+          phoneNumbers,
+          salary,
+          emailThreadPermalink,
+          `https://mail.google.com/mail/u/0/#label/auto-responder-sent-email-label/${emailMessageId}`,
+          '',
+          '',
+          new Date(),
+          '',
+          lastMessageDate,
+          false,
+          false,
+          false,
+          false,
+          false,
+          undefined,
+        ];
+
+        const sentMessageLabel = GmailApp.getUserLabelByName(SENT_MESSAGES_LABEL_NAME);
+        const labels = gmailThread.getLabels();
+        const foundSentMsgLabel = labels.find((label) => label.getName() === SENT_MESSAGES_LABEL_NAME);
+        if (!foundSentMsgLabel) gmailThread.addLabel(sentMessageLabel);
+        const receivedMsgLabel = labels.find((label) => label.getName() === RECEIVED_MESSAGES_LABEL_NAME);
+        if (receivedMsgLabel) gmailThread.removeLabel(receivedMsgLabel);
+        const userLabelToRemove = labels.find((label) => label.getName() === userLabel);
+        if (userLabelToRemove) gmailThread.removeLabel(userLabelToRemove);
+
+        acc.rowsToWrite.push(validFollowUpSheetRowItem);
+        acc.rowsToDelete.push(rowNumberToDelete);
+        // automatedReceivedSheet.deleteRow(rowNumber);
+        rowNumberToDelete--;
+      }
+      rowNumberToDelete++;
+      return acc;
+    },
+    { rowsToWrite: [], rowsToDelete: [] } as { rowsToWrite: ValidFollowUpSheetRowItem[]; rowsToDelete: number[] }
+  );
+  console.log({ automatedReceivedSheet });
+  rowsToWriteAndDelete.rowsToDelete.forEach((rowNumber) => {
+    automatedReceivedSheet.deleteRow(rowNumber);
+  });
+  writeMessagesToFollowUpEmailsSheet(rowsToWriteAndDelete.rowsToWrite);
 }
 
 export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
