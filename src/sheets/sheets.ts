@@ -748,33 +748,31 @@ export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
     );
 
     if (rowsForSentSheet.length > 0) {
-      writeSentDraftsToSentEmailsSheet(sentEmailsSheet, rowsForSentSheet);
+      writeToSentEmailsSheet(rowsForSentSheet);
       writeDomainsListToDoNotRespondSheet();
-      writeLinkInCellsFromSheetComparison(
-        { sheetToWriteToName: SENT_SHEET_NAME, colNumToWriteTo: 1 },
-        { sheetToLinkFromName: `${AUTOMATED_RECEIVED_SHEET_NAME}`, colNumToLinkFrom: 1 }
-      );
     }
-    const columnsObject = findColumnNumbersOrLettersByHeaderNames({
-      sheetName: PENDING_EMAILS_TO_SEND_SHEET_NAME,
-      headerName: ['Send', 'Delete / Discard Draft', 'Manually Move Draft To Sent Sheet'],
-    });
-    const sendCol = columnsObject.Send;
-    const deleteDiscardDraftCol = columnsObject['Delete / Discard Draft'];
-    const manuallyMoveCol = columnsObject['Manually Move Draft To Sent Sheet'];
-    if (!sendCol || !deleteDiscardDraftCol || !manuallyMoveCol)
-      throw Error(
-        `Could Not Find Column Headers with ${findColumnNumbersOrLettersByHeaderNames.name} in ${sendOrMoveManuallyOrDeleteDraftsInPendingSheet.name} to set sheet protection`
-      );
-
-    setSheetProtection(pendingSheet, 'Pending Emails To Send Protected Range', [
-      sendCol.colLetter,
-      deleteDiscardDraftCol.colLetter,
-      manuallyMoveCol.colLetter,
-    ]);
+    setProtectionForCheckboxesInPendingSheet();
   } catch (error) {
     console.error(error as any);
   }
+}
+
+function setProtectionForCheckboxesInPendingSheet() {
+  const pendingSheet = getSheetByName(PENDING_EMAILS_TO_SEND_SHEET_NAME);
+  if (!pendingSheet) throw Error(`Cannot find pending sheet in ${setProtectionForCheckboxesInPendingSheet.name}`);
+
+  const pendingSheetHeaders = getAllHeaderColNumsAndLetters({
+    sheetName: PENDING_EMAILS_TO_SEND_SHEET_NAME,
+  });
+  const sendCol = pendingSheetHeaders.Send;
+  const deleteDiscardDraftCol = pendingSheetHeaders['Delete / Discard Draft'];
+  const manuallyMoveCol = pendingSheetHeaders['Manually Move Draft To Sent Sheet'];
+
+  setSheetProtection(pendingSheet, 'Pending Emails To Send Protected Range', [
+    sendCol.colLetter,
+    deleteDiscardDraftCol.colLetter,
+    manuallyMoveCol.colLetter,
+  ]);
 }
 
 function addToDoNotSendMailAutoMap(domainOrEmail: string) {
@@ -828,24 +826,35 @@ function sendDraftOrGetMessageFromDraft({ type }: SendDraftsOptions, draftId: st
   return { getDate, getId, getEmailMessageId, getPermalink };
 }
 
-function writeSentDraftsToSentEmailsSheet(
-  sentEmailsSheet: GoogleAppsScript.Spreadsheet.Sheet,
-  rowsForSentSheet: ValidRowToWriteInSentSheet[]
-) {
-  if (sentEmailsSheet.getName() !== SENT_SHEET_NAME) throw Error('Sheet Must Be The Sent Automated Responses');
+export function writeToSentEmailsSheet(rowsForSentSheet: ValidRowToWriteInSentSheet[]) {
+  if (rowsForSentSheet.length === 0) return;
+  const sentEmailsSheet = getSheetByName(SENT_SHEET_NAME);
+
+  if (!sentEmailsSheet) throw Error(`Cannot find ${SENT_SHEET_NAME} in ${writeToSentEmailsSheet.name}`);
   const { numCols, numRows } = getNumRowsAndColsFromArray(rowsForSentSheet);
+
   addRowsToTopOfSheet(numRows, sentEmailsSheet);
-  const columnObject = findColumnNumbersOrLettersByHeaderNames({
+
+  const sentSheetColumnHeaders = getAllHeaderColNumsAndLetters<typeof SENT_SHEET_HEADERS>({
     sheetName: SENT_SHEET_NAME,
-    headerName: ['Sent Email Message Date'],
   });
-  const sentDateEmailMessageCol = columnObject['Sent Email Message Date'];
-  if (!sentDateEmailMessageCol)
-    throw Error(`Cannot Find Column ${sentDateEmailMessageCol}in ${writeSentDraftsToSentEmailsSheet.name}`);
+  const sentDateEmailMessageCol = sentSheetColumnHeaders['Sent Email Message Date'];
+  const emailThreadIdInSentSheetCol = sentSheetColumnHeaders['Email Thread Id'];
+
+  const automatedReceivedColumnHeaders = getAllHeaderColNumsAndLetters<typeof AUTOMATED_RECEIVED_SHEET_HEADERS>({
+    sheetName: AUTOMATED_RECEIVED_SHEET_NAME,
+  });
+  const receivedEmailThreadCol = automatedReceivedColumnHeaders['Email Thread Id'];
+
   setValuesInRangeAndSortSheet(numRows, numCols, rowsForSentSheet, sentEmailsSheet, {
     asc: false,
     sortByCol: sentDateEmailMessageCol.colNumber,
   });
+
+  writeLinkInCellsFromSheetComparison(
+    { sheetToWriteToName: SENT_SHEET_NAME, colNumToWriteTo: emailThreadIdInSentSheetCol.colNumber },
+    { sheetToLinkFromName: AUTOMATED_RECEIVED_SHEET_NAME, colNumToLinkFrom: receivedEmailThreadCol.colNumber }
+  );
 }
 
 export function writeLinkInCellsFromSheetComparison(
