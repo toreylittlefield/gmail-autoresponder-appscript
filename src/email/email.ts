@@ -652,7 +652,7 @@ export function extractGMAILDataForFollowUpSearch(
   _event?: GoogleAppsScript.Events.TimeDriven
 ) {
   try {
-    const validRowInFollowUpSheet: ValidFollowUpSheetRowItem[] = [];
+    const validRowsInFollowUpSheet: ValidFollowUpSheetRowItem[] = [];
 
     // Exclude this label:
     // (And creates it if it doesn't exist)
@@ -720,7 +720,7 @@ export function extractGMAILDataForFollowUpSearch(
           salaryAmount,
         } = getMessagePropertiesForResponseObject(message);
 
-        validRowInFollowUpSheet.push([
+        validRowsInFollowUpSheet.push([
           emailThreadId,
           emailMessageId,
           date,
@@ -752,7 +752,7 @@ export function extractGMAILDataForFollowUpSearch(
       // Add label to email for exclusion
       // thread.addLabel(label);
     });
-    writeMessagesToFollowUpEmailsSheet(validRowInFollowUpSheet);
+    writeMessagesToFollowUpEmailsSheet(validRowsInFollowUpSheet);
   } catch (error) {
     console.error(error as any);
   }
