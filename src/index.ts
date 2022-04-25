@@ -30,6 +30,7 @@ import {
   uiButtonDeleteFollowUp,
   uiButtonManuallyCreateDraftEmailsForSelectedRowsInAutoReceivedSheet,
   uiButtonMoveSelectedToFollowUpSheet,
+  uiButtonRemoveLabelFollowUp,
   userConfigurationModal,
 } from './ui/ui';
 import { hasAllRequiredUserProps, initialGlobalMap } from './utils/utils';
@@ -153,6 +154,7 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
   uiButtonManuallyCreateDraftEmailsForSelectedRowsInAutoReceivedSheet;
 (global as any).uiButtonArchiveFollowUp = uiButtonArchiveFollowUp;
 (global as any).uiButtonDeleteFollowUp = uiButtonDeleteFollowUp;
+(global as any).uiButtonRemoveLabelFollowUp = uiButtonRemoveLabelFollowUp;
 
 (global as any).archiveSelectRowsInAutoReceivedSheet = archiveSelectRowsInAutoReceivedSheet;
 (global as any).deleteSelectRowsInAutoReceivedSheet = deleteSelectRowsInAutoReceivedSheet;

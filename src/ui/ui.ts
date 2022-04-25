@@ -24,8 +24,10 @@ import {
 } from '../sheets/sheets';
 import {
   ARCHIVED_FOLLOW_UP_SHEET_NAME,
+  FOLLOW_UP_MESSAGES_LABEL_NAME,
   RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME,
   SENT_MESSAGES_ARCHIVE_LABEL_NAME,
+  SENT_MESSAGES_LABEL_NAME,
 } from '../variables/publicvariables';
 
 const menuName = `Autoresponder Email Settings Menu`;
@@ -60,7 +62,7 @@ function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScri
   const followUpSheetActions = ui.createMenu('Follow Up Sheet Actions');
   followUpSheetActions.addItem(`Archived Follow Up Messages`, uiButtonArchiveFollowUp.name);
   followUpSheetActions.addItem(`Warning: Delete Selected Email Threads`, uiButtonDeleteFollowUp.name);
-  followUpSheetActions.addItem(`Remove From GMAIL Sent Message Label`, archiveSelectRowsInAutoReceivedSheet.name);
+  followUpSheetActions.addItem(`Remove From GMAIL Sent Message Label`, uiButtonRemoveLabelFollowUp.name);
   followUpSheetActions.addItem(`Add GMAIL Follow Up Label`, deleteSelectRowsInAutoReceivedSheet.name);
 
   menu.addItem(`Get Emails & Create Drafts - Sync Emails`, uiGetEmailsFromGmail.name).addSeparator();
@@ -132,6 +134,37 @@ export function uiButtonDeleteFollowUp() {
   );
   if (response === ui.Button.OK) {
     archiveDeleteAddOrRemoveGmailLabelsInFollowUpSheet({ type: 'delete' });
+  }
+}
+
+export function uiButtonRemoveLabelFollowUp() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    `Remove GMAIL ${SENT_MESSAGES_LABEL_NAME} Label Selected Rows`,
+    `All rows with the "Remove Gmail Label" will have the ${SENT_MESSAGES_LABEL_NAME} removed from them in GMAIL and it will delete the row in the sheet. 
+    
+    Use this so that you keep the email from appearing in this spreadsheet when a "Get Emails" sync is run.
+    
+    This action means it will not appear again in the spreadsheet even if there is a follow up email or a reply to a email you've already sent. 
+    To undo this you'll have to apply the label again in GMAIL and run "Get Emails" again`,
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (response === ui.Button.OK) {
+    archiveDeleteAddOrRemoveGmailLabelsInFollowUpSheet({ type: 'remove gmail label' });
+  }
+}
+
+export function uiButtonAddLabelFollowUp() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    `Add GMAIL ${FOLLOW_UP_MESSAGES_LABEL_NAME} Label Selected Rows`,
+    `All rows with the "Add Gmail Label" will have the ${FOLLOW_UP_MESSAGES_LABEL_NAME} added from them in GMAIL.
+     
+    To undo this you'll have to rempve the label in GMAIL`,
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (response === ui.Button.OK) {
+    archiveDeleteAddOrRemoveGmailLabelsInFollowUpSheet({ type: 'add gmail label' });
   }
 }
 
