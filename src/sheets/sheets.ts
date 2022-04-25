@@ -49,6 +49,10 @@ import {
   PENDING_EMAILS_TO_SEND_SHEET_PROTECTION_DESCRIPTION,
   FOLLOW_UP_EMAILS_SHEET_PROTECTION_DESCRIPTION,
   RECEIVED_MESSAGES_LABEL_NAME,
+  ARCHIVED_FOLLOW_UP_SHEET_HEADERS,
+  ARCHIVED_FOLLOW_UP_SHEET_NAME,
+  FOLLOW_UP_MESSAGES_LABEL_NAME,
+  SENT_MESSAGES_ARCHIVE_LABEL_NAME,
 } from '../variables/publicvariables';
 
 export type SheetNames =
@@ -60,7 +64,8 @@ export type SheetNames =
   | typeof DO_NOT_EMAIL_AUTO_SHEET_NAME
   | typeof DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME
   | typeof PENDING_EMAILS_TO_SEND_SHEET_NAME
-  | typeof ARCHIVED_THREADS_SHEET_NAME;
+  | typeof ARCHIVED_THREADS_SHEET_NAME
+  | typeof ARCHIVED_FOLLOW_UP_SHEET_NAME;
 
 export type SheetHeaders =
   | typeof AUTOMATED_RECEIVED_SHEET_HEADERS
@@ -71,7 +76,8 @@ export type SheetHeaders =
   | typeof DO_NOT_EMAIL_AUTO_SHEET_HEADERS
   | typeof DO_NOT_TRACK_DOMAIN_LIST_SHEET_HEADERS
   | typeof PENDING_EMAILS_TO_SEND_SHEET_HEADERS
-  | typeof ARCHIVED_THREADS_SHEET_HEADERS;
+  | typeof ARCHIVED_THREADS_SHEET_HEADERS
+  | typeof ARCHIVED_FOLLOW_UP_SHEET_HEADERS;
 
 const tabColors = ['blue', 'green', 'red', 'purple', 'orange', 'yellow', 'black', 'teal', 'gold', 'grey'] as const;
 
@@ -185,6 +191,11 @@ export async function checkExistsOrCreateSpreadsheet(deletedSheetsMap?: Record<S
       if (missingSheetsMap['Archived Email Threads']) {
         createSheet(spreadsheet, ARCHIVED_THREADS_SHEET_NAME, ARCHIVED_THREADS_SHEET_HEADERS, {
           tabColor: 'grey',
+        });
+      }
+      if (missingSheetsMap['Archived Follow Up Threads']) {
+        createSheet(spreadsheet, ARCHIVED_FOLLOW_UP_SHEET_NAME, ARCHIVED_FOLLOW_UP_SHEET_HEADERS, {
+          tabColor: 'black',
         });
       }
     }
@@ -1031,14 +1042,14 @@ export function writeDomainsListToDoNotRespondSheet() {
 
 export function archiveOrDeleteSelectEmailThreadIds({ type }: { type: 'archive' | 'delete' | 'remove gmail label' }) {
   const automatedReceivedSheet = getSheetByName(AUTOMATED_RECEIVED_SHEET_NAME);
-  const pendingEmailsSheet = type !== 'delete' && getSheetByName(PENDING_EMAILS_TO_SEND_SHEET_NAME);
-  const sentEmailsSheet = type !== 'delete' && getSheetByName(SENT_SHEET_NAME);
+  // const pendingEmailsSheet = type !== 'delete' && getSheetByName(PENDING_EMAILS_TO_SEND_SHEET_NAME);
+  // const sentEmailsSheet = type !== 'delete' && getSheetByName(SENT_SHEET_NAME);
 
   const archivedEmailsSheet = type === 'archive' && getSheetByName(ARCHIVED_THREADS_SHEET_NAME);
 
   if (!automatedReceivedSheet) throw Error(`Could Not Find ${AUTOMATED_RECEIVED_SHEET_NAME} Sheet`);
-  if (type !== 'delete' && !pendingEmailsSheet) throw Error(`Could Not Find Pending Emails To Send Sheet`);
-  if (type !== 'delete' && !sentEmailsSheet) throw Error(`Could Not Find Sent Automated Responses Sheet`);
+  // if (type !== 'delete' && !pendingEmailsSheet) throw Error(`Could Not Find Pending Emails To Send Sheet`);
+  // if (type !== 'delete' && !sentEmailsSheet) throw Error(`Could Not Find Sent Automated Responses Sheet`);
   if (type === 'archive' && !archivedEmailsSheet) throw Error(`Could Not Find Archived Emails Sheet`);
 
   const automatedReceivedSheetData = automatedReceivedSheet.getDataRange().getValues().slice(1);
@@ -1116,6 +1127,104 @@ export function archiveOrDeleteSelectEmailThreadIds({ type }: { type: 'archive' 
 
   emailThreadIdsMap.forEach(({ rowNumber }, _emailThreadIdToDelete) => {
     automatedReceivedSheet.deleteRow(rowNumber);
+  });
+}
+
+export function archiveDeleteAddOrRemoveGmailLabelsInFollowUpSheet({
+  type,
+}: {
+  type: 'archive' | 'delete' | 'remove gmail label' | 'add gmail label';
+}) {
+  const followUpSheet = getSheetByName(FOLLOW_UP_EMAILS_SHEET_NAME);
+  // const pendingEmailsSheet = type !== 'delete' && getSheetByName(PENDING_EMAILS_TO_SEND_SHEET_NAME);
+  // const sentEmailsSheet = type !== 'delete' && getSheetByName(SENT_SHEET_NAME);
+
+  const archivedFollowUpSheet = type === 'archive' && getSheetByName(ARCHIVED_FOLLOW_UP_SHEET_NAME);
+
+  if (!followUpSheet)
+    throw Error(
+      `Could Not Find ${FOLLOW_UP_EMAILS_SHEET_NAME} Sheet ${archiveDeleteAddOrRemoveGmailLabelsInFollowUpSheet.name}`
+    );
+  // if (type !== 'delete' && !pendingEmailsSheet) throw Error(`Could Not Find Pending Emails To Send Sheet`);
+  // if (type !== 'delete' && !sentEmailsSheet) throw Error(`Could Not Find Sent Automated Responses Sheet`);
+  if (type === 'archive' && !archivedFollowUpSheet) throw Error(`Could Not Find Archived Emails Sheet`);
+
+  const followUpSheetData = followUpSheet.getDataRange().getValues().slice(1);
+
+  const followUpSheetHeaders = getAllHeaderColNumsAndLetters<typeof FOLLOW_UP_EMAILS__SHEET_HEADERS>({
+    sheetName: FOLLOW_UP_EMAILS_SHEET_NAME,
+  });
+  const emailThreadIdCol = followUpSheetHeaders['Email Thread Id'];
+  const emailMessageIdCol = followUpSheetHeaders['Email Message Id'];
+  const archiveThreadIdCol = followUpSheetHeaders['Archive Thread Id'];
+  const deleteThreadIdCol = followUpSheetHeaders['Warning: Delete Thread Id'];
+  const removeGmailLabelIdCol = followUpSheetHeaders['Remove Gmail Label'];
+  const addGmailLabelIdCol = followUpSheetHeaders['Add Follows Up Gmail Label'];
+
+  let rowNumber: number = 2;
+  followUpSheetData.forEach((row) => {
+    const emailThreadId = row[emailThreadIdCol.colNumber - 1];
+    const emailMessageId = row[emailMessageIdCol.colNumber - 1];
+    const archiveCheckBox = row[archiveThreadIdCol.colNumber - 1];
+    const deleteCheckBox = row[deleteThreadIdCol.colNumber - 1];
+    const removeLabelCheckbox = row[removeGmailLabelIdCol.colNumber - 1];
+    const addLabelCheckbox = row[addGmailLabelIdCol.colNumber - 1];
+
+    if (
+      (type === 'archive' && archiveCheckBox === true) ||
+      (type === 'delete' && deleteCheckBox === true) ||
+      (type === 'remove gmail label' && removeLabelCheckbox === true) ||
+      (type === 'add gmail label' && addLabelCheckbox === true)
+    ) {
+      emailThreadIdsMap.set(emailThreadId, { rowNumber, emailMessageId });
+      if (type === 'archive') {
+        let archiveGmailLabel = GmailApp.getUserLabelByName(SENT_MESSAGES_ARCHIVE_LABEL_NAME);
+        if (!archiveGmailLabel) {
+          archiveGmailLabel = GmailApp.createLabel(SENT_MESSAGES_ARCHIVE_LABEL_NAME);
+        }
+        GmailApp.getThreadById(emailThreadId).addLabel(archiveGmailLabel);
+        addRowsToTopOfSheet(1, archivedFollowUpSheet as GoogleAppsScript.Spreadsheet.Sheet);
+        setValuesInRangeAndSortSheet(1, row.length, [row], archivedFollowUpSheet as GoogleAppsScript.Spreadsheet.Sheet);
+      }
+      if (type === 'delete') {
+        try {
+          GmailApp.getThreadById(emailThreadId).moveToTrash();
+        } catch (error) {
+          console.error(error as any, 'Could Not Find That Email By Thread Id or Move It To Trash');
+        }
+      }
+      if (type === 'remove gmail label') {
+        try {
+          const gmailLabel = GmailApp.getUserLabelByName(FOLLOW_UP_MESSAGES_LABEL_NAME);
+          GmailApp.getThreadById(emailThreadId).removeLabel(gmailLabel);
+        } catch (error) {
+          console.error(
+            error as any,
+            'Could Not Find That Email By Thread Id or Could Not Find That Gmail Label or Remove The Label'
+          );
+        }
+      }
+      if (type === 'add gmail label') {
+        try {
+          let followUpLabel = GmailApp.getUserLabelByName(FOLLOW_UP_MESSAGES_LABEL_NAME);
+          if (!followUpLabel) {
+            followUpLabel = GmailApp.createLabel(FOLLOW_UP_MESSAGES_LABEL_NAME);
+          }
+          GmailApp.getThreadById(emailThreadId).addLabel(followUpLabel);
+        } catch (error) {
+          console.error(
+            error as any,
+            'Could Not Find That Email By Thread Id or Could Not Find That Gmail Label or Remove The Label'
+          );
+        }
+      }
+      rowNumber--;
+    }
+    rowNumber++;
+  });
+
+  emailThreadIdsMap.forEach(({ rowNumber }, _emailThreadIdToDelete) => {
+    followUpSheet.deleteRow(rowNumber);
   });
 }
 
