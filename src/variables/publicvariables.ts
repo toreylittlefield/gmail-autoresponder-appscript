@@ -7,11 +7,17 @@ export const RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME = 'auto-responder-archived-lab
 /** Label for send / moved emails drafts/messaged for follow up responses GMAIL search */
 export const SENT_MESSAGES_LABEL_NAME = 'auto-responder-sent-email-label';
 
-/** Label for send / moved emails drafts/messaged for follow up responses GMAIL search */
+/** Label for archiving and excluding sent emails in the GMAIL search */
 export const SENT_MESSAGES_ARCHIVE_LABEL_NAME = 'auto-responder-sent-email-archived-label';
 
-/** Label for send / moved emails drafts/messaged for follow up responses GMAIL search */
+/** Label to apply a 'auto-responder-follow-up-label' in GMAIL manually for organization purposes */
 export const FOLLOW_UP_MESSAGES_LABEL_NAME = 'auto-responder-follow-up-label';
+
+/** Label for send / moved emails drafts/messaged for follow up responses GMAIL search */
+export const LINKEDIN_APPLIED_LABEL_NAME = 'auto-responder-linkedin-applied-label';
+
+/** Label for send / moved emails drafts/messaged for follow up responses GMAIL search */
+export const LINKEDIN_APPLIED_ARCHIVE_LABEL_NAME = 'auto-responder-linkedin-applied-archived-label';
 
 /** Regex For Bounced Messages */
 export const BOUNCED_MESSAGES_REGEX = new RegExp('mailer-daemon@googlemail.com|@bounce|@bounced', 'gi');
@@ -165,7 +171,9 @@ export const ALWAYS_RESPOND_LIST_INITIAL_DATA = [['inmail-hit-reply@linkedin.com
 /** Name of the sheet for the any bounced emails */
 export const DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME = 'Do Not Track List';
 export const DO_NOT_TRACK_DOMAIN_LIST_SHEET_HEADERS = ['Email or Domain'] as const;
-export const DO_NOT_TRACK_DOMAIN_LIST_INITIAL_DATA = [['noreply@linkedin.com']];
+export const DO_NOT_TRACK_DOMAIN_LIST_INITIAL_DATA = [
+  ['noreply@linkedin.com', 'jobs-listings@linkedin.com', 'jobs-noreply@linkedin.com'],
+];
 
 /** Name of email domains not to send autoreplies */
 export const DO_NOT_EMAIL_AUTO_SHEET_NAME = 'Do Not Autorespond List';
@@ -210,15 +218,23 @@ export const LINKEDIN_APPLIED_JOBS_SHEET_HEADERS = [
   'Email Message Id',
   'Date of Email',
   'Email Subject',
-  'Position',
   'Email Body',
   'Thread Permalink',
+  'Company Name',
+  'Job Position',
   'Point of Contact',
+  'View Job On LinkedIn',
   'Link To Other Email Threads',
   'Archive Thread Id',
   'Warning: Delete Thread Id',
   'Remove LinkedIn Jobs Gmail Label',
 ] as const;
+export const LINKEDIN_APPLIED_JOBS_SHEET_PROTECTION_DESCRIPTION = `${LINKEDIN_APPLIED_JOBS_SHEET_NAME} Sheet Protection`;
+
+export const LINKED_JOB_SEARCH_EMAILS = {
+  applied: 'jobs-listings@linkedin.com',
+  viewed: 'jobs-noreply@linkedin.com',
+} as const;
 
 export const allSheets = [
   AUTOMATED_RECEIVED_SHEET_NAME,
