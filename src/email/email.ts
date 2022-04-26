@@ -463,35 +463,6 @@ export function extractGMAILDataSentEmailsSearch(
           emailThreadPermaLink,
         ]);
       });
-      /**
-       *   emailThreadId: string,
-  inResponseToEmailMessageId: string,
-  isReplyorNewEmail: 'new' | 'reply',
-  date: GoogleAppsScript.Base.Date,
-  emailFrom: string,
-  emailSendTo: string,
-  emailSubject: string,
-  emailBody: string,
-  domain: string,
-  personFrom: string,
-  phoneNumbers: string,
-  salary: string,
-  emailThreadPermaLink: string,
-  deleteDraft: boolean,
-  draftId: string,
-  draftSentMessageId: string,
-  draftMessageDate: GoogleAppsScript.Base.Date,
-  draftMessageSubject: string,
-  draftMessageFrom: string,
-  draftMessageTo: string,
-  draftMessageBody: string,
-  viewDraftInGmail: string,
-  manuallyMoveDraftToSent: boolean,
-  sentThreadId: string,
-  sentEmailMessageId: string,
-  sentEmailMessageDate: GoogleAppsScript.Base.Date,
-  sentThreadPermaLink: string
-       */
 
       // Add label to email for exclusion
       // thread.addLabel(label);
