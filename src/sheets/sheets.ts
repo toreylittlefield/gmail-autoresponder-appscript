@@ -514,10 +514,12 @@ export function writeEmailsToPendingSheet() {
           ? (createOrSentTemplateEmail({
               type: 'newDraftEmail',
               recipient: emailSendTo,
+              personFrom: personFrom === emailSendTo ? '' : personFrom,
               subject: emailSubject,
             }) as DraftAttributeArray)
           : (createOrSentTemplateEmail({
               type: 'replyDraftEmail',
+              personFrom: personFrom === emailSendTo ? '' : personFrom,
               gmailMessageId: inResponseToEmailMessageId,
             }) as DraftAttributeArray);
       return [
@@ -1223,9 +1225,11 @@ export function archiveDeleteAddOrRemoveGmailLabelsInFollowUpSheet({
     rowNumber++;
   });
 
-  emailThreadIdsMap.forEach(({ rowNumber }, _emailThreadIdToDelete) => {
-    followUpSheet.deleteRow(rowNumber);
-  });
+  if (type !== 'add gmail label') {
+    emailThreadIdsMap.forEach(({ rowNumber }, _emailThreadIdToDelete) => {
+      followUpSheet.deleteRow(rowNumber);
+    });
+  }
 }
 
 type SheetsAndHeaders =
