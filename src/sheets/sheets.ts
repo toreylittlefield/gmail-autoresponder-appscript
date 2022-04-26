@@ -4,6 +4,7 @@ import {
   EmailReceivedSheetRowItem,
   getEmailByThreadAndAddToMap,
   getToEmailArray,
+  ValidAppliedLinkedInSheetRow,
   ValidFollowUpSheetRowItem,
 } from '../email/email';
 import {
@@ -55,6 +56,7 @@ import {
   SENT_MESSAGES_ARCHIVE_LABEL_NAME,
   LINKEDIN_APPLIED_JOBS_SHEET_NAME,
   LINKEDIN_APPLIED_JOBS_SHEET_HEADERS,
+  LINKEDIN_APPLIED_JOBS_SHEET_PROTECTION_DESCRIPTION,
 } from '../variables/publicvariables';
 
 export type SheetNames =
@@ -1363,6 +1365,49 @@ export function writeEmailDataToReceivedAutomationSheet(emailsForList: EmailRece
     manuallyMoveToFollowUpEmailCol.colLetter,
     manuallyCreateEmailDraftCol.colLetter,
   ]);
+}
+
+export function writeMessagesToAppliedLinkedinSheet(validAppliedLinkedInSheetRows: ValidAppliedLinkedInSheetRow[]) {
+  if (validAppliedLinkedInSheetRows.length === 0) return;
+  const appliedLinkedInSheet = getSheetByName(LINKEDIN_APPLIED_JOBS_SHEET_NAME);
+  if (!appliedLinkedInSheet)
+    throw Error(`Cannot find ${LINKEDIN_APPLIED_JOBS_SHEET_NAME} in ${writeMessagesToFollowUpEmailsSheet.name}`);
+
+  const appliedLinkedInSheetHeaders = getAllHeaderColNumsAndLetters<typeof LINKEDIN_APPLIED_JOBS_SHEET_HEADERS>({
+    sheetName: LINKEDIN_APPLIED_JOBS_SHEET_NAME,
+  });
+
+  const archiveCheckBox = appliedLinkedInSheetHeaders['Archive Thread Id'];
+  const deleteCheckBox = appliedLinkedInSheetHeaders['Warning: Delete Thread Id'];
+  const removeLabelCheckBox = appliedLinkedInSheetHeaders['Remove LinkedIn Jobs Gmail Label'];
+
+  const colNumbersArray: number[] = [
+    archiveCheckBox.colNumber,
+    deleteCheckBox.colNumber,
+    removeLabelCheckBox.colNumber,
+  ];
+  const checkboxesColLettersArray: string[] = [
+    archiveCheckBox.colLetter,
+    deleteCheckBox.colLetter,
+    removeLabelCheckBox.colLetter,
+  ];
+
+  const { numCols, numRows } = getNumRowsAndColsFromArray(validAppliedLinkedInSheetRows);
+  addRowsToTopOfSheet(numRows, appliedLinkedInSheet);
+  setValuesInRangeAndSortSheet(numRows, numCols, validAppliedLinkedInSheetRows, appliedLinkedInSheet);
+
+  colNumbersArray.forEach((colNumber) =>
+    setCheckedValueForEachRow(
+      validAppliedLinkedInSheetRows.map((_row) => [false]),
+      appliedLinkedInSheet,
+      colNumber
+    )
+  );
+  setSheetProtection(
+    appliedLinkedInSheet,
+    LINKEDIN_APPLIED_JOBS_SHEET_PROTECTION_DESCRIPTION,
+    checkboxesColLettersArray
+  );
 }
 
 export function writeMessagesToFollowUpEmailsSheet(validFollowUpList: ValidFollowUpSheetRowItem[]) {
