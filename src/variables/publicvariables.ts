@@ -204,6 +204,22 @@ export const ARCHIVED_THREADS_SHEET_HEADERS = [
 export const ARCHIVED_FOLLOW_UP_SHEET_NAME = 'Archived Follow Up Threads';
 export const ARCHIVED_FOLLOW_UP_SHEET_HEADERS = FOLLOW_UP_EMAILS__SHEET_HEADERS;
 
+export const LINKEDIN_APPLIED_JOBS_SHEET_NAME = 'Applied LinkedIn Jobs';
+export const LINKEDIN_APPLIED_JOBS_SHEET_HEADERS = [
+  'Email Thread Id',
+  'Email Message Id',
+  'Date of Email',
+  'Email Subject',
+  'Position',
+  'Email Body',
+  'Thread Permalink',
+  'Point of Contact',
+  'Link To Other Email Threads',
+  'Archive Thread Id',
+  'Warning: Delete Thread Id',
+  'Remove LinkedIn Jobs Gmail Label',
+] as const;
+
 export const allSheets = [
   AUTOMATED_RECEIVED_SHEET_NAME,
   PENDING_EMAILS_TO_SEND_SHEET_NAME,
@@ -215,4 +231,5 @@ export const allSheets = [
   DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME,
   ARCHIVED_THREADS_SHEET_NAME,
   ARCHIVED_FOLLOW_UP_SHEET_NAME,
+  LINKEDIN_APPLIED_JOBS_SHEET_NAME,
 ] as const;

@@ -53,6 +53,8 @@ import {
   ARCHIVED_FOLLOW_UP_SHEET_NAME,
   FOLLOW_UP_MESSAGES_LABEL_NAME,
   SENT_MESSAGES_ARCHIVE_LABEL_NAME,
+  LINKEDIN_APPLIED_JOBS_SHEET_NAME,
+  LINKEDIN_APPLIED_JOBS_SHEET_HEADERS,
 } from '../variables/publicvariables';
 
 export type SheetNames =
@@ -65,7 +67,8 @@ export type SheetNames =
   | typeof DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME
   | typeof PENDING_EMAILS_TO_SEND_SHEET_NAME
   | typeof ARCHIVED_THREADS_SHEET_NAME
-  | typeof ARCHIVED_FOLLOW_UP_SHEET_NAME;
+  | typeof ARCHIVED_FOLLOW_UP_SHEET_NAME
+  | typeof LINKEDIN_APPLIED_JOBS_SHEET_NAME;
 
 export type SheetHeaders =
   | typeof AUTOMATED_RECEIVED_SHEET_HEADERS
@@ -77,7 +80,8 @@ export type SheetHeaders =
   | typeof DO_NOT_TRACK_DOMAIN_LIST_SHEET_HEADERS
   | typeof PENDING_EMAILS_TO_SEND_SHEET_HEADERS
   | typeof ARCHIVED_THREADS_SHEET_HEADERS
-  | typeof ARCHIVED_FOLLOW_UP_SHEET_HEADERS;
+  | typeof ARCHIVED_FOLLOW_UP_SHEET_HEADERS
+  | typeof LINKEDIN_APPLIED_JOBS_SHEET_HEADERS;
 
 const tabColors = ['blue', 'green', 'red', 'purple', 'orange', 'yellow', 'black', 'teal', 'gold', 'grey'] as const;
 
@@ -151,6 +155,11 @@ export async function checkExistsOrCreateSpreadsheet(deletedSheetsMap?: Record<S
         spreadsheetId: spreadsheet.getId(),
       });
 
+      if (missingSheetsMap['Applied LinkedIn Jobs']) {
+        createSheet(spreadsheet, LINKEDIN_APPLIED_JOBS_SHEET_NAME, LINKEDIN_APPLIED_JOBS_SHEET_HEADERS, {
+          tabColor: 'gold',
+        });
+      }
       if (missingSheetsMap['Automated Received Emails']) {
         createSheet(spreadsheet, AUTOMATED_RECEIVED_SHEET_NAME, AUTOMATED_RECEIVED_SHEET_HEADERS, {
           tabColor: 'blue',
