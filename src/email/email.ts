@@ -16,12 +16,14 @@ import {
   addToRepliesArray,
   writeDomainsListToDoNotRespondSheet,
   writeEmailDataToReceivedAutomationSheet,
+  writeMessagesToAppliedLinkedinSheet,
   writeMessagesToFollowUpEmailsSheet,
   writeToSentEmailsSheet,
 } from '../sheets/sheets';
 import {
   calcAverage,
   getAtDomainFromEmailAddress,
+  getDataFromLinkedInAppliedEmail,
   getDomainFromEmailAddress,
   getEmailFromString,
   getPhoneNumbersFromString,
@@ -29,7 +31,11 @@ import {
   regexEmail,
   regexSalary,
 } from '../utils/utils';
-import { RECEIVED_MESSAGES_LABEL_NAME } from '../variables/publicvariables';
+import {
+  LINKEDIN_APPLIED_LABEL_NAME,
+  LINKED_JOB_SEARCH_EMAILS,
+  RECEIVED_MESSAGES_LABEL_NAME,
+} from '../variables/publicvariables';
 
 type EmailReplySendArray = [emailAddress: string, replyOrNew: EmailDataToSend][];
 
@@ -751,6 +757,86 @@ export function extractGMAILDataForFollowUpSearch(
       // thread.addLabel(label);
     });
     writeMessagesToFollowUpEmailsSheet(validRowsInFollowUpSheet);
+  } catch (error) {
+    console.error(error as any);
+  }
+}
+
+export type ValidAppliedLinkedInSheetRow = [
+  EmailThreadId: string,
+  EmailMessageId: string,
+  DateofEmail: GoogleAppsScript.Base.Date,
+  EmailSubject: string,
+  EmailBody: string,
+  ThreadPermalink: string,
+  CompanyName: string,
+  JobPosition: string,
+  PointofContact: string | undefined,
+  ViewJobOnLinkedInURL: string,
+  LinkToOtherEmailThreads: string | undefined,
+  ArchiveThreadId: false,
+  WarningDeleteThreadId: false,
+  RemoveLinkedInJobsGmailLabel: false
+];
+
+export function extractGMAILDataForAppliedLinkedInSheet(
+  email: string,
+  labelToSearch: string,
+  labelToExclude?: string,
+  _event?: GoogleAppsScript.Events.TimeDriven
+) {
+  try {
+    const validRowsInAppliedLinkedInSheet: ValidAppliedLinkedInSheetRow[] = [];
+
+    let linkedinLabel = GmailApp.getUserLabelByName(LINKEDIN_APPLIED_LABEL_NAME);
+    if (!linkedinLabel) {
+      linkedinLabel = GmailApp.createLabel(linkedinLabel);
+    }
+
+    // Send our response email and label it responded to
+    // const threads = GmailApp.search(
+    //   "-subject:'re:' -is:chats -is:draft has:nouserlabels -label:" + LABEL_NAME + ' to:(' + EMAIL_ACCOUNT + ')'
+    // );
+    const threads = GmailApp.search(
+      `label:${labelToSearch} -label:${labelToExclude} to:(${email}) from:(${LINKED_JOB_SEARCH_EMAILS.applied})`
+    );
+
+    threads.forEach((thread) => {
+      const [firstMsg] = thread.getMessages();
+      const emailThreadId = thread.getId().toString();
+      const emailMessageId = firstMsg.getId().toString();
+      const date = firstMsg.getDate();
+      const emailSubject = thread.getFirstMessageSubject();
+      const emailBody = firstMsg.getPlainBody();
+      const threadPermalink = thread.getPermalink();
+
+      const { companyName, jobPosition, pointOfContact, viewJobOnLinkedInURL } = getDataFromLinkedInAppliedEmail({
+        emailBody,
+        emailSubject,
+      });
+
+      const validRow: ValidAppliedLinkedInSheetRow = [
+        emailThreadId,
+        emailMessageId,
+        date,
+        emailSubject,
+        emailBody,
+        threadPermalink,
+        companyName,
+        jobPosition,
+        pointOfContact,
+        viewJobOnLinkedInURL,
+        '',
+        false,
+        false,
+        false,
+      ];
+      validRowsInAppliedLinkedInSheet.push(validRow);
+
+      thread.addLabel(linkedinLabel);
+    });
+
+    writeMessagesToAppliedLinkedinSheet(validRowsInAppliedLinkedInSheet);
   } catch (error) {
     console.error(error as any);
   }
