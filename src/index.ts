@@ -1,4 +1,8 @@
-import { extractGMAILDataForFollowUpSearch, extractGMAILDataForNewMessagesReceivedSearch } from './email/email';
+import {
+  extractGMAILDataForAppliedLinkedInSheet,
+  extractGMAILDataForFollowUpSearch,
+  extractGMAILDataForNewMessagesReceivedSearch,
+} from './email/email';
 import { getUserProps } from './properties-service/properties-service';
 import {
   activeSheet,
@@ -38,8 +42,10 @@ import { hasAllRequiredUserProps, initialGlobalMap } from './utils/utils';
 import {
   allSheets,
   AUTOMATED_RECEIVED_SHEET_NAME,
+  LINKEDIN_APPLIED_ARCHIVE_LABEL_NAME,
   PENDING_EMAILS_TO_SEND_SHEET_NAME,
   RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME,
+  RECEIVED_MESSAGES_LABEL_NAME,
   SENT_MESSAGES_ARCHIVE_LABEL_NAME,
   SENT_MESSAGES_LABEL_NAME,
 } from './variables/publicvariables';
@@ -78,6 +84,12 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
     initialGlobalMap('pendingEmailsToSendMap');
     initialGlobalMap('sentEmailsByDomainMap');
     initialGlobalMap('sentEmailsBySentMessageIdMap');
+
+    extractGMAILDataForAppliedLinkedInSheet(
+      email,
+      labelToSearch || RECEIVED_MESSAGES_LABEL_NAME,
+      LINKEDIN_APPLIED_ARCHIVE_LABEL_NAME
+    );
 
     extractGMAILDataForNewMessagesReceivedSearch(email, labelToSearch, RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME, e);
 
