@@ -63,7 +63,7 @@ function createMenuAfterStart(ui: GoogleAppsScript.Base.Ui, menu: GoogleAppsScri
   followUpSheetActions.addItem(`Archived Follow Up Messages`, uiButtonArchiveFollowUp.name);
   followUpSheetActions.addItem(`Warning: Delete Selected Email Threads`, uiButtonDeleteFollowUp.name);
   followUpSheetActions.addItem(`Remove From GMAIL Sent Message Label`, uiButtonRemoveLabelFollowUp.name);
-  followUpSheetActions.addItem(`Add GMAIL Follow Up Label`, deleteSelectRowsInAutoReceivedSheet.name);
+  followUpSheetActions.addItem(`Add GMAIL Follow Up Label`, uiButtonAddLabelFollowUp.name);
 
   menu.addItem(`Get Emails & Create Drafts - Sync Emails`, uiGetEmailsFromGmail.name).addSeparator();
   menu.addSubMenu(receivedEmailsSheetActions).addToUi();
