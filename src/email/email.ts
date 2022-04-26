@@ -44,7 +44,7 @@ function getDraftTemplateAutoResponder() {
   return draft;
 }
 
-function getParamsForSendingEmails(htmlBodyMessage?: string) {
+function getParamsForSendingEmails(personFrom: string, htmlBodyMessage?: string) {
   const name = getSingleUserPropValue('nameForEmail');
   const email = getSingleUserPropValue('email');
   if (!name) throw Error('You need to set a name to appear in the email');
@@ -53,9 +53,10 @@ function getParamsForSendingEmails(htmlBodyMessage?: string) {
   const draftBody = draft && draft.getMessage().getBody();
   const body = htmlBodyMessage || draftBody ? draftBody : undefined;
   if (!body) throw Error('Could not find draft and send Email');
+  const bodyWithName = body.replace(/Hello!/g, `Hello ${personFrom}!`);
   const gmailAdvancedOptions: GoogleAppsScript.Gmail.GmailAdvancedOptions = {
     from: email,
-    htmlBody: body,
+    htmlBody: bodyWithName,
     name: name,
   };
   return gmailAdvancedOptions;
@@ -84,8 +85,12 @@ export function createNewDraftMessage(
   return getDraftAttrArrayToWriteToSheet(newDraft);
 }
 
-function draftReplyToMessage(gmailMessageId: string, htmlBodyMessage?: string): DraftAttributeArray {
-  const gmailAdvancedOptions = getParamsForSendingEmails(htmlBodyMessage);
+function draftReplyToMessage(
+  gmailMessageId: string,
+  personFrom: string,
+  htmlBodyMessage?: string
+): DraftAttributeArray {
+  const gmailAdvancedOptions = getParamsForSendingEmails(personFrom, htmlBodyMessage);
 
   const gmailMessage = GmailApp.getMessageById(gmailMessageId);
   if (!gmailMessage) throw Error(`Cant find Gmail message: ${gmailMessageId} to create a draft reply`);
@@ -95,25 +100,47 @@ function draftReplyToMessage(gmailMessageId: string, htmlBodyMessage?: string): 
 }
 
 type SendTemplateOptions =
-  | { type: 'replyDraftEmail'; gmailMessageId: string; htmlBodyMessage?: string; recipient?: string; subject?: string }
-  | { type: 'newDraftEmail'; gmailMessageId?: string; htmlBodyMessage?: string; recipient: string; subject: string }
-  | { type: 'sendNewEmail'; gmailMessageId?: string; htmlBodyMessage?: string; recipient: string; subject: string };
+  | {
+      type: 'replyDraftEmail';
+      gmailMessageId: string;
+      htmlBodyMessage?: string;
+      recipient?: string;
+      subject?: string;
+      personFrom: string;
+    }
+  | {
+      type: 'newDraftEmail';
+      gmailMessageId?: string;
+      htmlBodyMessage?: string;
+      recipient: string;
+      subject: string;
+      personFrom: string;
+    }
+  | {
+      type: 'sendNewEmail';
+      gmailMessageId?: string;
+      htmlBodyMessage?: string;
+      recipient: string;
+      subject: string;
+      personFrom: string;
+    };
 
 export function createOrSentTemplateEmail({
   type,
   htmlBodyMessage,
+  personFrom,
   gmailMessageId = '',
   recipient = '',
   subject = '',
 }: SendTemplateOptions): DraftAttributeArray | undefined {
   try {
-    const gmailAdvancedOptions = getParamsForSendingEmails(htmlBodyMessage);
+    const gmailAdvancedOptions = getParamsForSendingEmails(personFrom, htmlBodyMessage);
     switch (type) {
       case 'newDraftEmail':
         return createNewDraftMessage(recipient, subject, gmailAdvancedOptions);
 
       case 'replyDraftEmail':
-        return draftReplyToMessage(gmailMessageId, htmlBodyMessage);
+        return draftReplyToMessage(gmailMessageId, personFrom, htmlBodyMessage);
       case 'sendNewEmail':
         GmailApp.sendEmail(recipient, subject, '', gmailAdvancedOptions);
         break;
