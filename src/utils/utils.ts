@@ -68,6 +68,62 @@ export const getPhoneNumbersFromString = (str: string) => {
   });
 };
 
+type LinkedAppliedEmailData = {
+  companyName: string;
+  jobPosition: string;
+  pointOfContact: string;
+  viewJobOnLinkedInURL: string;
+};
+export function getDataFromLinkedInAppliedEmail({
+  emailBody,
+  emailSubject,
+}: {
+  emailBody: string;
+  emailSubject: string;
+}): LinkedAppliedEmailData {
+  const { viewJobOnLinkedInURL = '' } = getViewJobURL(emailBody);
+  const pointOfContact = '';
+  const { companyName = '', jobPosition = '' } = getCompanyNameAndPositionFromSubject(emailSubject);
+  return { viewJobOnLinkedInURL, pointOfContact, companyName, jobPosition };
+}
+
+function getViewJobURL(emailBody: string) {
+  const [firstJob] = emailBody.match(/^(?:view job:\s)(.*)\b$/gim) as string[];
+  const viewJobOnLinkedInURL = firstJob.replace(/View job:\s/g, '').trim();
+  return { viewJobOnLinkedInURL };
+}
+
+function getCompanyName(emailSubject: string) {
+  let companyName: string | RegExpMatchArray | null = emailSubject.match(/(at\s\b)(\w+\b)/g);
+  if (!companyName) companyName = '';
+  else {
+    companyName = companyName
+      .toString()
+      .replace(/at\s\b/g, '')
+      .trim();
+  }
+  return companyName;
+}
+
+function getJobPosition(emailSubject: string) {
+  let jobPostion: string | RegExpMatchArray | null = emailSubject.match(/(for\s\b)(.*)(at\s\b)/g);
+  if (!jobPostion) jobPostion = '';
+  else {
+    jobPostion = jobPostion
+      .toString()
+      .replace(/at|for/g, '')
+      .trim();
+  }
+  return jobPostion;
+}
+
+function getCompanyNameAndPositionFromSubject(emailSubject: string) {
+  const companyName = getCompanyName(emailSubject);
+  const jobPosition = getJobPosition(emailSubject);
+
+  return { companyName, jobPosition };
+}
+
 type MapNames =
   | 'autoReceivedSheetEmailThreadIdsMap'
   | 'followUpSheetEmailThreadIdsMap'
