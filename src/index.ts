@@ -26,6 +26,7 @@ import {
   removeLabelSelectRowsInAutoReceivedSheet,
   sendSelectedEmailsInPendingEmailsSheet,
   toggleAutoResponseOnOff,
+  uiButtonAddLabelFollowUp,
   uiButtonArchiveFollowUp,
   uiButtonDeleteFollowUp,
   uiButtonManuallyCreateDraftEmailsForSelectedRowsInAutoReceivedSheet,
@@ -155,6 +156,7 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
 (global as any).uiButtonArchiveFollowUp = uiButtonArchiveFollowUp;
 (global as any).uiButtonDeleteFollowUp = uiButtonDeleteFollowUp;
 (global as any).uiButtonRemoveLabelFollowUp = uiButtonRemoveLabelFollowUp;
+(global as any).uiButtonAddLabelFollowUp = uiButtonAddLabelFollowUp;
 
 (global as any).archiveSelectRowsInAutoReceivedSheet = archiveSelectRowsInAutoReceivedSheet;
 (global as any).deleteSelectRowsInAutoReceivedSheet = deleteSelectRowsInAutoReceivedSheet;
