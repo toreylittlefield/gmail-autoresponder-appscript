@@ -77,13 +77,7 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
     if (!activeSpreadsheet) throw Error('No Active Spreadsheet');
     if (!activeSheet) throw Error('No Active Sheet');
 
-    initialGlobalMap('doNotTrackMap');
-    initialGlobalMap('autoReceivedSheetEmailThreadIdsMap');
-    initialGlobalMap('alwaysAllowMap');
-    initialGlobalMap('doNotSendMailAutoMap');
-    initialGlobalMap('pendingEmailsToSendMap');
-    initialGlobalMap('sentEmailsByDomainMap');
-    initialGlobalMap('sentEmailsBySentMessageIdMap');
+    initialGlobalMap('emailThreadsIdAppliedLinkedInMap');
 
     extractGMAILDataForAppliedLinkedInSheet(
       email,
@@ -91,6 +85,13 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
       LINKEDIN_APPLIED_ARCHIVE_LABEL_NAME
     );
 
+    initialGlobalMap('doNotTrackMap');
+    initialGlobalMap('autoReceivedSheetEmailThreadIdsMap');
+    initialGlobalMap('alwaysAllowMap');
+    initialGlobalMap('doNotSendMailAutoMap');
+    initialGlobalMap('pendingEmailsToSendMap');
+    initialGlobalMap('sentEmailsByDomainMap');
+    initialGlobalMap('sentEmailsBySentMessageIdMap');
     extractGMAILDataForNewMessagesReceivedSearch(email, labelToSearch, RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME, e);
 
     // order initializing this map matters as writing to the received automation sheet should occur first
