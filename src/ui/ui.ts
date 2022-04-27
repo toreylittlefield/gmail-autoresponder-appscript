@@ -1,3 +1,4 @@
+import { getUserCalendarsAndCurrentCalendar } from '../calendar/calendar';
 import {
   createFilterAndLabel,
   getUserCannedMessage,
@@ -380,6 +381,7 @@ export function getUserPropertiesForPageModal() {
   const { nameForEmail } = getUserNameForEmail();
   const { subject, draftsList } = getUserCannedMessage();
   const { currentLabel, userLabels } = getUserLabels();
+  const { currentCalendar, listOfOwnerCalendarNames } = getUserCalendarsAndCurrentCalendar();
 
   return {
     emailAliases,
@@ -390,6 +392,8 @@ export function getUserPropertiesForPageModal() {
     draftsList,
     currentLabel,
     userLabels,
+    currentCalendar,
+    listOfOwnerCalendarNames,
   };
 }
 
@@ -413,6 +417,10 @@ export function processFormEventsFromPage(formObject: Partial<Record<UserRecords
   if (formObject.subject && formObject.draftId) {
     setUserProps({ subject: formObject.subject, draftId: formObject.draftId });
     return getUserProps(['subject']);
+  }
+  if (formObject.currentCalendarName) {
+    setUserProps({ currentCalendarName: formObject.currentCalendarName });
+    return getUserProps(['currentCalendarName']);
   }
   return;
 }
