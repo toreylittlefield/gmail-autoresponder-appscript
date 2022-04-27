@@ -5,6 +5,7 @@ import {
   EmailDataToSend,
   emailsToAddToPendingSheetMap,
   emailThreadIdsMap,
+  emailThreadsIdAppliedLinkedInMap,
   followUpSheetMessageIdMap,
   pendingEmailsToSendMap,
   sentEmailsByDomainMap,
@@ -790,7 +791,7 @@ export function extractGMAILDataForAppliedLinkedInSheet(
 
     let linkedinLabel = GmailApp.getUserLabelByName(LINKEDIN_APPLIED_LABEL_NAME);
     if (!linkedinLabel) {
-      linkedinLabel = GmailApp.createLabel(linkedinLabel);
+      linkedinLabel = GmailApp.createLabel(LINKEDIN_APPLIED_LABEL_NAME);
     }
 
     // Send our response email and label it responded to
@@ -802,8 +803,11 @@ export function extractGMAILDataForAppliedLinkedInSheet(
     );
 
     threads.forEach((thread) => {
-      const [firstMsg] = thread.getMessages();
       const emailThreadId = thread.getId().toString();
+
+      if (emailThreadsIdAppliedLinkedInMap.has(emailThreadId)) return;
+
+      const [firstMsg] = thread.getMessages();
       const emailMessageId = firstMsg.getId().toString();
       const date = firstMsg.getDate();
       const emailSubject = thread.getFirstMessageSubject();
