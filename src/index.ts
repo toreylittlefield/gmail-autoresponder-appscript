@@ -1,3 +1,4 @@
+import { extractCalendarDataForCalendarSheet, getAllCalendarEventsFor30Days } from './calendar/calendar';
 import {
   extractGMAILDataForAppliedLinkedInSheet,
   extractGMAILDataForFollowUpSearch,
@@ -76,6 +77,8 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
     initSpreadsheet();
     if (!activeSpreadsheet) throw Error('No Active Spreadsheet');
     if (!activeSheet) throw Error('No Active Sheet');
+
+    extractCalendarDataForCalendarSheet();
 
     initialGlobalMap('emailThreadsIdAppliedLinkedInMap');
 
