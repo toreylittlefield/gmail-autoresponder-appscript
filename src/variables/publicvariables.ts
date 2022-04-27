@@ -172,7 +172,9 @@ export const ALWAYS_RESPOND_LIST_INITIAL_DATA = [['inmail-hit-reply@linkedin.com
 export const DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME = 'Do Not Track List';
 export const DO_NOT_TRACK_DOMAIN_LIST_SHEET_HEADERS = ['Email or Domain'] as const;
 export const DO_NOT_TRACK_DOMAIN_LIST_INITIAL_DATA = [
-  ['noreply@linkedin.com', 'jobs-listings@linkedin.com', 'jobs-noreply@linkedin.com'],
+  ['noreply@linkedin.com'],
+  ['jobs-listings@linkedin.com'],
+  ['jobs-noreply@linkedin.com'],
 ];
 
 /** Name of email domains not to send autoreplies */
