@@ -233,6 +233,26 @@ export const LINKEDIN_APPLIED_JOBS_SHEET_HEADERS = [
 ] as const;
 export const LINKEDIN_APPLIED_JOBS_SHEET_PROTECTION_DESCRIPTION = `${LINKEDIN_APPLIED_JOBS_SHEET_NAME} Sheet Protection`;
 
+export const CALENDAR_EVENTS_SHEET_NAME = 'Calendar Events';
+export const CALENDAR_EVENTS_SHEET_HEADERS = [
+  'Calendar Event Id',
+  'Event Last Updated Time',
+  'Event Created Time',
+  'Event Start Time',
+  'Event End Time',
+  'Event Title',
+  'Event Description',
+  'Guest Company Name',
+  'Guest Domain',
+  'Guest Name',
+  'Guest Email',
+  'Guest Phone Number',
+  'Guest Status',
+  'Number Of Guests',
+  'Event URL',
+] as const;
+export const CALENDAR_EVENTS_SHEET_PROTECTION_DESCRIPTION = `${CALENDAR_EVENTS_SHEET_NAME} Sheet Protection`;
+
 export const LINKED_JOB_SEARCH_EMAILS = {
   applied: 'jobs-listings@linkedin.com',
   viewed: 'jobs-noreply@linkedin.com',
@@ -250,4 +270,5 @@ export const allSheets = [
   ARCHIVED_THREADS_SHEET_NAME,
   ARCHIVED_FOLLOW_UP_SHEET_NAME,
   LINKEDIN_APPLIED_JOBS_SHEET_NAME,
+  CALENDAR_EVENTS_SHEET_NAME,
 ] as const;
