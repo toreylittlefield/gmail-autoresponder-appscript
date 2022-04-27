@@ -1,3 +1,4 @@
+import { ValidRowToWriteInCalendarSheet } from '../calendar/calendar';
 import {
   createOrSentTemplateEmail,
   DraftAttributeArray,
@@ -57,6 +58,8 @@ import {
   LINKEDIN_APPLIED_JOBS_SHEET_NAME,
   LINKEDIN_APPLIED_JOBS_SHEET_HEADERS,
   LINKEDIN_APPLIED_JOBS_SHEET_PROTECTION_DESCRIPTION,
+  CALENDAR_EVENTS_SHEET_HEADERS,
+  CALENDAR_EVENTS_SHEET_NAME,
 } from '../variables/publicvariables';
 
 export type SheetNames =
@@ -70,7 +73,8 @@ export type SheetNames =
   | typeof PENDING_EMAILS_TO_SEND_SHEET_NAME
   | typeof ARCHIVED_THREADS_SHEET_NAME
   | typeof ARCHIVED_FOLLOW_UP_SHEET_NAME
-  | typeof LINKEDIN_APPLIED_JOBS_SHEET_NAME;
+  | typeof LINKEDIN_APPLIED_JOBS_SHEET_NAME
+  | typeof CALENDAR_EVENTS_SHEET_NAME;
 
 export type SheetHeaders =
   | typeof AUTOMATED_RECEIVED_SHEET_HEADERS
@@ -83,7 +87,8 @@ export type SheetHeaders =
   | typeof PENDING_EMAILS_TO_SEND_SHEET_HEADERS
   | typeof ARCHIVED_THREADS_SHEET_HEADERS
   | typeof ARCHIVED_FOLLOW_UP_SHEET_HEADERS
-  | typeof LINKEDIN_APPLIED_JOBS_SHEET_HEADERS;
+  | typeof LINKEDIN_APPLIED_JOBS_SHEET_HEADERS
+  | typeof CALENDAR_EVENTS_SHEET_HEADERS;
 
 const tabColors = ['blue', 'green', 'red', 'purple', 'orange', 'yellow', 'black', 'teal', 'gold', 'grey'] as const;
 
@@ -160,6 +165,11 @@ export async function checkExistsOrCreateSpreadsheet(deletedSheetsMap?: Record<S
       if (missingSheetsMap['Applied LinkedIn Jobs']) {
         createSheet(spreadsheet, LINKEDIN_APPLIED_JOBS_SHEET_NAME, LINKEDIN_APPLIED_JOBS_SHEET_HEADERS, {
           tabColor: 'gold',
+        });
+      }
+      if (missingSheetsMap['Calendar Events']) {
+        createSheet(spreadsheet, CALENDAR_EVENTS_SHEET_NAME, CALENDAR_EVENTS_SHEET_HEADERS, {
+          tabColor: 'green',
         });
       }
       if (missingSheetsMap['Automated Received Emails']) {
@@ -1408,6 +1418,52 @@ export function writeMessagesToAppliedLinkedinSheet(validAppliedLinkedInSheetRow
     LINKEDIN_APPLIED_JOBS_SHEET_PROTECTION_DESCRIPTION,
     checkboxesColLettersArray
   );
+}
+export function writeEventsToCalendarSheet(validRowInCalendarSheet: ValidRowToWriteInCalendarSheet[]) {
+  if (validRowInCalendarSheet.length === 0) return;
+  const calendarSheet = getSheetByName(CALENDAR_EVENTS_SHEET_NAME);
+  if (!calendarSheet) throw Error(`Cannot find ${CALENDAR_EVENTS_SHEET_NAME} in ${writeEventsToCalendarSheet.name}`);
+
+  const calendarSheetHeaders = getAllHeaderColNumsAndLetters<typeof CALENDAR_EVENTS_SHEET_HEADERS>({
+    sheetName: CALENDAR_EVENTS_SHEET_NAME,
+  });
+
+  const startDateCol = calendarSheetHeaders['Event Start Time'];
+
+  // const archiveCheckBox = calendarSheetHeaders['Archive Thread Id'];
+  // const deleteCheckBox = calendarSheetHeaders['Warning: Delete Thread Id'];
+  // const removeLabelCheckBox = calendarSheetHeaders['Remove LinkedIn Jobs Gmail Label'];
+
+  // const colNumbersArray: number[] = [
+  //   archiveCheckBox.colNumber,
+  //   deleteCheckBox.colNumber,
+  //   removeLabelCheckBox.colNumber,
+  // ];
+  // const checkboxesColLettersArray: string[] = [
+  //   archiveCheckBox.colLetter,
+  //   deleteCheckBox.colLetter,
+  //   removeLabelCheckBox.colLetter,
+  // ];
+
+  const { numCols, numRows } = getNumRowsAndColsFromArray(validRowInCalendarSheet);
+  addRowsToTopOfSheet(numRows, calendarSheet);
+  setValuesInRangeAndSortSheet(numRows, numCols, validRowInCalendarSheet, calendarSheet, {
+    asc: true,
+    sortByCol: startDateCol.colNumber,
+  });
+
+  // colNumbersArray.forEach((colNumber) =>
+  //   setCheckedValueForEachRow(
+  //     validRowInCalendarSheet.map((_row) => [false]),
+  //     calendarSheet,
+  //     colNumber
+  //   )
+  // );
+  // setSheetProtection(
+  //   calendarSheet,
+  //   LINKEDIN_APPLIED_JOBS_SHEET_PROTECTION_DESCRIPTION,
+  //   checkboxesColLettersArray
+  // );
 }
 
 export function writeMessagesToFollowUpEmailsSheet(validFollowUpList: ValidFollowUpSheetRowItem[]) {
