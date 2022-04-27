@@ -1,4 +1,4 @@
-type FormIds = 'email-form' | 'name-form' | 'canned-form' | 'label-form';
+type FormIds = 'email-form' | 'name-form' | 'canned-form' | 'label-form' | 'calendar-form';
 
 type UserPropsKeys =
   | 'subject'
@@ -9,7 +9,8 @@ type UserPropsKeys =
   | 'nameForEmail'
   | 'labelToSearch'
   | 'labelId'
-  | 'filterId';
+  | 'filterId'
+  | 'currentCalendarName';
 
 type DraftsList = { subject: string; draftId: string; subjectBody: string };
 
@@ -22,6 +23,8 @@ type OnSucessPayload = {
   draftsList: DraftsList[];
   currentLabel: string;
   userLabels: string[];
+  currentCalendar: string;
+  listOfOwnerCalendarNames: string[];
 };
 
 let formIdFromEvent: FormIds;
@@ -178,6 +181,17 @@ function setName(nameForEmail: string) {
   if (titleElement) titleElement.textContent = `${nameForEmail}`;
 }
 
+function setCalendarForm(currentCalendar: string, listOfOwnerCalendarNames: string[]) {
+  appendToDataList('available-calendars', createChildElements(listOfOwnerCalendarNames));
+
+  setCalendar(currentCalendar);
+}
+
+function setCalendar(calendarName: string) {
+  const titleElement = document.querySelector(`#calendar-form #current-value`);
+  if (titleElement) titleElement.textContent = `${calendarName}`;
+}
+
 function onSuccessGetUserProperties(userProperties: OnSucessPayload) {
   const {
     emailAliases,
@@ -188,12 +202,15 @@ function onSuccessGetUserProperties(userProperties: OnSucessPayload) {
     draftsList,
     currentLabel,
     userLabels,
+    currentCalendar,
+    listOfOwnerCalendarNames,
   } = userProperties;
 
   setEmailForm(emailAliases, mainEmail, currentEmailUserStore);
   setNameForm(nameForEmail);
   setSubjectForm(subject, draftsList);
   setLabelForm(currentLabel, userLabels);
+  setCalendarForm(currentCalendar, listOfOwnerCalendarNames);
 }
 
 function toggleLoading(formId: string, disabled: boolean) {
@@ -238,6 +255,9 @@ function processCallbackSuccess(formObject: Record<UserPropsKeys, string>) {
   }
   if (formObject.nameForEmail) {
     setName(formObject.nameForEmail);
+  }
+  if (formObject.currentCalendarName) {
+    setCalendar(formObject.currentCalendarName);
   }
   alert(`${key} Changed!
         Your ${key} is now set to:
