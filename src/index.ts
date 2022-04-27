@@ -1,4 +1,4 @@
-import { extractCalendarDataForCalendarSheet, getAllCalendarEventsFor30Days } from './calendar/calendar';
+import { extractCalendarDataForCalendarSheet } from './calendar/calendar';
 import {
   extractGMAILDataForAppliedLinkedInSheet,
   extractGMAILDataForFollowUpSearch,
