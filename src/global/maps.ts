@@ -29,6 +29,9 @@ export const alwaysAllowMap = new Map<string, boolean>();
 /** list of all email thread ids (threadId) and row number / messageId in automation sheet */
 export const emailThreadIdsMap = new Map<string, { rowNumber: number; emailMessageId: string }>();
 
+/** list of existing linkedin by email thread ids (threadId) and row number / messageId in automation sheet */
+export const emailThreadsIdAppliedLinkedInMap = new Map<string, { rowNumber: number; emailMessageId: string }>();
+
 /** list of all emails by email address as key, and replyToEmail as boolean with emailSubject and body */
 export const emailsToAddToPendingSheetMap = new Map<string, EmailDataToSend>();
 
