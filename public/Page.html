@@ -237,6 +237,40 @@
         </div>
         <!-- END SET LABEL TO SEARCH FORM -->
 
+        <!-- SET CURRENT CALENDAR -->
+        <div class="mdl-cell mdl-cell--12-col">
+            <div class="mdl-card mdl-shadow--2dp" style="padding: 0px 5px;">
+
+                <form id="calendar-form">
+                    <fieldset>
+                        <legend>Current Calendar Configuration</legend>
+                        <div class="mdl-card__title">
+
+                            <h2 class="mdl-card__subtitle-text" id="current-value"></h2>
+                            <div id="loader" class="loader hide"></div>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <div style="flex-basis: 70%; width: auto;"
+                                class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                                <label class="mdl-textfield__label" for="labelToSearch">Choose a Calendar:</label>
+                                <input class="mdl-textfield__input" list="available-calendars" id="calendar-label"
+                                    name="currentCalendarName" type="text" />
+                            </div>
+                            <datalist id="available-calendars"> </datalist>
+                            <button id="label-submit" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect
+                                    mdl-button--primary" type="submit">Save</button>
+                        </div>
+                        <details>
+                            <summary>Details</summary>
+                            <p>Choose a Google Calendar To Sync Scheduled Events From</p>
+                        </details>
+
+                    </fieldset>
+                </form>
+            </div>
+        </div>
+        <!-- END SET CURRENT CALENDAR -->
+
     </div>
 
     </div>
