@@ -9,12 +9,14 @@ import {
   sentEmailsByDomainMap,
   followUpSheetMessageIdMap,
   emailThreadsIdAppliedLinkedInMap,
+  calendarEventsMap,
 } from '../global/maps';
 import { getUserProps } from '../properties-service/properties-service';
 import { getAllDataFromSheet, getAllHeaderColNumsAndLetters, SheetNames } from '../sheets/sheets';
 import {
   ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME,
   AUTOMATED_RECEIVED_SHEET_NAME,
+  CALENDAR_EVENTS_SHEET_NAME,
   DO_NOT_EMAIL_AUTO_SHEET_NAME,
   DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME,
   FOLLOW_UP_EMAILS_SHEET_NAME,
@@ -56,7 +58,9 @@ export const regexEmail = /([a-zA-Z0-9+._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi
 export const regexSalary =
   /\$[1-2][0-9][0-9][-\s][1-2][0-9][0-9]|[1-2][0-9][0-9][-\s]\[1-2][0-9][0-9]|[1-2][0-9][0-9]k/gi;
 
-export const regexValidUSPhoneNumber = /^(?:\+?1[-.●]?)?\(?([0-9]{3})\)?[-.●\s]?([0-9]{3})[-.●\s]?([0-9]{4})/gim;
+export const regexValidUSPhoneNumber =
+  /((^(?:\+?1[-.●]?)?\(?)|((?:\+?1[-.●]?)?\(?))([0-9]{3})\)?[-.●\s]?([0-9]{3})[-.●\s]?([0-9]{4})/gim;
+export const regexValidUSPhoneNumberOld = /^(?:\+?1[-.●]?)?\(?([0-9]{3})\)?[-.●\s]?([0-9]{3})[-.●\s]?([0-9]{4})/gim;
 
 export const getEmailFromString = (str: string) => str.split('<')[1].replace('>', '').trim();
 export const getPhoneNumbersFromString = (str: string) => {
@@ -136,7 +140,8 @@ type MapNames =
   | 'alwaysAllowMap'
   | 'sentEmailsBySentMessageIdMap'
   | 'sentEmailsByDomainMap'
-  | 'emailThreadsIdAppliedLinkedInMap';
+  | 'emailThreadsIdAppliedLinkedInMap'
+  | 'calendarEventsMap';
 
 export function initialGlobalMap(mapName: MapNames) {
   try {
@@ -154,6 +159,11 @@ export function initialGlobalMap(mapName: MapNames) {
       case 'emailThreadsIdAppliedLinkedInMap':
         getSheetData(LINKEDIN_APPLIED_JOBS_SHEET_NAME).forEach(([emailThreadId, emailMessageId], index) =>
           emailThreadsIdAppliedLinkedInMap.set(emailThreadId, { rowNumber: index + 2, emailMessageId })
+        );
+        break;
+      case 'calendarEventsMap':
+        getSheetData(CALENDAR_EVENTS_SHEET_NAME).forEach(([eventId], index) =>
+          calendarEventsMap.set(eventId, { rowNumber: index + 2 })
         );
         break;
       case 'doNotTrackMap':
