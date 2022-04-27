@@ -32,6 +32,9 @@ export const emailThreadIdsMap = new Map<string, { rowNumber: number; emailMessa
 /** list of existing linkedin by email thread ids (threadId) and row number / messageId in automation sheet */
 export const emailThreadsIdAppliedLinkedInMap = new Map<string, { rowNumber: number; emailMessageId: string }>();
 
+/** list of existing calendar events by event ids (eventId) and row number in calendar sheet */
+export const calendarEventsMap = new Map<string, { rowNumber: number }>();
+
 /** list of all emails by email address as key, and replyToEmail as boolean with emailSubject and body */
 export const emailsToAddToPendingSheetMap = new Map<string, EmailDataToSend>();
 
