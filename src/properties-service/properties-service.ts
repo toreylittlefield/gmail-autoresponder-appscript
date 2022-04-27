@@ -12,7 +12,8 @@ export type UserRecords =
   | 'labelToSearch'
   | 'labelId'
   | 'filterId'
-  | 'isAutoResOn';
+  | 'isAutoResOn'
+  | 'currentCalendarName';
 
 export type UserPropsKeys = UserRecords | Sheets;
 
