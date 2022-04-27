@@ -281,3 +281,24 @@ export function hasAllRequiredUserProps() {
   }
   return false;
 }
+
+export function getFutureMonthAndYear(month: number) {
+  if (month < 0 || month > 11 || typeof month !== 'number')
+    throw Error(`${month} is invalid, must be a number between 0 & 11`);
+  const nextYear = new Date().getFullYear();
+  if (month < 11) {
+    return { nextMonth: month + 1, nextYear: nextYear };
+  }
+
+  return { nextMonth: 0, nextYear: nextYear + 1 };
+}
+
+export function getCurrentMonthAndNextMonthDates() {
+  const currentDate = new Date();
+  const curMonthNum = currentDate.getMonth();
+
+  const { nextMonth, nextYear } = getFutureMonthAndYear(curMonthNum);
+  const day = currentDate.getDate();
+  const nextDate = new Date(nextYear, nextMonth, day);
+  return { currentDate, nextDate };
+}
