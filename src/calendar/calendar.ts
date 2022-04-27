@@ -163,6 +163,9 @@ export function getSingleCalendarEventById(
   eventId: string
 ) {
   const event = calendar.getEventById(eventId);
+  if (!event) {
+    return null;
+  }
   return normalizeCalendarEvents(event, calendarId);
 }
 
@@ -250,40 +253,45 @@ function updateExistingCalendarsInSheet() {
     throw Error(`Cannot find ${CALENDAR_EVENTS_SHEET_NAME} in ${updateExistingCalendarsInSheet.name}`);
   const { calendar, calendarId } = getUserCalendar();
   calendarEventsMap.forEach(({ rowNumber }, eventIdInMap) => {
-    const {
-      companyName,
-      eventDateCreated,
-      eventDescription,
-      eventEndTime,
-      eventId,
-      eventLastUpdated,
-      eventStartTime,
-      eventTitle,
-      guestDomain,
-      guestEmail,
-      guestName,
-      guestPhoneNumber,
-      guestStatus,
-      numberOfGuest,
-      eventURL,
-    } = getSingleCalendarEventById(calendar, calendarId, eventIdInMap);
-    const validRowInCalendarSheet: ValidRowToWriteInCalendarSheet = [
-      eventId,
-      eventLastUpdated,
-      eventDateCreated,
-      eventStartTime,
-      eventEndTime,
-      eventTitle,
-      eventDescription,
-      companyName,
-      guestDomain,
-      guestName,
-      guestPhoneNumber,
-      guestEmail,
-      guestStatus,
-      numberOfGuest,
-      eventURL,
-    ];
-    calendarSheet.getRange(rowNumber, 1, 1, validRowInCalendarSheet.length).setValues([validRowInCalendarSheet]);
+    const calendarEventObject = getSingleCalendarEventById(calendar, calendarId, eventIdInMap);
+    if (calendarEventObject) {
+      const {
+        companyName,
+        eventDateCreated,
+        eventDescription,
+        eventEndTime,
+        eventId,
+        eventLastUpdated,
+        eventStartTime,
+        eventTitle,
+        guestDomain,
+        guestEmail,
+        guestName,
+        guestPhoneNumber,
+        guestStatus,
+        numberOfGuest,
+        eventURL,
+      } = calendarEventObject;
+      const validRowInCalendarSheet: ValidRowToWriteInCalendarSheet = [
+        eventId,
+        eventLastUpdated,
+        eventDateCreated,
+        eventStartTime,
+        eventEndTime,
+        eventTitle,
+        eventDescription,
+        companyName,
+        guestDomain,
+        guestName,
+        guestPhoneNumber,
+        guestEmail,
+        guestStatus,
+        numberOfGuest,
+        eventURL,
+      ];
+      calendarSheet.getRange(rowNumber, 1, 1, validRowInCalendarSheet.length).setValues([validRowInCalendarSheet]);
+    } else {
+      calendarSheet.deleteRow(rowNumber);
+    }
   });
 }
