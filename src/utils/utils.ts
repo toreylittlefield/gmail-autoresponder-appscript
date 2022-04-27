@@ -8,6 +8,7 @@ import {
   sentEmailsBySentMessageIdMap,
   sentEmailsByDomainMap,
   followUpSheetMessageIdMap,
+  emailThreadsIdAppliedLinkedInMap,
 } from '../global/maps';
 import { getUserProps } from '../properties-service/properties-service';
 import { getAllDataFromSheet, getAllHeaderColNumsAndLetters, SheetNames } from '../sheets/sheets';
@@ -17,6 +18,7 @@ import {
   DO_NOT_EMAIL_AUTO_SHEET_NAME,
   DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME,
   FOLLOW_UP_EMAILS_SHEET_NAME,
+  LINKEDIN_APPLIED_JOBS_SHEET_NAME,
   PENDING_EMAILS_TO_SEND_SHEET_NAME,
   SENT_SHEET_HEADERS,
   SENT_SHEET_NAME,
@@ -133,7 +135,8 @@ type MapNames =
   | 'followUpSheetMessageIdMap'
   | 'alwaysAllowMap'
   | 'sentEmailsBySentMessageIdMap'
-  | 'sentEmailsByDomainMap';
+  | 'sentEmailsByDomainMap'
+  | 'emailThreadsIdAppliedLinkedInMap';
 
 export function initialGlobalMap(mapName: MapNames) {
   try {
@@ -148,11 +151,11 @@ export function initialGlobalMap(mapName: MapNames) {
           emailThreadIdsMap.set(emailThreadId, { rowNumber: index + 2, emailMessageId: messageId })
         );
         break;
-      // case 'followUpSheetEmailThreadIdsMap':
-      //   getSheetData(FOLLOW_UP_EMAILS_SHEET_NAME).forEach(([emailThreadId], index) =>
-      //     emailThreadIdsMap.set(emailThreadId, index + 2)
-      //   );
-      //   break;
+      case 'emailThreadsIdAppliedLinkedInMap':
+        getSheetData(LINKEDIN_APPLIED_JOBS_SHEET_NAME).forEach(([emailThreadId, emailMessageId], index) =>
+          emailThreadsIdAppliedLinkedInMap.set(emailThreadId, { rowNumber: index + 2, emailMessageId })
+        );
+        break;
       case 'doNotTrackMap':
         getSheetData(DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME).forEach(([domainOrEmail]) =>
           doNotTrackMap.set(domainOrEmail, true)
