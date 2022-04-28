@@ -6,6 +6,11 @@
         "userSymbol": "Gmail",
         "version": "v1",
         "serviceId": "gmail"
+      },
+      {
+        "userSymbol": "Calendar",
+        "version": "v3",
+        "serviceId": "calendar"
       }
     ]
   },

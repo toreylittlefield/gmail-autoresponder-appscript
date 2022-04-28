@@ -162,10 +162,14 @@ export function getSingleCalendarEventById(
   calendarId: string,
   eventId: string
 ) {
-  const event = calendar.getEventById(eventId);
-  if (!event) {
+  const eventFromCalendarAPI = (Calendar.Events as GoogleAppsScript.Calendar.Collection.EventsCollection).get(
+    calendarId,
+    eventId.split('@')[0]
+  );
+  if (eventFromCalendarAPI.status === 'cancelled') {
     return null;
   }
+  const event = calendar.getEventById(eventId);
   return normalizeCalendarEvents(event, calendarId);
 }
 
