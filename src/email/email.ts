@@ -245,7 +245,7 @@ function isDomainEmailInDoNotTrackSheet(fromEmail: string) {
 
   if (alwaysAllowMap.has(domain) || alwaysAllowMap.has(fromEmail)) return false;
 
-  if (doNotTrackMap.has(domain) || doNotSendMailAutoMap.has(fromEmail)) return true;
+  if (doNotTrackMap.has(domain) || doNotTrackMap.has(fromEmail)) return true;
   /**TODO: Can be optimized in future if slow perf */
   if (Array.from(doNotTrackMap.keys()).filter((domainOrEmailKey) => fromEmail.match(domainOrEmailKey)).length > 0)
     return true;
