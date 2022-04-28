@@ -1000,6 +1000,7 @@ export function writeToSentEmailsSheet(rowsForSentSheet: ValidRowToWriteInSentSh
     { sheetToWriteToName: SENT_SHEET_NAME, colNumToWriteTo: emailThreadIdInSentSheetCol.colNumber },
     { sheetToLinkFromName: AUTOMATED_RECEIVED_SHEET_NAME, colNumToLinkFrom: receivedEmailThreadCol.colNumber }
   );
+  formatRowHeight(SENT_SHEET_NAME);
 }
 
 export function writeLinkInCellsFromSheetComparison(
