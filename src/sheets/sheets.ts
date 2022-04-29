@@ -597,11 +597,6 @@ export function linkHasResponseMessagesToPendingSheetAndSentSheet() {
 
     const build = richText.build();
     rangeToAddLink.setRichTextValue(build);
-    console.log(
-      { cellText: build.getText() },
-      { link: build.getLinkUrl() },
-      { rangeToAddLink: rangeToAddLink.getA1Notation() }
-    );
   });
 }
 
