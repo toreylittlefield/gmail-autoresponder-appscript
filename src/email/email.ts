@@ -15,6 +15,8 @@ import {
 import { getSingleUserPropValue, getUserProps } from '../properties-service/properties-service';
 import {
   addToRepliesArray,
+  getAllHeaderColNumsAndLetters,
+  getSheetByName,
   writeDomainsListToDoNotRespondSheet,
   writeEmailDataToReceivedAutomationSheet,
   writeMessagesToAppliedLinkedinSheet,
@@ -33,6 +35,8 @@ import {
   regexSalary,
 } from '../utils/utils';
 import {
+  AUTOMATED_RECEIVED_SHEET_HEADERS,
+  AUTOMATED_RECEIVED_SHEET_NAME,
   LINKEDIN_APPLIED_LABEL_NAME,
   LINKED_JOB_SEARCH_EMAILS,
   RECEIVED_MESSAGES_LABEL_NAME,
@@ -224,7 +228,11 @@ function getAutoResponseMsgsFromThread(restMsgs: GoogleAppsScript.Gmail.GmailMes
 
   const hasResponseFromRegex = new RegExp(`${ourEmailDomain}|canned\.response@${ourEmailDomain}`);
 
-  return restMsgs.filter((msg) => msg.getFrom().match(hasResponseFromRegex));
+  // return restMsgs.filter((msg) => msg.getFrom().match(hasResponseFromRegex));
+  return restMsgs.filter((msg) => {
+    if (msg.isDraft()) return true;
+    return msg.getFrom().match(hasResponseFromRegex);
+  });
 }
 
 function updateRepliesColumnIfMessageHasReplies(firstMsgId: string, restMsgs: GoogleAppsScript.Gmail.GmailMessage[]) {
@@ -250,6 +258,40 @@ function isDomainEmailInDoNotTrackSheet(fromEmail: string) {
   if (Array.from(doNotTrackMap.keys()).filter((domainOrEmailKey) => fromEmail.match(domainOrEmailKey)).length > 0)
     return true;
   return false;
+}
+
+export function updateHasEmailResponseRowInReceivedSheet() {
+  // TODO: Check For Replies / Follow Up Messages?
+  const automatedReceivedSheet = getSheetByName(AUTOMATED_RECEIVED_SHEET_NAME);
+  if (!automatedReceivedSheet)
+    throw Error(`Cannot find ${AUTOMATED_RECEIVED_SHEET_NAME} in ${extractGMAILDataForNewMessagesReceivedSearch.name}`);
+
+  const autoReceivedHeaders = getAllHeaderColNumsAndLetters<typeof AUTOMATED_RECEIVED_SHEET_HEADERS>({
+    sheetName: AUTOMATED_RECEIVED_SHEET_NAME,
+  });
+  const { 'Has Email Response': hasEmailResponseCol } = autoReceivedHeaders;
+  if (emailThreadIdsMap.size === 0) {
+    initialGlobalMap('autoReceivedSheetEmailThreadIdsMap');
+  }
+  return function (emailThreadId: string, autoResString?: string | false) {
+    const mapRes = emailThreadIdsMap.get(emailThreadId);
+    if (!mapRes) return false;
+    if (autoResString === false) return true;
+    if (!autoResString) {
+      const thread = GmailApp.getThreadById(emailThreadId);
+      const [firstMsg, ...remainingMsgs] = thread.getMessages();
+
+      const autoResponseMsg = updateRepliesColumnIfMessageHasReplies(firstMsg.getId(), remainingMsgs);
+      autoResString = autoResponseMsg.length > 0 ? getMessageIds(autoResponseMsg) : (false as const);
+      // autoResString = autoResponseMsg.length > 0 ? getToEmailArray(autoResponseMsg) : (false as const);
+    }
+    automatedReceivedSheet.getRange(mapRes.rowNumber, hasEmailResponseCol.colNumber).setValue(autoResString);
+    return true;
+  };
+}
+
+function getMessageIds(emailMessages: GoogleAppsScript.Gmail.GmailMessage[]) {
+  return emailMessages.map((message) => message.getId().toString()).toString();
 }
 
 export type EmailReceivedSheetRowItem = [
@@ -280,6 +322,8 @@ export function extractGMAILDataForNewMessagesReceivedSearch(
   _event?: GoogleAppsScript.Events.TimeDriven
 ) {
   try {
+    const canUpdateResponseColumn = updateHasEmailResponseRowInReceivedSheet();
+
     const emailsForList: EmailReceivedSheetRowItem[] = [];
 
     // Exclude this label:
@@ -320,6 +364,8 @@ export function extractGMAILDataForNewMessagesReceivedSearch(
 
       if (isDomainEmailInDoNotTrackSheet(emailFrom)) return;
 
+      if (canUpdateResponseColumn(emailThreadId, autoResString) === true) return;
+
       addValidEmailDataToPendingSheetMap(
         buildEmailsObjectForReplies(
           {
@@ -341,9 +387,6 @@ export function extractGMAILDataForNewMessagesReceivedSearch(
       );
 
       salaryRegexArray && salaryRegexArray.length > 0 && salaries.push(calcAverage(salaryRegexArray));
-
-      // TODO: Check For Replies / Follow Up Messages?
-      if (emailThreadIdsMap.has(emailThreadId)) return;
 
       emailsForList.push([
         emailThreadId,
@@ -595,7 +638,7 @@ export function makeEmailValidResponseObject(thread: GoogleAppsScript.Gmail.Gmai
     sentToPerson,
   } = getMessagePropertiesForResponseObject(firstMsg);
 
-  const autoResString = autoResponseMsg.length > 0 ? getToEmailArray(autoResponseMsg) : (false as const);
+  const autoResString = autoResponseMsg.length > 0 ? getMessageIds(autoResponseMsg) : (false as const);
 
   return {
     emailThreadId,
