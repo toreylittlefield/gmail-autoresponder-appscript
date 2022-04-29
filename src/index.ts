@@ -11,6 +11,7 @@ import {
   findColumnNumbersOrLettersByHeaderNames,
   formatRowHeight,
   initSpreadsheet,
+  linkHasResponseMessagesToPendingSheetAndSentSheet,
   sendDraftsIfAutoResponseUserOptionIsOn,
   sendOrMoveManuallyOrDeleteDraftsInPendingSheet,
   writeDomainsListToDoNotRespondSheet,
@@ -125,6 +126,8 @@ export function getEmailsFromGmail(e?: GoogleAppsScript.Events.TimeDriven) {
         }
       );
     }
+
+    linkHasResponseMessagesToPendingSheetAndSentSheet();
 
     allSheets.forEach((sheet) => {
       formatRowHeight(sheet);
