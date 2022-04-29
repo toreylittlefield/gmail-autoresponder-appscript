@@ -568,7 +568,13 @@ export function getMessagePropertiesForResponseObject(emailMessage: GoogleAppsSc
   // const emailFrom = [...new Set(from.match(regexEmail))];
   // const emailReplyTo = [...new Set(replyTo.match(regexEmail))];
   const emailFrom = getEmailFromString(from);
-  const personFrom = from.split('<', 1)[0].trim();
+  const personFrom = (() => {
+    let result = from;
+    if (from.match(/</g)) {
+      result = result.split('<')[0];
+    }
+    return result.replace(/"/g, '').trim();
+  })();
   const phoneNumbers = getPhoneNumbersFromString(emailBody);
   const emailReplyTo = replyTo ? getEmailFromString(replyTo) : emailFrom;
 
