@@ -319,18 +319,29 @@ export function menuItemResetEntireSheet() {
     ui.ButtonSet.OK_CANCEL
   );
   if (response === ui.Button.OK) {
-    const { draftId, email, filterId, labelId, labelToSearch, messageId, nameForEmail, spreadsheetId, subject } =
-      getUserProps([
-        'draftId',
-        'email',
-        'filterId',
-        'labelId',
-        'labelToSearch',
-        'messageId',
-        'nameForEmail',
-        'spreadsheetId',
-        'subject',
-      ]);
+    const {
+      draftId,
+      email,
+      filterId,
+      labelId,
+      labelToSearch,
+      messageId,
+      nameForEmail,
+      spreadsheetId,
+      subject,
+      currentCalendarName,
+    } = getUserProps([
+      'draftId',
+      'email',
+      'filterId',
+      'labelId',
+      'labelToSearch',
+      'messageId',
+      'nameForEmail',
+      'spreadsheetId',
+      'subject',
+      'currentCalendarName',
+    ]);
     WarningResetSheetsAndSpreadsheet();
     const deleteRes = ui.alert(
       `Delete Stored User Configuration`,
@@ -354,6 +365,7 @@ export function menuItemResetEntireSheet() {
         nameForEmail,
         spreadsheetId,
         subject,
+        currentCalendarName,
       });
     }
   }
