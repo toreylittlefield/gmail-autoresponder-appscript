@@ -4,7 +4,7 @@ import {
   DraftAttributeArray,
   EmailReceivedSheetRowItem,
   getEmailByThreadAndAddToMap,
-  getToEmailArray,
+  updateHasEmailResponseRowInReceivedSheet,
   ValidAppliedLinkedInSheetRow,
   ValidFollowUpSheetRowItem,
 } from '../email/email';
@@ -27,13 +27,17 @@ import {
   ALWAYS_RESPOND_DOMAIN_LIST_SHEET_HEADERS,
   ALWAYS_RESPOND_DOMAIN_LIST_SHEET_NAME,
   ALWAYS_RESPOND_LIST_INITIAL_DATA,
+  ARCHIVED_FOLLOW_UP_SHEET_HEADERS,
+  ARCHIVED_FOLLOW_UP_SHEET_NAME,
   ARCHIVED_THREADS_SHEET_HEADERS,
   ARCHIVED_THREADS_SHEET_NAME,
-  RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME,
   AUTOMATED_RECEIVED_SHEET_HEADERS,
   AUTOMATED_RECEIVED_SHEET_NAME,
+  AUTOMATED_RECEIVED_SHEET_PROTECTION_DESCRIPTION,
   BOUNCED_SHEET_HEADERS,
   BOUNCED_SHEET_NAME,
+  CALENDAR_EVENTS_SHEET_HEADERS,
+  CALENDAR_EVENTS_SHEET_NAME,
   DO_NOT_EMAIL_AUTO_INITIAL_DATA,
   DO_NOT_EMAIL_AUTO_SHEET_HEADERS,
   DO_NOT_EMAIL_AUTO_SHEET_NAME,
@@ -41,25 +45,21 @@ import {
   DO_NOT_TRACK_DOMAIN_LIST_SHEET_HEADERS,
   DO_NOT_TRACK_DOMAIN_LIST_SHEET_NAME,
   FOLLOW_UP_EMAILS_SHEET_NAME,
+  FOLLOW_UP_EMAILS_SHEET_PROTECTION_DESCRIPTION,
   FOLLOW_UP_EMAILS__SHEET_HEADERS,
+  FOLLOW_UP_MESSAGES_LABEL_NAME,
+  LINKEDIN_APPLIED_JOBS_SHEET_HEADERS,
+  LINKEDIN_APPLIED_JOBS_SHEET_NAME,
+  LINKEDIN_APPLIED_JOBS_SHEET_PROTECTION_DESCRIPTION,
   PENDING_EMAILS_TO_SEND_SHEET_HEADERS,
   PENDING_EMAILS_TO_SEND_SHEET_NAME,
+  PENDING_EMAILS_TO_SEND_SHEET_PROTECTION_DESCRIPTION,
+  RECEIVED_MESSAGES_ARCHIVE_LABEL_NAME,
+  RECEIVED_MESSAGES_LABEL_NAME,
+  SENT_MESSAGES_ARCHIVE_LABEL_NAME,
   SENT_MESSAGES_LABEL_NAME,
   SENT_SHEET_HEADERS,
   SENT_SHEET_NAME,
-  AUTOMATED_RECEIVED_SHEET_PROTECTION_DESCRIPTION,
-  PENDING_EMAILS_TO_SEND_SHEET_PROTECTION_DESCRIPTION,
-  FOLLOW_UP_EMAILS_SHEET_PROTECTION_DESCRIPTION,
-  RECEIVED_MESSAGES_LABEL_NAME,
-  ARCHIVED_FOLLOW_UP_SHEET_HEADERS,
-  ARCHIVED_FOLLOW_UP_SHEET_NAME,
-  FOLLOW_UP_MESSAGES_LABEL_NAME,
-  SENT_MESSAGES_ARCHIVE_LABEL_NAME,
-  LINKEDIN_APPLIED_JOBS_SHEET_NAME,
-  LINKEDIN_APPLIED_JOBS_SHEET_HEADERS,
-  LINKEDIN_APPLIED_JOBS_SHEET_PROTECTION_DESCRIPTION,
-  CALENDAR_EVENTS_SHEET_HEADERS,
-  CALENDAR_EVENTS_SHEET_NAME,
 } from '../variables/publicvariables';
 
 export type SheetNames =
@@ -459,18 +459,150 @@ export function addToRepliesArray(index: number, emailMessages: GoogleAppsScript
   repliesToUpdateArray.push([index + 2, emailMessages]);
 }
 
-export function updateRepliesColumn(rowsToUpdate: ReplyToUpdateType) {
-  try {
-    const automatedSheet = getSheetByName(`${AUTOMATED_RECEIVED_SHEET_NAME}`);
-    if (!automatedSheet) throw Error('Cannot find automated sheet to updated the replies column');
-    const dataValues = automatedSheet.getDataRange().getValues();
-    rowsToUpdate.forEach(([row, emailMessage]) => {
-      const numCols = dataValues[row].length;
-      automatedSheet.getRange(row, numCols).setValue(getToEmailArray(emailMessage));
-    });
-  } catch (error) {
-    console.error(error as any);
+// export function updateRepliesColumn(rowsToUpdate: ReplyToUpdateType) {
+//   try {
+//     const automatedSheet = getSheetByName(`${AUTOMATED_RECEIVED_SHEET_NAME}`);
+//     if (!automatedSheet) throw Error('Cannot find automated sheet to updated the replies column');
+//     const dataValues = automatedSheet.getDataRange().getValues();
+//     rowsToUpdate.forEach(([row, emailMessage]) => {
+//       const numCols = dataValues[row].length;
+//       automatedSheet.getRange(row, numCols).setValue(getToEmailArray(emailMessage));
+//     });
+//   } catch (error) {
+//     console.error(error as any);
+//   }
+// }
+
+function buildRichTextLink(
+  richText: GoogleAppsScript.Spreadsheet.RichTextValueBuilder,
+  sheetId: number,
+  rangeToBeLinked: string,
+  start: number,
+  end: number
+) {
+  const link = '#gid=' + sheetId + '&range=' + rangeToBeLinked;
+  return richText.setLinkUrl(start, end, link);
+}
+
+export function linkHasResponseMessagesToPendingSheetAndSentSheet() {
+  const autoReceivedSheet = getSheetByName(AUTOMATED_RECEIVED_SHEET_NAME);
+  const pendingSheet = getSheetByName(PENDING_EMAILS_TO_SEND_SHEET_NAME);
+  const sentSheet = getSheetByName(SENT_SHEET_NAME);
+
+  const autoReceivedSheetData = getAllDataFromSheet(AUTOMATED_RECEIVED_SHEET_NAME) as EmailReceivedSheetRowItem[];
+  const pendingSheetData = getAllDataFromSheet(PENDING_EMAILS_TO_SEND_SHEET_NAME) as ValidRowToWriteInPendingSheet[];
+  const sentSheetData = getAllDataFromSheet(SENT_SHEET_NAME) as ValidRowToWriteInSentSheet[];
+
+  if (!autoReceivedSheet)
+    throw Error(
+      `Cannot find ${AUTOMATED_RECEIVED_SHEET_NAME} SHEET in ${linkHasResponseMessagesToPendingSheetAndSentSheet.name}`
+    );
+  if (!pendingSheet)
+    throw Error(
+      `Cannot find ${PENDING_EMAILS_TO_SEND_SHEET_NAME} SHEET in ${linkHasResponseMessagesToPendingSheetAndSentSheet.name}`
+    );
+  if (!sentSheet)
+    throw Error(`Cannot find ${SENT_SHEET_NAME} SHEET in ${linkHasResponseMessagesToPendingSheetAndSentSheet.name}`);
+
+  if (!autoReceivedSheetData)
+    throw Error(
+      `Cannot find ${AUTOMATED_RECEIVED_SHEET_NAME} DATA in ${linkHasResponseMessagesToPendingSheetAndSentSheet.name}`
+    );
+  if (!pendingSheetData)
+    throw Error(
+      `Cannot find ${PENDING_EMAILS_TO_SEND_SHEET_NAME} DATA in ${linkHasResponseMessagesToPendingSheetAndSentSheet.name}`
+    );
+  if (!sentSheetData)
+    throw Error(`Cannot find ${SENT_SHEET_NAME} DATA in ${linkHasResponseMessagesToPendingSheetAndSentSheet.name}`);
+
+  const { 'Has Email Response': hasEmailResponseCol } = getAllHeaderColNumsAndLetters<
+    typeof AUTOMATED_RECEIVED_SHEET_HEADERS
+  >({
+    sheetName: AUTOMATED_RECEIVED_SHEET_NAME,
+  });
+  const { 'Draft Sent Message Id': draftSentMessageId } = getAllHeaderColNumsAndLetters<
+    typeof PENDING_EMAILS_TO_SEND_SHEET_HEADERS
+  >({
+    sheetName: PENDING_EMAILS_TO_SEND_SHEET_NAME,
+  });
+  const { 'Sent Email Message Id': sentMessageIdCol } = getAllHeaderColNumsAndLetters<typeof SENT_SHEET_HEADERS>({
+    sheetName: SENT_SHEET_NAME,
+  });
+
+  const pendingSheetMessageIdMap = new Map<string, { rowNumber: number; a1Notation: string }>();
+  const sentSheetMessagIdMap = new Map<string, { rowNumber: number; a1Notation: string }>();
+
+  pendingSheetData.forEach((row, index) => {
+    const draftId = row[draftSentMessageId.colNumber - 1] as string;
+    const a1Notation = `${draftSentMessageId.colLetter}${index + 2}`;
+    pendingSheetMessageIdMap.set(draftId, { rowNumber: index + 2, a1Notation });
+  });
+  sentSheetData.forEach((row, index) => {
+    const sentMessageId = row[sentMessageIdCol.colNumber - 1] as string;
+    const a1Notation = `${sentMessageIdCol.colLetter}${index + 2}`;
+
+    sentSheetMessagIdMap.set(sentMessageId, { rowNumber: index + 2, a1Notation });
+  });
+
+  const pendingSheetId = pendingSheet.getSheetId();
+  const sentSheetId = sentSheet.getSheetId();
+
+  function getSheetRowDataFromMaps(emailMessageId: string) {
+    const mapValuePendingSheet = pendingSheetMessageIdMap.get(emailMessageId);
+    if (mapValuePendingSheet) {
+      const { rowNumber, a1Notation } = mapValuePendingSheet;
+      return { rowNumber: rowNumber, a1Notation, sheetId: pendingSheetId, emailMessageId: emailMessageId };
+    }
+    const mapValuesSentSheet = sentSheetMessagIdMap.get(emailMessageId);
+    if (mapValuesSentSheet) {
+      const { rowNumber, a1Notation } = mapValuesSentSheet;
+      return { rowNumber: rowNumber, a1Notation, sheetId: sentSheetId, emailMessageId: emailMessageId };
+    }
+    return undefined;
   }
+
+  autoReceivedSheetData.forEach((row, index) => {
+    const hasResponseIdString = row[hasEmailResponseCol.colNumber - 1] as string;
+    if (!hasResponseIdString) return;
+
+    const rangeToAddLink = autoReceivedSheet.getRange(index + 2, hasEmailResponseCol.colNumber);
+
+    const richText = SpreadsheetApp.newRichTextValue();
+    richText.setText(hasResponseIdString);
+
+    if (hasResponseIdString.match(/\,/g)) {
+      const emailMessageIds = hasResponseIdString.split(',');
+
+      const getMatchingSheetData = emailMessageIds.map((emailMessageId) => {
+        return getSheetRowDataFromMaps(emailMessageId);
+      });
+
+      getMatchingSheetData.forEach((data, idx) => {
+        if (!data) return;
+        const { emailMessageId, sheetId, a1Notation } = data;
+
+        const start = idx === 0 ? 0 : emailMessageId.length * idx + 1;
+        const end = start + emailMessageId.length;
+        buildRichTextLink(richText, sheetId, a1Notation, start, end);
+      });
+    } else {
+      const data = getSheetRowDataFromMaps(hasResponseIdString);
+      if (!data) return;
+      const { a1Notation, emailMessageId, sheetId } = data;
+
+      const start = 0;
+      const end = emailMessageId.length;
+      buildRichTextLink(richText, sheetId, a1Notation, start, end);
+    }
+
+    const build = richText.build();
+    rangeToAddLink.setRichTextValue(build);
+    console.log(
+      { cellText: build.getText() },
+      { link: build.getLinkUrl() },
+      { rangeToAddLink: rangeToAddLink.getA1Notation() }
+    );
+  });
 }
 
 type ValidRowToWriteInPendingSheet = [
@@ -500,11 +632,14 @@ type ValidRowToWriteInPendingSheet = [
   manuallyMoveDraftToSent: boolean
 ];
 export function writeEmailsToPendingSheet() {
+  const emailObjects = Array.from(emailsToAddToPendingSheetMap.values());
+  if (emailObjects.length === 0) return;
   const pendingEmailsSheet = getSheetByName(PENDING_EMAILS_TO_SEND_SHEET_NAME);
   if (!pendingEmailsSheet) {
     throw Error(`Could Not Find Pending Emails To Send Sheet`);
   }
-  const emailObjects = Array.from(emailsToAddToPendingSheetMap.values());
+
+  const updateReceivedSheetRow = updateHasEmailResponseRowInReceivedSheet();
   const validSentRows: ValidRowToWriteInPendingSheet[] = emailObjects.map(
     ({
       send,
@@ -543,6 +678,7 @@ export function writeEmailsToPendingSheet() {
               personFrom: personFrom === emailSendTo ? '' : personFrom,
               gmailMessageId: inResponseToEmailMessageId,
             }) as DraftAttributeArray);
+      updateReceivedSheetRow(emailThreadId);
       return [
         send,
         emailThreadId,
@@ -773,6 +909,7 @@ export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
   { deleteAll = false }: DeleteDraftOptions
 ) {
   try {
+    const updateReceivedSheetRow = updateHasEmailResponseRowInReceivedSheet();
     const pendingSheetEmailData = getAllDataFromSheet(
       PENDING_EMAILS_TO_SEND_SHEET_NAME
     ) as ValidRowToWriteInPendingSheet[];
@@ -795,7 +932,7 @@ export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
         acc: ValidRowToWriteInSentSheet[],
         [
           send,
-          _emailThreadId,
+          emailThreadId,
           _inResponseToEmailMessageId,
           isReplyorNewEmail,
           _date,
@@ -852,11 +989,12 @@ export function sendOrMoveManuallyOrDeleteDraftsInPendingSheet(
             (type === 'manuallyMove' && manuallyMoveDraftToSent === true) ||
             (type === 'delete' && (deleteDraft === true || deleteAll === true))
           ) {
+            updateReceivedSheetRow(emailThreadId);
             pendingSheet.deleteRow(rowNumber);
             rowNumber--;
             if (draftData) {
               const rowData = [
-                _emailThreadId,
+                emailThreadId,
                 _inResponseToEmailMessageId,
                 isReplyorNewEmail,
                 _date,
