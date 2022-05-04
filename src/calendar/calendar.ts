@@ -162,15 +162,20 @@ export function getSingleCalendarEventById(
   calendarId: string,
   eventId: string
 ) {
-  const eventFromCalendarAPI = (Calendar.Events as GoogleAppsScript.Calendar.Collection.EventsCollection).get(
-    calendarId,
-    eventId.split('@')[0]
-  );
-  if (eventFromCalendarAPI.status === 'cancelled') {
+  try {
+    const eventFromCalendarAPI = (Calendar.Events as GoogleAppsScript.Calendar.Collection.EventsCollection).get(
+      calendarId,
+      eventId.split('@')[0]
+    );
+    if (eventFromCalendarAPI.status === 'cancelled') {
+      return null;
+    }
+    const event = calendar.getEventById(eventId);
+    return normalizeCalendarEvents(event, calendarId);
+  } catch (error) {
+    console.error(error);
     return null;
   }
-  const event = calendar.getEventById(eventId);
-  return normalizeCalendarEvents(event, calendarId);
 }
 
 export function getUserCalendarsAndCurrentCalendar() {
