@@ -1151,8 +1151,12 @@ export function writeLinkInCellsFromSheetComparison(
   const { colNumToWriteTo } = sheetOne;
   const { colNumToLinkFrom } = sheetTwo;
 
-  const sheetToWriteRange = sheetToWriteTo.getRange(2, colNumToWriteTo, sheetToWriteTo.getLastRow() - 1);
-  const sheetToLinkFromRange = sheetToLinkFrom.getRange(2, colNumToLinkFrom, sheetToLinkFrom.getLastRow() - 1);
+  const sheetToWriteToLastRow = sheetToWriteTo.getLastRow() - 1;
+  const sheetToLinkFromLastRow = sheetToLinkFrom.getLastRow() - 1;
+  if (sheetToWriteToLastRow <= 0 || sheetToLinkFromLastRow <= 0) return;
+
+  const sheetToWriteRange = sheetToWriteTo.getRange(2, colNumToWriteTo, sheetToWriteToLastRow);
+  const sheetToLinkFromRange = sheetToLinkFrom.getRange(2, colNumToLinkFrom, sheetToLinkFromLastRow);
 
   const sheetToLinkFromMap = new Map();
 
