@@ -62,7 +62,12 @@ export const regexValidUSPhoneNumber =
   /((^(?:\+?1[-.●]?)?\(?)|((?:\+?1[-.●]?)?\(?))([0-9]{3})\)?[-.●\s]?([0-9]{3})[-.●\s]?([0-9]{4})/gim;
 export const regexValidUSPhoneNumberOld = /^(?:\+?1[-.●]?)?\(?([0-9]{3})\)?[-.●\s]?([0-9]{3})[-.●\s]?([0-9]{4})/gim;
 
-export const getEmailFromString = (str: string) => str.split('<')[1].replace('>', '').trim();
+export const getEmailFromString = (str: string) => {
+  if (str.match(/</g)) {
+    return str.split('<')[1].replace('>', '').trim();
+  }
+  return str.trim();
+};
 export const getPhoneNumbersFromString = (str: string) => {
   const numbers = str.match(regexValidUSPhoneNumber);
   if (!numbers) return 'null';
